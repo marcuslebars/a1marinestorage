@@ -28,20 +28,12 @@ export function SiteFooter() {
         <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
           {/* Brand Column */}
           <div className="lg:col-span-1">
-            <div className="flex items-center gap-2.5 mb-4">
+            <div className="mb-4">
               <img
-                src="https://d2xsxph8kpxj0f.cloudfront.net/310519663121655920/VHzsy7iWSckjLQV8t62ZhN/logo-storage-4y95Lr46Hgo9t3GrxXampS.webp"
+                src="/manus-storage/A1MarineStorageLogo700x200_379cd6b3.svg"
                 alt="A1 Marine Storage"
-                className="h-10 w-auto"
+                className="h-12 w-auto"
               />
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.85_0.18_195)] leading-none">
-                  A1 Marine
-                </p>
-                <p className="text-base font-bold text-white leading-none mt-0.5">
-                  Storage
-                </p>
-              </div>
             </div>
             <p className="text-sm text-slate-400 leading-relaxed mb-4">
               Secure seasonal storage and professional shrink wrapping for boat owners across Georgian Bay and Lake Simcoe.

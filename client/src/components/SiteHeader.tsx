@@ -44,18 +44,10 @@ export function SiteHeader() {
         {/* Logo */}
         <Link href="/" className="inline-flex items-center gap-2.5 shrink-0">
           <img
-            src="https://d2xsxph8kpxj0f.cloudfront.net/310519663121655920/VHzsy7iWSckjLQV8t62ZhN/logo-storage-4y95Lr46Hgo9t3GrxXampS.webp"
+            src="/manus-storage/A1MarineStorageLogo700x200_379cd6b3.svg"
             alt="A1 Marine Storage"
-            className="h-9 w-auto"
+            className="h-10 w-auto"
           />
-          <div className="hidden sm:block">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.85_0.18_195)] leading-none">
-              A1 Marine
-            </p>
-            <p className="text-sm font-bold text-white leading-none mt-0.5">
-              Storage
-            </p>
-          </div>
         </Link>
 
         {/* Desktop Nav */}
