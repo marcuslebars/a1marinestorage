@@ -5,6 +5,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { defineConfig, type Plugin, type ViteDevServer } from "vite";
 import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
+import type { IncomingMessage, ServerResponse } from "node:http";
+import { handleQuoteSubmission } from "./server/quote-handler";
+import { handleContactSubmission } from "./server/contact-handler";
 
 // =============================================================================
 // Manus Debug Collector - Vite Plugin
@@ -203,7 +206,40 @@ function vitePluginStorageProxy(): Plugin {
   };
 }
 
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector(), vitePluginStorageProxy()];
+// Serves the quote + contact submission endpoints in dev, sharing the production handlers.
+function vitePluginLeadApi(): Plugin {
+  const jsonPost =
+    (handler: (body: unknown) => Promise<{ status: number; body: unknown }>) =>
+    (req: IncomingMessage, res: ServerResponse, next: () => void) => {
+      if (req.method !== "POST") return next();
+      let body = "";
+      req.on("data", (chunk) => {
+        body += chunk.toString();
+      });
+      req.on("end", async () => {
+        try {
+          const parsed = body ? JSON.parse(body) : {};
+          const { status, body: out } = await handler(parsed);
+          res.statusCode = status;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify(out));
+        } catch {
+          res.statusCode = 500;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({ ok: false, error: "We couldn't record your request. Please try again." }));
+        }
+      });
+    };
+  return {
+    name: "a1-lead-api",
+    configureServer(server: ViteDevServer) {
+      server.middlewares.use("/api/quote", jsonPost(handleQuoteSubmission));
+      server.middlewares.use("/api/contact", jsonPost(handleContactSubmission));
+    },
+  };
+}
+
+const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector(), vitePluginStorageProxy(), vitePluginLeadApi()];
 
 export default defineConfig({
   plugins,

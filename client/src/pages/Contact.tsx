@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MapView } from "@/components/Map";
+import { BUSINESS } from "@/content/business";
 
 interface FormData {
   name: string;
@@ -30,14 +31,60 @@ export default function Contact() {
     message: "",
   });
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [submitFallback, setSubmitFallback] = useState(false);
 
   const canSubmit = form.name && form.email && form.phone;
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    // In production: POST to Formspree or email backend
-    // Formspree endpoint: https://formspree.io/f/[INSERT_FORM_ID]
-    setSubmitted(true);
+    if (!canSubmit) return;
+    setSubmitting(true);
+    setSubmitError("");
+    setSubmitFallback(false);
+
+    const payload = {
+      name: form.name,
+      email: form.email,
+      phone: form.phone,
+      boatMakeModel: form.boatMakeModel,
+      boatLength: form.boatLength,
+      serviceInterest: form.serviceInterest,
+      message: form.message,
+    };
+
+    const maxAttempts = 3;
+    try {
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          const res = await fetch("/api/contact", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          if (res.ok) {
+            const data = await res.json().catch(() => ({ ok: true }));
+            if (data.ok) {
+              setSubmitted(true);
+              return;
+            }
+          } else if (res.status >= 400 && res.status < 500) {
+            const data = await res.json().catch(() => ({}));
+            setSubmitError(data.error || "Please check your details and try again.");
+            return;
+          }
+          // 5xx — fall through to retry.
+        } catch {
+          // Network error — fall through to retry.
+        }
+        if (attempt < maxAttempts) await new Promise((resolve) => setTimeout(resolve, attempt * 800));
+      }
+      // Every attempt failed — never a fake success.
+      setSubmitFallback(true);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   if (submitted) {
@@ -200,14 +247,33 @@ export default function Contact() {
                     className="bg-white/5 border-white/15 text-white placeholder:text-white/30 focus:border-[oklch(0.85_0.18_195)] min-h-[120px]"
                   />
                 </div>
+                {submitFallback && (
+                  <div className="rounded-xl border border-amber-400/25 bg-amber-500/10 p-4">
+                    <p className="text-sm font-semibold text-amber-100">We couldn&apos;t send your message just now.</p>
+                    <p className="mt-1 text-sm text-amber-100/80">
+                      Your message hasn&apos;t been sent yet — please reach us directly and we&apos;ll respond right away:
+                    </p>
+                    <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:gap-6">
+                      <a href={BUSINESS.phoneHref} className="inline-flex items-center gap-2 text-base font-semibold text-white hover:text-[oklch(0.85_0.18_195)]">
+                        <Phone className="h-4 w-4 text-[oklch(0.85_0.18_195)]" /> {BUSINESS.phone}
+                      </a>
+                      <a href={BUSINESS.emailHref} className="inline-flex items-center gap-2 text-base font-semibold text-white hover:text-[oklch(0.85_0.18_195)]">
+                        <Mail className="h-4 w-4 text-[oklch(0.85_0.18_195)]" /> {BUSINESS.email}
+                      </a>
+                    </div>
+                  </div>
+                )}
+                {submitError && (
+                  <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">{submitError}</div>
+                )}
                 <div className="pt-2">
                   <Button
                     type="submit"
-                    disabled={!canSubmit}
+                    disabled={!canSubmit || submitting}
                     className="w-full h-12 bg-[oklch(0.85_0.18_195)] text-[oklch(0.12_0.018_240)] font-semibold hover:bg-[oklch(0.78_0.18_195)] disabled:opacity-40 btn-cyan-glow active:scale-[0.97] transition-all duration-150"
                   >
                     <Send className="mr-2 h-4 w-4" />
-                    Send Message
+                    {submitting ? "Sending…" : "Send Message"}
                   </Button>
                   <p className="text-xs text-white/35 text-center mt-3">
                     We respond within 1–2 business days. For urgent inquiries, please call us directly.

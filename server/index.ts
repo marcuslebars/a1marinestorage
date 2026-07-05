@@ -2,6 +2,8 @@ import express from "express";
 import { createServer } from "http";
 import path from "path";
 import { fileURLToPath } from "url";
+import { handleQuoteSubmission } from "./quote-handler";
+import { handleContactSubmission } from "./contact-handler";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,6 +17,31 @@ async function startServer() {
     process.env.NODE_ENV === "production"
       ? path.resolve(__dirname, "public")
       : path.resolve(__dirname, "..", "dist", "public");
+
+  app.use(express.json({ limit: "1mb" }));
+
+  // Storage quote submission: server-authoritative pricing, durable log,
+  // lead-pipeline forward with retry, graceful failure for the client.
+  app.post("/api/quote", async (req, res) => {
+    try {
+      const { status, body } = await handleQuoteSubmission(req.body);
+      res.status(status).json(body);
+    } catch (err) {
+      console.error("[quote] unhandled error:", err instanceof Error ? err.message : String(err));
+      res.status(500).json({ ok: false, error: "We couldn't record your request. Please try again." });
+    }
+  });
+
+  // Contact submission: durable log + lead-pipeline forward + graceful failure.
+  app.post("/api/contact", async (req, res) => {
+    try {
+      const { status, body } = await handleContactSubmission(req.body);
+      res.status(status).json(body);
+    } catch (err) {
+      console.error("[contact] unhandled error:", err instanceof Error ? err.message : String(err));
+      res.status(500).json({ ok: false, error: "We couldn't record your message. Please try again." });
+    }
+  });
 
   app.use(express.static(staticPath));
 
