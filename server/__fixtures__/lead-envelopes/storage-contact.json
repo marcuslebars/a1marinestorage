@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "source": "a1marinestorage-contact",
+  "sourceSite": "a1marinestorage",
+  "formType": "contact",
+  "receivedAt": "2026-07-10T12:00:00.000Z",
+  "contact": { "name": "Pat Quinn", "email": "pat@example.com", "phone": "(705) 555-0166" },
+  "message": "Service interest: Winter storage\n\nDo you store sailboats over winter?",
+  "asset": { "makeModel": "Catalina 27", "lengthFt": 27 },
+  "meta": { "site": "a1marinestorage.ca", "page": "/contact" }
+}
