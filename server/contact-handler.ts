@@ -7,6 +7,7 @@
 
 import { randomUUID } from "node:crypto";
 import { SOURCE_SITE, appendSubmission, forwardToLeadPipeline } from "./lead-pipeline";
+import { buildStorageContactEnvelope, forwardToEmpireVu } from "./empirevu";
 
 const LEAD_TAG = "a1marinestorage-contact";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -95,6 +96,10 @@ export async function handleContactSubmission(rawBody: unknown): Promise<Handler
       .join("\n"),
   };
   void forwardToLeadPipeline("contact", forwardPayload);
+
+  // (3) Additive dual-send: the SAME lead to EmpireVu's canonical intake, best-effort.
+  //     The legacy forward above is untouched; an EmpireVu failure never affects this response.
+  void forwardToEmpireVu(buildStorageContactEnvelope({ id, receivedAt, contact }));
 
   return { status: 200, body: { ok: true, id, submittedAt: receivedAt } };
 }

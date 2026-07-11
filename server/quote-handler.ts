@@ -16,6 +16,7 @@
 import { randomUUID } from "node:crypto";
 import { calculateQuote, type QuoteInput, type QuoteResult } from "@a1/pricing-engine";
 import { SOURCE_SITE, appendSubmission, logAnalytics, forwardToLeadPipeline } from "./lead-pipeline";
+import { buildStorageQuoteEnvelope, forwardToEmpireVu } from "./empirevu";
 
 export interface QuoteContact {
   name: string;
@@ -174,6 +175,13 @@ export async function handleQuoteSubmission(rawBody: unknown): Promise<HandlerRe
   };
   // Fire-and-forget with internal retry; the durable log already holds the record.
   void forwardToLeadPipeline("quote", forwardPayload);
+
+  // Additive dual-send: the SAME quote to EmpireVu's canonical intake, best-effort.
+  const utm =
+    body.meta && typeof (body.meta as Record<string, unknown>).utm === "object"
+      ? ((body.meta as Record<string, unknown>).utm as Record<string, string>)
+      : undefined;
+  void forwardToEmpireVu(buildStorageQuoteEnvelope({ id, receivedAt, contact, quote, jobberLineItems, utm }));
 
   return {
     status: 200,
