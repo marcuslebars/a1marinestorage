@@ -19,30 +19,30 @@ function priceFor(sel: Selection, b: BoatState) {
 // The page maps selections → engine input; these prove that mapping produces the
 // authoritative contract prices, end to end.
 describe("storage quote page mapping → engine (contract check cases)", () => {
-  it("24ft bowrider, Winter Ready → $1,413.12", () => {
+  it("24ft bowrider, Winter Ready → $1,656.00", () => {
     const q = priceFor({ mode: "bundle", bundleId: "winter_ready" }, boat({ lengthFt: 24, hullType: "bowrider" }));
-    expect(q.subtotalCents).toBe(141312);
+    expect(q.subtotalCents).toBe(165600);
   });
 
-  it("22ft pontoon, outboard, Winter Ready Plus → $1,786.50", () => {
+  it("22ft pontoon, outboard, Winter Ready Plus → $2,049.30", () => {
     const q = priceFor(
       { mode: "bundle", bundleId: "winter_ready_plus" },
       boat({ lengthFt: 22, hullType: "pontoon", engineType: "outboard", engineCount: 1 }),
     );
-    expect(q.subtotalCents).toBe(178650);
+    expect(q.subtotalCents).toBe(204930);
   });
 
-  it("14ft, storage only (à la carte) → $690.00", () => {
+  it("14ft, storage only (à la carte) → $750.00", () => {
     const q = priceFor({ mode: "alacarte", alacarteIds: ["outdoor_storage"] }, boat({ lengthFt: 14, hullType: "other" }));
-    expect(q.subtotalCents).toBe(69000);
+    expect(q.subtotalCents).toBe(75000);
   });
 
-  it("28ft cruiser, twin inboards, Full Care → $3,009.82", () => {
+  it("28ft cruiser, twin inboards, Full Care → $3,358.08", () => {
     const q = priceFor(
       { mode: "bundle", bundleId: "full_care" },
       boat({ lengthFt: 28, hullType: "cruiser", engineType: "inboard", engineCount: 2 }),
     );
-    expect(q.subtotalCents).toBe(300982);
+    expect(q.subtotalCents).toBe(335808);
   });
 
   it("ceramic upsell adds full price and is never bundle-discounted", () => {
@@ -52,7 +52,7 @@ describe("storage quote page mapping → engine (contract check cases)", () => {
     );
     const ceramic = q.lineItems.find((l) => l.serviceId === "ceramic_upgrade");
     expect(ceramic?.bundleEligible).toBe(false);
-    expect(q.subtotalCents).toBe(141312 + 204000);
+    expect(q.subtotalCents).toBe(165600 + 204000);
   });
 
   it("à la carte winterization resolves to the selected engine type", () => {
@@ -61,6 +61,6 @@ describe("storage quote page mapping → engine (contract check cases)", () => {
       boat({ lengthFt: 26, engineType: "sterndrive", engineCount: 1 }),
     );
     expect(q.lineItems[0].serviceId).toBe("winterization_sterndrive");
-    expect(q.lineItems[0].amountCents).toBe(35000);
+    expect(q.lineItems[0].amountCents).toBe(40000);
   });
 });
