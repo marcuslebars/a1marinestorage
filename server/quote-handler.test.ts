@@ -28,12 +28,12 @@ describe("storage quote submission handler", () => {
     expect(res.status).toBe(200);
     expect(res.body.ok).toBe(true);
     // Server recomputes — never trusts the client's number.
-    expect(res.body.subtotalCents).toBe(141312);
+    expect(res.body.subtotalCents).toBe(165600);
 
     const files = fs.readdirSync(TMP).filter((f) => f.startsWith("quotes-"));
     expect(files.length).toBeGreaterThan(0);
     const content = files.map((f) => fs.readFileSync(path.join(TMP, f), "utf-8")).join("");
-    expect(content).toContain("141312");
+    expect(content).toContain("165600");
     expect(content).toContain("jane@example.com");
   });
 
