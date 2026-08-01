@@ -273,7 +273,7 @@ export default function Pricing() {
 
           <p className="mt-6 text-base text-white/65 leading-relaxed max-w-2xl mx-auto text-center">
             <span className="font-semibold text-white">Full Care is the whole year, handled:</span> your boat leaves the water in
-            fall and returns in spring detailed, protected, winterized, and running — one booking, one discount, zero hassle.
+            fall and returns in spring detailed, protected, and running — one booking, one discount, zero hassle.
           </p>
         </div>
       </section>
