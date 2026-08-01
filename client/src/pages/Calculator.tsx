@@ -1,7 +1,7 @@
 // A1 Marine Storage — Storage Quote Calculator
 // Bundles-first quote & booking flow, powered by the shared @a1/pricing-engine.
 // Style: Contemporary Coastal Modernism — dark harbor, cyan accents, sticky price panel.
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 import {
   ArrowRight, ArrowLeft, CheckCircle2, Snowflake, Shield, Wrench, Sun, Sparkles,
@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BUSINESS } from "@/content/business";
+import { track, trackPhoneClick } from "@/lib/analytics";
 import {
   calculateQuote,
   formatCents,
@@ -116,6 +117,14 @@ export default function Calculator() {
   const [errorMsg, setErrorMsg] = useState("");
   const [showBreakdown, setShowBreakdown] = useState(true);
 
+  // Funnel top: fire quote_started once, on the first calculator field change.
+  const startedRef = useRef(false);
+  function markStarted() {
+    if (startedRef.current) return;
+    startedRef.current = true;
+    track("quote_started");
+  }
+
   const lengthFt = Number.parseFloat(lengthInput);
   const lengthValid = Number.isFinite(lengthFt) && lengthFt > 0;
   const boat: BoatState = { lengthFt: lengthValid ? lengthFt : 0, hullType, engineType, engineCount };
@@ -186,6 +195,14 @@ export default function Calculator() {
           body: JSON.stringify(payload),
         });
         if (res.ok) {
+          if (quote) {
+            // Conversion event — engine-derived totals only, no personal data.
+            track("quote_completed", {
+              quote_total: Math.round(quote.subtotalCents) / 100,
+              services: quote.lineItems.map((l) => l.serviceId).join(","),
+              boat_length: lengthFt,
+            });
+          }
           setStatus("success");
           return;
         }
@@ -325,7 +342,10 @@ export default function Calculator() {
                         inputMode="decimal"
                         placeholder="e.g. 24"
                         value={lengthInput}
-                        onChange={(e) => setLengthInput(e.target.value)}
+                        onChange={(e) => {
+                          markStarted();
+                          setLengthInput(e.target.value);
+                        }}
                         className="bg-white/5 border-white/15 text-white placeholder:text-white/30 focus:border-[oklch(0.85_0.18_195)] h-12"
                       />
                       <p className="text-xs text-white/40 mt-1.5">Length overall (LOA) in feet.</p>
@@ -594,7 +614,7 @@ export default function Calculator() {
                       <p className="font-semibold text-yellow-200">We couldn't submit your request just now.</p>
                       <p className="mt-1">Please call or email us and we'll lock in your quote right away:</p>
                       <div className="mt-2 flex flex-col gap-1">
-                        <a href={BUSINESS.phoneHref} className="inline-flex items-center gap-2 font-semibold text-white hover:text-[oklch(0.85_0.18_195)]">
+                        <a href={BUSINESS.phoneHref} onClick={() => trackPhoneClick("calculator")} className="inline-flex items-center gap-2 font-semibold text-white hover:text-[oklch(0.85_0.18_195)]">
                           <Phone className="h-4 w-4" /> {BUSINESS.phone}
                         </a>
                         <a href={BUSINESS.emailHref} className="inline-flex items-center gap-2 font-semibold text-white hover:text-[oklch(0.85_0.18_195)]">
@@ -715,7 +735,7 @@ export default function Calculator() {
 
             <div className="marine-card p-4 mt-4">
               <p className="text-xs font-semibold uppercase tracking-[0.15em] text-white/40 mb-2">Questions?</p>
-              <a href={BUSINESS.phoneHref} className="flex items-center gap-2 text-sm text-white/70 hover:text-[oklch(0.85_0.18_195)]">
+              <a href={BUSINESS.phoneHref} onClick={() => trackPhoneClick("calculator")} className="flex items-center gap-2 text-sm text-white/70 hover:text-[oklch(0.85_0.18_195)]">
                 <Phone className="h-4 w-4" /> {BUSINESS.phone}
               </a>
               <a href={BUSINESS.emailHref} className="flex items-center gap-2 text-sm text-white/70 hover:text-[oklch(0.85_0.18_195)] mt-1">
