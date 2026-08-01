@@ -5,11 +5,9 @@ import { MapPin, Phone, Mail, Clock, ExternalLink } from "lucide-react";
 
 const serviceLinks = [
   { href: "/services#shrink-wrapping", label: "Shrink Wrapping" },
-  { href: "/services#indoor-storage", label: "Indoor Storage" },
   { href: "/services#outdoor-storage", label: "Outdoor Storage" },
   { href: "/services#winterization", label: "Winterization" },
-  { href: "/services#spring-launch", label: "Spring Launch Prep" },
-  { href: "/services#trailer-storage", label: "Trailer Storage" },
+  { href: "/services#spring-launch", label: "Spring Commissioning" },
 ];
 
 const pageLinks = [

@@ -2,8 +2,9 @@
 // Style: Contemporary Coastal Modernism — cinematic hero, dark harbor, cyan accents
 // SEO: "boat storage Tiny Ontario", "shrink wrapping Midland", "winter boat storage Georgian Bay"
 import { Link } from "wouter";
-import { ArrowRight, Shield, Snowflake, Wrench, Sun, Truck, CheckCircle2, Star } from "lucide-react";
+import { ArrowRight, Shield, Snowflake, Wrench, Sun, CheckCircle2, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { RATES, WINTERIZATION } from "@/lib/storage-pricing";
 import { useEffect, useRef } from "react";
 
 const HERO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663121655920/VHzsy7iWSckjLQV8t62ZhN/hero-storage-facility-cQ5KsxQarVqwSmuxTc9X9F.webp";
@@ -18,13 +19,15 @@ const services = [
     desc: "Professional-grade white heat-shrink film with vents installed. Protects against snow, ice, UV, and debris all winter.",
     href: "/services#shrink-wrapping",
     img: SHRINK_IMG,
+    price: `From ${RATES.shrinkPerFoot}/ft`,
   },
   {
     icon: Shield,
-    title: "Indoor & Outdoor Storage",
-    desc: "Secure seasonal storage at our Tiny, ON facility. Indoor and outdoor options available for all boat sizes.",
-    href: "/services#indoor-storage",
+    title: "Outdoor Storage",
+    desc: "Secure seasonal storage on our fenced Tiny, ON lot — professionally blocked and positioned on your trailer, monitored all winter.",
+    href: "/services#outdoor-storage",
     img: INDOOR_IMG,
+    price: `From ${RATES.outdoorPerFoot}/ft/season`,
   },
   {
     icon: Wrench,
@@ -32,13 +35,15 @@ const services = [
     desc: "Engine flush & fogging, antifreeze in engine and lines, fuel stabilizer, battery disconnect, drain plug removal.",
     href: "/services#winterization",
     img: WINTER_IMG,
+    price: `From ${WINTERIZATION[0].price}`,
   },
   {
     icon: Sun,
-    title: "Spring Launch Prep",
-    desc: "De-winterizing, shrink wrap removal and disposal, battery reinstall, and ready-for-water service.",
+    title: "Spring Commissioning",
+    desc: "De-winterization, battery reconnect and test, fluid and system checks, and an engine run to temperature — launch-ready for spring.",
     href: "/services#spring-launch",
     img: null,
+    price: `${RATES.springCommissioning} flat`,
   },
 ];
 
@@ -228,9 +233,12 @@ export default function Home() {
                           <h3 className="text-base font-bold text-white">{service.title}</h3>
                         </div>
                         <p className="text-sm text-white/60 leading-relaxed">{service.desc}</p>
-                        <p className="mt-3 text-xs font-semibold text-[oklch(0.85_0.18_195)] flex items-center gap-1 group-hover:gap-2 transition-all">
-                          Learn more <ArrowRight className="h-3.5 w-3.5" />
-                        </p>
+                        <div className="mt-3 flex items-center justify-between gap-2">
+                          <span className="text-sm font-bold text-[oklch(0.85_0.18_195)] tabular-nums">{service.price}</span>
+                          <span className="text-xs font-semibold text-[oklch(0.85_0.18_195)] flex items-center gap-1 group-hover:gap-2 transition-all">
+                            Learn more <ArrowRight className="h-3.5 w-3.5" />
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </Link>
