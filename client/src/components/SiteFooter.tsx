@@ -103,27 +103,24 @@ export function SiteFooter() {
               <li className="flex items-center gap-2.5">
                 <Phone className="h-4 w-4 text-[oklch(0.85_0.18_195)] shrink-0" />
                 <a
-                  href="tel:+17055551234"
+                  href="tel:+12492016677"
                   className="text-sm text-slate-400 hover:text-[oklch(0.85_0.18_195)] transition-colors"
                 >
-                  {/* ⚠️ PLACEHOLDER — update with real number */}
-                  (705) 555-1234
+                  (249) 201-6677
                 </a>
               </li>
               <li className="flex items-center gap-2.5">
                 <Mail className="h-4 w-4 text-[oklch(0.85_0.18_195)] shrink-0" />
                 <a
-                  href="mailto:info@a1marinestorage.ca"
+                  href="mailto:contact@a1marinestorage.ca"
                   className="text-sm text-slate-400 hover:text-[oklch(0.85_0.18_195)] transition-colors"
                 >
-                  {/* ⚠️ PLACEHOLDER — update with real email */}
-                  info@a1marinestorage.ca
+                  contact@a1marinestorage.ca
                 </a>
               </li>
               <li className="flex items-start gap-2.5">
                 <Clock className="h-4 w-4 text-[oklch(0.85_0.18_195)] mt-0.5 shrink-0" />
                 <div className="text-sm text-slate-400">
-                  {/* ⚠️ PLACEHOLDER — update with real hours */}
                   Mon–Fri: 8am – 5pm<br />
                   Sat: 9am – 3pm<br />
                   Sun: Closed

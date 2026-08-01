@@ -329,7 +329,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* TESTIMONIALS PLACEHOLDER */}
+      {/* TESTIMONIALS — reviews coming soon (real reviews to be added) */}
       <section className="section-space bg-[oklch(0.12_0.018_240)]">
         <div className="container max-w-7xl mx-auto">
           <div className="text-center mb-10">
@@ -345,26 +345,6 @@ export default function Home() {
             <p className="mt-4 text-base text-white/50 max-w-xl mx-auto">
               We're just getting started. Be one of our first clients and help us build our reputation in the Georgian Bay area.
             </p>
-          </div>
-          <div className="grid gap-5 md:grid-cols-3">
-            {[
-              { name: "J. Thompson", location: "Midland, ON", text: "⚠️ Testimonial placeholder — replace with real client review." },
-              { name: "M. Arsenault", location: "Penetanguishene, ON", text: "⚠️ Testimonial placeholder — replace with real client review." },
-              { name: "R. Kowalski", location: "Wasaga Beach, ON", text: "⚠️ Testimonial placeholder — replace with real client review." },
-            ].map((t) => (
-              <div key={t.name} className="marine-card p-6">
-                <div className="flex items-center gap-1 mb-3">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="h-4 w-4 fill-[oklch(0.85_0.18_195)] text-[oklch(0.85_0.18_195)]" />
-                  ))}
-                </div>
-                <p className="text-sm text-white/60 italic leading-relaxed mb-4">"{t.text}"</p>
-                <div>
-                  <p className="text-sm font-semibold text-white">{t.name}</p>
-                  <p className="text-xs text-white/40">{t.location}</p>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       </section>
