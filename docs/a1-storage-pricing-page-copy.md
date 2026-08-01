@@ -86,7 +86,7 @@ Book your winter services together and save on the whole package:
 
 *Example: a 24 ft sterndrive with storage, wrap, and winterization is $2,200 à la carte — $1,980 with Winter Ready Plus.*
 
-**Full Care is the whole year, handled:** your boat leaves the water in fall and returns in spring detailed, protected, winterized, and running — one booking, one discount, zero hassle.
+**Full Care is the whole year, handled:** your boat leaves the water in fall and returns in spring detailed, protected, and running — one booking, one discount, zero hassle.
 
 ---
 

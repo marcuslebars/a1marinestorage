@@ -299,9 +299,8 @@ export default function Contact() {
                       <p className="text-sm font-semibold text-white">Address</p>
                       <p className="text-sm text-white/60 mt-0.5">
                         639 Concession Road 16 East<br />
-                        Tiny, ON L9M 0G8
+                        Tiny, ON L9M 1R2
                       </p>
-                      <p className="text-xs text-yellow-400/60 mt-0.5">⚠️ Confirm postal code</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -333,11 +332,9 @@ export default function Contact() {
                     <div>
                       <p className="text-sm font-semibold text-white">Business Hours</p>
                       <div className="text-sm text-white/60 mt-0.5 space-y-0.5">
-                        <p>Mon–Fri: 8:00 AM – 5:00 PM</p>
-                        <p>Saturday: 9:00 AM – 3:00 PM</p>
-                        <p>Sunday: Closed</p>
+                        <p>Monday – Friday: 9:00 AM – 6:00 PM</p>
+                        <p>By appointment only</p>
                       </div>
-                      <p className="text-xs text-yellow-400/60 mt-0.5">⚠️ Confirm hours with owner</p>
                     </div>
                   </div>
                 </div>
