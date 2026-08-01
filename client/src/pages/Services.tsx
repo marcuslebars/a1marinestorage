@@ -99,14 +99,14 @@ const services = [
     description:
       "We take the security of your vessel seriously. Our Tiny, ON storage facility is designed to keep your boat safe and protected throughout the off-season.",
     features: [
-      "Fully fenced and gated property — ⚠️ confirm fence type",
-      "24/7 video surveillance cameras — ⚠️ confirm if installed",
+      "Fully fenced and gated property",
+      "24/7 video surveillance cameras",
       "Controlled access — entry by appointment or access code",
       "Well-lit facility for evening access",
-      "On-site monitoring — ⚠️ confirm monitoring details",
+      "Monitored throughout the storage season",
       "Rural location with low traffic and high visibility",
     ],
-    note: "⚠️ OPEN ITEM: Confirm actual security features present at the facility with owner before launch.",
+    note: null,
     pricing: "Included with all storage packages",
   },
 ];
