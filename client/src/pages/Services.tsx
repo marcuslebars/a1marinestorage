@@ -1,8 +1,12 @@
 // A1 Marine Storage — Services Page
+// Prices are engine-derived (client/src/lib/storage-pricing.ts) so they stay in
+// step with the calculator. Services carrying no engine price have been removed —
+// see storage-pricing.test.ts for the enforced exclusion list.
 // SEO: "shrink wrapping Midland", "boat winterization Tiny Ontario", "spring boat launch Georgian Bay"
 import { Link } from "wouter";
-import { Snowflake, Shield, Wrench, Sun, Truck, Lock, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Snowflake, Shield, Wrench, Sun, Lock, ArrowRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { RATES, WINTERIZATION } from "@/lib/storage-pricing";
 
 const SHRINK_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663121655920/VHzsy7iWSckjLQV8t62ZhN/shrink-wrap-service-57oifYehxkp4z67eHW4cAc.webp";
 const INDOOR_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663121655920/VHzsy7iWSckjLQV8t62ZhN/indoor-storage-apY9PKtmA8reaijP5bqUq3.webp";
@@ -26,26 +30,26 @@ const services = [
       "Custom door/zipper access panels available on request",
     ],
     note: null,
-    pricing: "Starting at $X.XX/ft — see Pricing page",
+    pricing: `Starting at ${RATES.shrinkPerFoot}/ft — see Pricing page`,
   },
   {
-    id: "indoor-storage",
+    id: "outdoor-storage",
     icon: Shield,
-    title: "Indoor & Outdoor Storage",
+    title: "Outdoor Winter Storage",
     subtitle: "Secure seasonal storage at our Tiny, ON facility",
     img: INDOOR_IMG,
     description:
-      "Our storage facility at 639 Concession Road 16 East, Tiny, ON offers both indoor and outdoor seasonal storage options. Indoor storage provides maximum protection from the elements in our clean, well-lit building. Outdoor storage on our secured, fenced lot is an economical option — particularly effective when combined with professional shrink wrapping.",
+      "Our storage yard at 639 Concession Road 16 East, Tiny, ON offers economical outdoor seasonal storage on a secured, fenced lot — particularly effective when combined with professional shrink wrapping. Your boat is professionally blocked and positioned on its trailer, with planned spring access.",
     features: [
-      "Indoor storage: clean, well-lit, unheated building — ⚠️ confirm if heated option available",
-      "Outdoor storage: level, gravel-surfaced lot with proper drainage",
-      "All storage spots are blocked and stabilized for safety",
-      "Boats remain on owner's trailer throughout the season",
+      "Secured, fenced outdoor lot with proper drainage",
+      "Boats professionally blocked and stabilized for the season",
+      "Boats remain on the owner's trailer throughout storage",
+      "Monitored throughout the winter",
       "Seasonal pricing (fall to spring) — no monthly surprises",
       "Accessible by appointment during business hours",
     ],
-    note: "⚠️ OPEN ITEM: Confirm indoor vs. outdoor availability and capacity with owner before launch.",
-    pricing: "Indoor from $X.XX/ft/season · Outdoor from $X.XX/ft/season",
+    note: null,
+    pricing: `Outdoor storage from ${RATES.outdoorPerFoot}/ft/season`,
   },
   {
     id: "winterization",
@@ -63,46 +67,28 @@ const services = [
       "Battery disconnected, load-tested, and removed or stored on trickle charger",
       "Drain plug removed and stored in a visible location",
       "Bilge pumped dry and bilge plug removed",
-      "Gear oil checked and changed if needed — ⚠️ confirm if included",
     ],
-    note: "⚠️ OPEN ITEM: Confirm exact winterization package inclusions and pricing with owner.",
-    pricing: "Starting at $XXX flat or $X.XX/ft — see Pricing page",
+    note: null,
+    pricing: `Flat rate by engine type — from ${WINTERIZATION[0].price}`,
   },
   {
     id: "spring-launch",
     icon: Sun,
-    title: "Spring Launch Prep",
-    subtitle: "De-winterizing and shrink wrap removal",
+    title: "Spring Commissioning",
+    subtitle: "De-winterizing and launch-ready service",
     img: null,
     description:
-      "When the ice breaks and Georgian Bay calls, we'll have your boat ready to go. Our spring launch prep service reverses the winterization process, removes and disposes of your shrink wrap, and gets your boat ready for the water — so you can spend your weekend on the lake, not in the driveway.",
+      "When the ice breaks and Georgian Bay calls, we'll have your boat ready to go. Our spring commissioning service reverses the winterization process and gets your boat launch-ready — so you can spend your weekend on the lake, not in the driveway.",
     features: [
-      "Shrink wrap removal and proper disposal (no mess left behind)",
-      "Battery reinstallation and system check",
-      "Engine de-winterizing and fresh water flush",
-      "Drain plug reinstallation",
-      "Visual inspection and launch readiness check",
-      "Coordination with your marina or launch ramp — ⚠️ confirm if offered",
+      "De-winterization and fresh water flush",
+      "Battery reconnect, test, and reinstallation",
+      "Fluid and belt checks",
+      "Drain plug reinstallation and systems verification",
+      "Engine run to operating temperature",
+      "Launch readiness check",
     ],
-    note: "⚠️ OPEN ITEM: Confirm exact spring service inclusions with owner.",
-    pricing: "Shrink wrap removal from $X.XX/ft or $XXX flat",
-  },
-  {
-    id: "trailer-storage",
-    icon: Truck,
-    title: "Trailer & Equipment Storage",
-    subtitle: "Off-season storage for trailers and PWCs",
-    img: null,
-    description:
-      "Don't let your trailer take up valuable driveway space all winter. We offer seasonal storage for boat trailers, personal watercraft (PWCs/Jet Skis), and other marine equipment at our Tiny, ON facility.",
-    features: [
-      "Seasonal trailer storage on our secured outdoor lot",
-      "PWC / Jet Ski storage available — ⚠️ confirm capacity",
-      "Flat-rate seasonal pricing — no per-foot calculation",
-      "Stored alongside your boat for convenient spring pickup",
-    ],
-    note: "⚠️ OPEN ITEM: Confirm trailer storage availability, pricing, and capacity with owner.",
-    pricing: "Starting at $XXX/season — see Pricing page",
+    note: null,
+    pricing: `${RATES.springCommissioning} flat`,
   },
   {
     id: "security",
@@ -113,14 +99,14 @@ const services = [
     description:
       "We take the security of your vessel seriously. Our Tiny, ON storage facility is designed to keep your boat safe and protected throughout the off-season.",
     features: [
-      "Fully fenced and gated property — ⚠️ confirm fence type",
-      "24/7 video surveillance cameras — ⚠️ confirm if installed",
+      "Fully fenced and gated property",
+      "24/7 video surveillance cameras",
       "Controlled access — entry by appointment or access code",
       "Well-lit facility for evening access",
-      "On-site monitoring — ⚠️ confirm monitoring details",
+      "Monitored throughout the storage season",
       "Rural location with low traffic and high visibility",
     ],
-    note: "⚠️ OPEN ITEM: Confirm actual security features present at the facility with owner before launch.",
+    note: null,
     pricing: "Included with all storage packages",
   },
 ];

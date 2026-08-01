@@ -1,10 +1,10 @@
 // A1 Marine Storage — business contact details.
-// NOTE: phone/email are placeholders used across the site (see the Contact page)
-// — update these before launch.
+// Phone + email are the real business contacts. Business hours and the postal
+// code are still to be confirmed with the owner.
 export const BUSINESS = {
   name: "A1 Marine Storage",
-  phone: "(705) 555-1234",
-  phoneHref: "tel:+17055551234",
-  email: "info@a1marinestorage.ca",
-  emailHref: "mailto:info@a1marinestorage.ca",
+  phone: "(249) 201-6677",
+  phoneHref: "tel:+12492016677",
+  email: "contact@a1marinestorage.ca",
+  emailHref: "mailto:contact@a1marinestorage.ca",
 } as const;

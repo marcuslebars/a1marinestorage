@@ -12,38 +12,32 @@ const securityFeatures = [
   {
     icon: Shield,
     title: "Gated & Fenced Property",
-    desc: "Fully fenced perimeter with controlled gate access. ⚠️ Confirm fence type and gate details with owner.",
-    confirmed: false,
+    desc: "Fully fenced perimeter with controlled gate access.",
   },
   {
     icon: Camera,
     title: "24/7 Video Surveillance",
-    desc: "Security cameras monitoring the facility around the clock. ⚠️ Confirm if installed with owner.",
-    confirmed: false,
+    desc: "Security cameras monitoring the facility around the clock.",
   },
   {
     icon: Lock,
     title: "Controlled Access",
     desc: "Entry by appointment or access code during business hours. No unauthorized access to the lot.",
-    confirmed: true,
   },
   {
     icon: Lightbulb,
     title: "Well-Lit Facility",
     desc: "Exterior and interior lighting for safe access during early morning or evening hours.",
-    confirmed: true,
   },
   {
     icon: MapPin,
     title: "Rural Location",
     desc: "Located on Concession Road 16 East in Tiny Township — low traffic, high visibility, away from urban congestion.",
-    confirmed: true,
   },
   {
     icon: Clock,
     title: "Accessible by Appointment",
     desc: "Need to access your boat mid-season? Contact us to arrange access during business hours.",
-    confirmed: true,
   },
 ];
 
@@ -113,11 +107,6 @@ export default function Facility() {
                   </li>
                 ))}
               </ul>
-              <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/5 px-4 py-3">
-                <p className="text-xs text-yellow-400/80">
-                  ⚠️ OPEN ITEMS: Confirm indoor vs. outdoor capacity, security features, and facility photos with owner before launch. Replace placeholder details above with confirmed information.
-                </p>
-              </div>
             </div>
             <div className="rounded-2xl overflow-hidden border border-white/10">
               <img
@@ -157,12 +146,7 @@ export default function Facility() {
                       <Icon className="h-5 w-5 text-[oklch(0.85_0.18_195)]" />
                     </div>
                     <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="text-sm font-bold text-white">{feature.title}</h3>
-                        {!feature.confirmed && (
-                          <span className="text-xs text-yellow-400/60">⚠️</span>
-                        )}
-                      </div>
+                      <h3 className="text-sm font-bold text-white mb-1">{feature.title}</h3>
                       <p className="text-sm text-white/55 leading-relaxed">{feature.desc}</p>
                     </div>
                   </div>

@@ -309,12 +309,11 @@ export default function Contact() {
                     <div>
                       <p className="text-sm font-semibold text-white">Phone</p>
                       <a
-                        href="tel:+17055551234"
+                        href="tel:+12492016677"
                         className="text-sm text-white/60 hover:text-[oklch(0.85_0.18_195)] transition-colors"
                       >
-                        (705) 555-1234
+                        (249) 201-6677
                       </a>
-                      <p className="text-xs text-yellow-400/60">⚠️ Placeholder — update with real number</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -322,12 +321,11 @@ export default function Contact() {
                     <div>
                       <p className="text-sm font-semibold text-white">Email</p>
                       <a
-                        href="mailto:info@a1marinestorage.ca"
+                        href="mailto:contact@a1marinestorage.ca"
                         className="text-sm text-white/60 hover:text-[oklch(0.85_0.18_195)] transition-colors"
                       >
-                        info@a1marinestorage.ca
+                        contact@a1marinestorage.ca
                       </a>
-                      <p className="text-xs text-yellow-400/60">⚠️ Placeholder — update with real email</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
