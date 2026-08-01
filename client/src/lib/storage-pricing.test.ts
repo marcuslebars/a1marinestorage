@@ -9,6 +9,7 @@ import {
   RATES,
   WINTERIZATION,
   BUNDLE_PCT,
+  WRAP_REMOVAL,
   bracketRange,
   perFootBrackets,
   workedExample,
@@ -67,17 +68,12 @@ describe("public pricing figures are engine-derived (v1.1.0)", () => {
   });
 });
 
-describe("advertised-but-unpriced services are removed from client/src", () => {
-  // Needles split so this file never matches itself; *.test.ts files are also
-  // skipped in the walk. If any of these names resurface in a page, it means an
-  // unpriced service crept back in.
-  const FORBIDDEN = [
-    "Indoor" + " Storage",
-    "Battery" + " Storage",
-    "Trailer" + " Storage",
-    "Spring Shrink" + " Wrap Removal",
-    "Spring" + " Wrap Removal",
-  ];
+describe("Indoor Storage (still unpriced) is absent from client/src", () => {
+  // As of engine v1.2.0, Indoor Storage is the ONLY advertised-but-unpriced
+  // service — Battery / Trailer / Spring Wrap Removal are now real, priced, and
+  // expected to appear. Needle split so this file never matches itself; *.test.ts
+  // files are skipped in the walk.
+  const FORBIDDEN = ["Indoor" + " Storage"];
 
   function walk(dir: string): string[] {
     const out: string[] = [];
@@ -89,7 +85,7 @@ describe("advertised-but-unpriced services are removed from client/src", () => {
     return out;
   }
 
-  it("no client source file mentions the four removed services by name", () => {
+  it("no client source file mentions Indoor Storage", () => {
     const clientSrc = join(dirname(fileURLToPath(import.meta.url)), ".."); // client/src
     const hits: string[] = [];
     for (const file of walk(clientSrc)) {
@@ -99,5 +95,25 @@ describe("advertised-but-unpriced services are removed from client/src", () => {
       }
     }
     expect(hits).toEqual([]);
+  });
+});
+
+describe("v1.2.0 add-on services render with engine-derived prices", () => {
+  it("battery / trailer / wrap-removal figures are engine-derived", () => {
+    expect(RATES.batteryPerUnit).toBe("$100");
+    expect(RATES.trailer).toBe("$400");
+    expect(WRAP_REMOVAL.lower).toBe("$150");
+    expect(WRAP_REMOVAL.upper).toBe("$200");
+    expect(WRAP_REMOVAL.breakpointFt).toBe(26);
+  });
+
+  it("the three services appear on the Pricing page", () => {
+    const pricing = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "..", "pages", "Pricing.tsx"),
+      "utf8",
+    );
+    for (const title of ["Battery Storage & Charging", "Trailer Storage", "Spring Wrap Removal & Disposal"]) {
+      expect(pricing).toContain(title);
+    }
   });
 });

@@ -19,6 +19,8 @@ import {
   type StoragePerFootService,
   type StorageFlatService,
   type StorageFlatPerEngineService,
+  type StoragePerUnitService,
+  type StorageTieredByLengthService,
 } from "@a1/pricing-engine";
 
 const S = STORAGE.services;
@@ -41,6 +43,16 @@ function flat(id: string): StorageFlatService {
 function perEngine(id: string): StorageFlatPerEngineService {
   const svc = S[id];
   if (svc.type !== "flat_per_engine") throw new Error(`storage-pricing: ${id} is not a flat_per_engine service`);
+  return svc;
+}
+function perUnit(id: string): StoragePerUnitService {
+  const svc = S[id];
+  if (svc.type !== "per_unit") throw new Error(`storage-pricing: ${id} is not a per_unit service`);
+  return svc;
+}
+function tieredByLength(id: string): StorageTieredByLengthService {
+  const svc = S[id];
+  if (svc.type !== "tiered_by_length") throw new Error(`storage-pricing: ${id} is not a tiered_by_length service`);
   return svc;
 }
 
@@ -98,7 +110,21 @@ export const RATES = {
   springCommissioning: dollars(flat("spring_commissioning").rateCents), // "$265"
   pontoonSurcharge: dollars(STORAGE.hullSurcharges.pontoon.perFootCents), // "$8"
   tritoonSurcharge: dollars(STORAGE.hullSurcharges.tritoon.perFootCents), // "$10"
+  batteryPerUnit: dollars(perUnit("battery_storage").rateCents), // "$100"
+  trailer: dollars(flat("trailer_storage").rateCents), // "$400"
 };
+
+/** Spring Wrap Removal & Disposal — two flat tiers selected by boat length (engine-derived). */
+export const WRAP_REMOVAL = (() => {
+  const svc = tieredByLength("spring_wrap_removal");
+  const lower = svc.tiers[0];
+  const upper = svc.tiers[svc.tiers.length - 1];
+  return {
+    lower: dollars(lower.rateCents), // "$150"
+    upper: dollars(upper.rateCents), // "$200"
+    breakpointFt: lower.maxFt ?? 26, // 26 — the last length covered by the lower tier
+  };
+})();
 
 /** Bundle discount percentages, engine-derived. */
 export const BUNDLE_PCT = {

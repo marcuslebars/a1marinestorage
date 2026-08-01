@@ -19,6 +19,7 @@ import {
   type EngineType,
   type QuoteInput,
   type QuoteResult,
+  type StoragePerFootService,
 } from "@a1/pricing-engine";
 import {
   buildStorageQuoteInput,
@@ -75,7 +76,9 @@ const ALACARTE_META: Record<string, { icon: typeof Snowflake; blurb: string }> =
   spring_commissioning: { icon: Anchor, blurb: "De-winterize & launch-ready in spring." },
 };
 
-const ceramicService = STORAGE.services.ceramic_upgrade;
+// ceramic_upgrade is a per_foot service; narrow it since the v1.2.0 StorageService
+// union now also includes shapes (tiered_by_length) that have no flat rateCents.
+const ceramicService = STORAGE.services.ceramic_upgrade as StoragePerFootService;
 
 type Mode = "bundle" | "alacarte";
 type SubmitStatus = "idle" | "submitting" | "success" | "fallback";

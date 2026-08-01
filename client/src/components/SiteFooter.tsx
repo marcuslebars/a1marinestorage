@@ -8,6 +8,9 @@ const serviceLinks = [
   { href: "/services#outdoor-storage", label: "Outdoor Storage" },
   { href: "/services#winterization", label: "Winterization" },
   { href: "/services#spring-launch", label: "Spring Commissioning" },
+  { href: "/pricing#battery-storage", label: "Battery Storage" },
+  { href: "/pricing#trailer-storage", label: "Trailer Storage" },
+  { href: "/pricing#spring-wrap-removal", label: "Spring Wrap Removal" },
 ];
 
 const pageLinks = [

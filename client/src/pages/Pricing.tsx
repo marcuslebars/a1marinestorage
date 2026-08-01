@@ -5,12 +5,13 @@
 // updates this page automatically and it can never contradict the calculator.
 // SEO: "boat storage pricing Ontario", "shrink wrapping cost per foot", "boat winterization price Georgian Bay"
 import { Link } from "wouter";
-import { ArrowRight, Info, Shield, Snowflake, Wrench, Anchor, Sun, Sparkles } from "lucide-react";
+import { ArrowRight, Info, Shield, Snowflake, Wrench, Anchor, Sun, Sparkles, BatteryCharging, Truck, Scissors } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   RATES,
   WINTERIZATION,
   BUNDLE_PCT,
+  WRAP_REMOVAL,
   perFootBrackets,
   workedExample,
 } from "@/lib/storage-pricing";
@@ -108,18 +109,42 @@ export default function Pricing() {
 
   const addons = [
     {
+      id: "spring-commissioning",
       icon: Anchor,
       title: "Spring Commissioning",
       rate: RATES.springCommissioning,
       body: "Full spring start-up so your boat is ready for launch day: de-winterization, battery reconnect and test, fluid and belt checks, systems verification, and an engine run to operating temperature. From winter storage to Georgian Bay without lifting a finger.",
     },
     {
+      id: "battery-storage",
+      icon: BatteryCharging,
+      title: "Battery Storage & Charging",
+      rate: `${RATES.batteryPerUnit}/battery`,
+      body: `Don't let winter kill your batteries. We remove them, store them indoors, keep them on maintenance charging all season, and reinstall them in spring — so launch day starts on the first turn of the key. ${RATES.batteryPerUnit} per battery, per season.`,
+    },
+    {
+      id: "trailer-storage",
+      icon: Truck,
+      title: "Trailer Storage",
+      rate: RATES.trailer,
+      body: `Room for the trailer too. Store your trailer in our yard for the season — with your boat or on its own — and skip the driveway Tetris. Flat ${RATES.trailer} per season.`,
+    },
+    {
+      id: "spring-wrap-removal",
+      icon: Scissors,
+      title: "Spring Wrap Removal & Disposal",
+      rate: `from ${WRAP_REMOVAL.lower}`,
+      body: `When spring comes, we uncover, dismantle the frame, and dispose of the wrap properly — no spring Saturday lost to a utility knife and a trailer full of plastic. ${WRAP_REMOVAL.lower} for boats up to ${WRAP_REMOVAL.breakpointFt} ft, ${WRAP_REMOVAL.upper} for ${WRAP_REMOVAL.breakpointFt + 1} ft and over.`,
+    },
+    {
+      id: "fall-detail",
       icon: Sun,
       title: "Fall Detail",
       rate: `${RATES.fallDetailPerFoot}/ft`,
       body: "End-of-season exterior wash and detail before wrapping: hull and topsides cleaned, scum line and waterline staining removed, surfaces protected so contaminants don't bake in over winter. Boats stored clean launch clean.",
     },
     {
+      id: "winter-ceramic-coating-upgrade",
       icon: Sparkles,
       title: "Winter Ceramic Coating Upgrade",
       rate: `${RATES.ceramicPerFoot}/ft`,
@@ -181,6 +206,7 @@ export default function Pricing() {
             Minimum {RATES.shrinkMin}. Pontoon +{RATES.pontoonSurcharge}/ft, tritoon +{RATES.tritoonSurcharge}/ft for additional
             framing and material.
           </p>
+          <p className="mt-1 text-sm text-white/45">Spring removal available — see Spring Wrap Removal below.</p>
         </div>
       </section>
 
@@ -203,7 +229,7 @@ export default function Pricing() {
             {addons.map((a) => {
               const Icon = a.icon;
               return (
-                <div key={a.title} className="marine-card p-6 flex flex-col">
+                <div key={a.title} id={a.id} className="marine-card p-6 flex flex-col scroll-mt-24">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[oklch(0.85_0.18_195)/10]">
                       <Icon className="h-5 w-5 text-[oklch(0.85_0.18_195)]" />
