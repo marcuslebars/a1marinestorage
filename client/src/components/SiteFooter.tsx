@@ -97,7 +97,7 @@ export function SiteFooter() {
                 <MapPin className="h-4 w-4 text-[oklch(0.85_0.18_195)] mt-0.5 shrink-0" />
                 <span className="text-sm text-slate-400">
                   639 Concession Road 16 East<br />
-                  Tiny, ON L9M 0G8
+                  Tiny, ON L9M 1R2
                 </span>
               </li>
               <li className="flex items-center gap-2.5">
@@ -121,9 +121,8 @@ export function SiteFooter() {
               <li className="flex items-start gap-2.5">
                 <Clock className="h-4 w-4 text-[oklch(0.85_0.18_195)] mt-0.5 shrink-0" />
                 <div className="text-sm text-slate-400">
-                  Mon–Fri: 8am – 5pm<br />
-                  Sat: 9am – 3pm<br />
-                  Sun: Closed
+                  Mon–Fri: 9am – 6pm<br />
+                  By appointment only
                 </div>
               </li>
             </ul>
