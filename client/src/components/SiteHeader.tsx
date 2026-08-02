@@ -44,7 +44,7 @@ export function SiteHeader() {
         {/* Logo */}
         <Link href="/" className="inline-flex items-center gap-2.5 shrink-0">
           <img
-            src="/a1-marine-storage-logo.png"
+            src="/a1-marine-storage-logo-dark.png"
             alt="A1 Marine Storage"
             className="h-10 w-auto"
           />
