@@ -33,7 +33,7 @@ export function SiteFooter() {
           <div className="lg:col-span-1">
             <div className="mb-4">
               <img
-                src="/a1-marine-storage-logo.png"
+                src="/a1-marine-storage-logo-dark.png"
                 alt="A1 Marine Storage"
                 className="h-12 w-auto"
               />
