@@ -3,7 +3,6 @@
 import { Link } from "wouter";
 import { MapPin, Shield, Camera, Lightbulb, Lock, Clock, CheckCircle2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { MapView } from "@/components/Map";
 
 const FACILITY_IMG = "/facility-front.jpg"; // real facility — front / drive-up view
 const INDOOR_IMG = "/facility-side.jpg"; // real facility — side / lot view
@@ -220,20 +219,12 @@ export default function Facility() {
               </div>
             </div>
 
-            {/* Map */}
+            {/* Facility photo (Google Map needs VITE_FRONTEND_FORGE_API_KEY; photo works without it) */}
             <div className="rounded-2xl overflow-hidden border border-white/10 h-80 md:h-96">
-              <MapView
-                onMapReady={(map) => {
-                  // Center on 639 Concession Road 16 East, Tiny, ON
-                  const location = { lat: 44.7167, lng: -79.9167 };
-                  map.setCenter(location);
-                  map.setZoom(14);
-                  new google.maps.Marker({
-                    position: location,
-                    map,
-                    title: "A1 Marine Storage — 639 Concession Rd 16 E, Tiny, ON",
-                  });
-                }}
+              <img
+                src={FACILITY_IMG}
+                alt="A1 Marine Storage — 639 Concession Road 16 East, Tiny, Ontario"
+                className="w-full h-full object-cover object-[center_40%]"
               />
             </div>
           </div>
