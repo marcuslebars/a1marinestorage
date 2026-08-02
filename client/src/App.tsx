@@ -1,5 +1,5 @@
 // A1 Marine Storage — App Router
-// Style: Contemporary Coastal Modernism — dark harbor, cyan accents
+// Style: Contemporary Coastal Modernism — dark harbor, red accents
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";

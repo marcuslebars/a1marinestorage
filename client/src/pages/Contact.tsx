@@ -97,8 +97,8 @@ export default function Contact() {
     return (
       <div className="min-h-screen bg-[oklch(0.12_0.018_240)] flex items-center justify-center pt-20">
         <div className="container max-w-xl mx-auto text-center py-20">
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[oklch(0.85_0.18_195)/10] mx-auto mb-6">
-            <CheckCircle2 className="h-10 w-10 text-[oklch(0.85_0.18_195)]" />
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[oklch(0.6_0.2_27)/10] mx-auto mb-6">
+            <CheckCircle2 className="h-10 w-10 text-[oklch(0.6_0.2_27)]" />
           </div>
           <h1
             className="text-4xl font-black text-white mb-4"
@@ -111,7 +111,7 @@ export default function Contact() {
           </p>
           <Button
             onClick={() => setSubmitted(false)}
-            className="bg-[oklch(0.85_0.18_195)] text-[oklch(0.12_0.018_240)] font-semibold hover:bg-[oklch(0.78_0.18_195)]"
+            className="bg-[oklch(0.6_0.2_27)] text-[oklch(0.12_0.018_240)] font-semibold hover:bg-[oklch(0.53_0.2_27)]"
           >
             Send Another Message
           </Button>
@@ -126,7 +126,7 @@ export default function Contact() {
       <section className="relative pt-32 pb-12 bg-black overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-black via-black/90 to-[oklch(0.12_0.018_240)]" />
         <div className="container max-w-7xl mx-auto relative z-10 text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.85_0.18_195)] mb-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.6_0.2_27)] mb-4">
             Get in Touch
           </p>
           <h1
@@ -157,19 +157,19 @@ export default function Contact() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
                     <Label className="text-sm font-semibold text-white/80 mb-2 block">
-                      Full Name <span className="text-[oklch(0.85_0.18_195)]">*</span>
+                      Full Name <span className="text-[oklch(0.6_0.2_27)]">*</span>
                     </Label>
                     <Input
                       placeholder="John Smith"
                       value={form.name}
                       onChange={(e) => setForm({ ...form, name: e.target.value })}
                       required
-                      className="bg-white/5 border-white/15 text-white placeholder:text-white/30 focus:border-[oklch(0.85_0.18_195)] h-12"
+                      className="bg-white/5 border-white/15 text-white placeholder:text-white/30 focus:border-[oklch(0.6_0.2_27)] h-12"
                     />
                   </div>
                   <div>
                     <Label className="text-sm font-semibold text-white/80 mb-2 block">
-                      Email <span className="text-[oklch(0.85_0.18_195)]">*</span>
+                      Email <span className="text-[oklch(0.6_0.2_27)]">*</span>
                     </Label>
                     <Input
                       type="email"
@@ -177,14 +177,14 @@ export default function Contact() {
                       value={form.email}
                       onChange={(e) => setForm({ ...form, email: e.target.value })}
                       required
-                      className="bg-white/5 border-white/15 text-white placeholder:text-white/30 focus:border-[oklch(0.85_0.18_195)] h-12"
+                      className="bg-white/5 border-white/15 text-white placeholder:text-white/30 focus:border-[oklch(0.6_0.2_27)] h-12"
                     />
                   </div>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
                     <Label className="text-sm font-semibold text-white/80 mb-2 block">
-                      Phone <span className="text-[oklch(0.85_0.18_195)]">*</span>
+                      Phone <span className="text-[oklch(0.6_0.2_27)]">*</span>
                     </Label>
                     <Input
                       type="tel"
@@ -192,7 +192,7 @@ export default function Contact() {
                       value={form.phone}
                       onChange={(e) => setForm({ ...form, phone: e.target.value })}
                       required
-                      className="bg-white/5 border-white/15 text-white placeholder:text-white/30 focus:border-[oklch(0.85_0.18_195)] h-12"
+                      className="bg-white/5 border-white/15 text-white placeholder:text-white/30 focus:border-[oklch(0.6_0.2_27)] h-12"
                     />
                   </div>
                   <div>
@@ -203,7 +203,7 @@ export default function Contact() {
                       placeholder="e.g. 2019 Chaparral 23 H2O"
                       value={form.boatMakeModel}
                       onChange={(e) => setForm({ ...form, boatMakeModel: e.target.value })}
-                      className="bg-white/5 border-white/15 text-white placeholder:text-white/30 focus:border-[oklch(0.85_0.18_195)] h-12"
+                      className="bg-white/5 border-white/15 text-white placeholder:text-white/30 focus:border-[oklch(0.6_0.2_27)] h-12"
                     />
                   </div>
                 </div>
@@ -217,7 +217,7 @@ export default function Contact() {
                       placeholder="e.g. 24"
                       value={form.boatLength}
                       onChange={(e) => setForm({ ...form, boatLength: e.target.value })}
-                      className="bg-white/5 border-white/15 text-white placeholder:text-white/30 focus:border-[oklch(0.85_0.18_195)] h-12"
+                      className="bg-white/5 border-white/15 text-white placeholder:text-white/30 focus:border-[oklch(0.6_0.2_27)] h-12"
                     />
                   </div>
                   <div>
@@ -228,7 +228,7 @@ export default function Contact() {
                       value={form.serviceInterest}
                       onValueChange={(val) => setForm({ ...form, serviceInterest: val })}
                     >
-                      <SelectTrigger className="bg-white/5 border-white/15 text-white h-12 focus:border-[oklch(0.85_0.18_195)]">
+                      <SelectTrigger className="bg-white/5 border-white/15 text-white h-12 focus:border-[oklch(0.6_0.2_27)]">
                         <SelectValue placeholder="Select a service" />
                       </SelectTrigger>
                       <SelectContent className="bg-[oklch(0.16_0.018_240)] border-white/15">
@@ -250,7 +250,7 @@ export default function Contact() {
                     placeholder="Tell us about your boat, preferred storage dates, or any questions you have..."
                     value={form.message}
                     onChange={(e) => setForm({ ...form, message: e.target.value })}
-                    className="bg-white/5 border-white/15 text-white placeholder:text-white/30 focus:border-[oklch(0.85_0.18_195)] min-h-[120px]"
+                    className="bg-white/5 border-white/15 text-white placeholder:text-white/30 focus:border-[oklch(0.6_0.2_27)] min-h-[120px]"
                   />
                 </div>
                 {submitFallback && (
@@ -260,11 +260,11 @@ export default function Contact() {
                       Your message hasn&apos;t been sent yet — please reach us directly and we&apos;ll respond right away:
                     </p>
                     <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:gap-6">
-                      <a href={BUSINESS.phoneHref} className="inline-flex items-center gap-2 text-base font-semibold text-white hover:text-[oklch(0.85_0.18_195)]">
-                        <Phone className="h-4 w-4 text-[oklch(0.85_0.18_195)]" /> {BUSINESS.phone}
+                      <a href={BUSINESS.phoneHref} className="inline-flex items-center gap-2 text-base font-semibold text-white hover:text-[oklch(0.6_0.2_27)]">
+                        <Phone className="h-4 w-4 text-[oklch(0.6_0.2_27)]" /> {BUSINESS.phone}
                       </a>
-                      <a href={BUSINESS.emailHref} className="inline-flex items-center gap-2 text-base font-semibold text-white hover:text-[oklch(0.85_0.18_195)]">
-                        <Mail className="h-4 w-4 text-[oklch(0.85_0.18_195)]" /> {BUSINESS.email}
+                      <a href={BUSINESS.emailHref} className="inline-flex items-center gap-2 text-base font-semibold text-white hover:text-[oklch(0.6_0.2_27)]">
+                        <Mail className="h-4 w-4 text-[oklch(0.6_0.2_27)]" /> {BUSINESS.email}
                       </a>
                     </div>
                   </div>
@@ -276,7 +276,7 @@ export default function Contact() {
                   <Button
                     type="submit"
                     disabled={!canSubmit || submitting}
-                    className="w-full h-12 bg-[oklch(0.85_0.18_195)] text-[oklch(0.12_0.018_240)] font-semibold hover:bg-[oklch(0.78_0.18_195)] disabled:opacity-40 btn-cyan-glow active:scale-[0.97] transition-all duration-150"
+                    className="w-full h-12 bg-[oklch(0.6_0.2_27)] text-[oklch(0.12_0.018_240)] font-semibold hover:bg-[oklch(0.53_0.2_27)] disabled:opacity-40 btn-brand-glow active:scale-[0.97] transition-all duration-150"
                   >
                     <Send className="mr-2 h-4 w-4" />
                     {submitting ? "Sending…" : "Send Message"}
@@ -300,7 +300,7 @@ export default function Contact() {
                 </h3>
                 <div className="space-y-4">
                   <div className="flex items-start gap-3">
-                    <MapPin className="h-5 w-5 text-[oklch(0.85_0.18_195)] mt-0.5 shrink-0" />
+                    <MapPin className="h-5 w-5 text-[oklch(0.6_0.2_27)] mt-0.5 shrink-0" />
                     <div>
                       <p className="text-sm font-semibold text-white">Address</p>
                       <p className="text-sm text-white/60 mt-0.5">
@@ -310,32 +310,32 @@ export default function Contact() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <Phone className="h-5 w-5 text-[oklch(0.85_0.18_195)] shrink-0" />
+                    <Phone className="h-5 w-5 text-[oklch(0.6_0.2_27)] shrink-0" />
                     <div>
                       <p className="text-sm font-semibold text-white">Phone</p>
                       <a
                         href="tel:+12492016677"
                         onClick={() => trackPhoneClick("contact")}
-                        className="text-sm text-white/60 hover:text-[oklch(0.85_0.18_195)] transition-colors"
+                        className="text-sm text-white/60 hover:text-[oklch(0.6_0.2_27)] transition-colors"
                       >
                         (249) 201-6677
                       </a>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <Mail className="h-5 w-5 text-[oklch(0.85_0.18_195)] shrink-0" />
+                    <Mail className="h-5 w-5 text-[oklch(0.6_0.2_27)] shrink-0" />
                     <div>
                       <p className="text-sm font-semibold text-white">Email</p>
                       <a
                         href="mailto:contact@a1marinestorage.ca"
-                        className="text-sm text-white/60 hover:text-[oklch(0.85_0.18_195)] transition-colors"
+                        className="text-sm text-white/60 hover:text-[oklch(0.6_0.2_27)] transition-colors"
                       >
                         contact@a1marinestorage.ca
                       </a>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <Clock className="h-5 w-5 text-[oklch(0.85_0.18_195)] mt-0.5 shrink-0" />
+                    <Clock className="h-5 w-5 text-[oklch(0.6_0.2_27)] mt-0.5 shrink-0" />
                     <div>
                       <p className="text-sm font-semibold text-white">Business Hours</p>
                       <div className="text-sm text-white/60 mt-0.5 space-y-0.5">
@@ -359,7 +359,7 @@ export default function Contact() {
                   href="https://a1marinecare.ca"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-sm font-semibold text-[oklch(0.85_0.18_195)] hover:text-[oklch(0.78_0.18_195)] transition-colors"
+                  className="inline-flex items-center gap-1.5 text-sm font-semibold text-[oklch(0.6_0.2_27)] hover:text-[oklch(0.53_0.2_27)] transition-colors"
                 >
                   A1 Marine Care
                   <ExternalLink className="h-3.5 w-3.5" />
@@ -392,7 +392,7 @@ export default function Contact() {
               href="https://maps.google.com/?q=639+Concession+Road+16+East+Tiny+ON"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-sm text-white/50 hover:text-[oklch(0.85_0.18_195)] transition-colors"
+              className="inline-flex items-center gap-1.5 text-sm text-white/50 hover:text-[oklch(0.6_0.2_27)] transition-colors"
             >
               Open in Google Maps
               <ExternalLink className="h-3.5 w-3.5" />

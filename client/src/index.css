@@ -6,7 +6,7 @@
 /* 
  * A1 Marine Storage — Design System
  * Style: Contemporary Coastal Modernism
- * Dark harbor surfaces, restrained cyan accents, premium dockside branding
+ * Dark harbor surfaces, restrained brand-red accents, premium dockside branding
  * Mirrors A1 Marine Care visual identity for brand family consistency
  */
 
@@ -50,25 +50,25 @@
   --card-foreground: oklch(0.94 0.005 240);
   --popover: oklch(0.16 0.018 240);
   --popover-foreground: oklch(0.94 0.005 240);
-  /* Cyan accent — electric, nautical, unmistakably A1 Marine */
-  --primary: oklch(0.85 0.18 195);
+  /* Brand red — bold, unmistakably A1 */
+  --primary: oklch(0.6 0.2 27);
   --primary-foreground: oklch(0.12 0.018 240);
   --secondary: oklch(0.20 0.018 240);
   --secondary-foreground: oklch(0.85 0.005 240);
   --muted: oklch(0.18 0.015 240);
   --muted-foreground: oklch(0.65 0.01 240);
-  --accent: oklch(0.85 0.18 195);
+  --accent: oklch(0.6 0.2 27);
   --accent-foreground: oklch(0.12 0.018 240);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 12%);
-  --ring: oklch(0.85 0.18 195);
-  --chart-1: oklch(0.85 0.18 195);
-  --chart-2: oklch(0.7 0.14 195);
-  --chart-3: oklch(0.55 0.10 195);
-  --chart-4: oklch(0.4 0.07 195);
-  --chart-5: oklch(0.25 0.04 195);
+  --ring: oklch(0.6 0.2 27);
+  --chart-1: oklch(0.6 0.2 27);
+  --chart-2: oklch(0.7 0.14 27);
+  --chart-3: oklch(0.55 0.10 27);
+  --chart-4: oklch(0.4 0.07 27);
+  --chart-5: oklch(0.25 0.04 27);
 }
 
 @layer base {
@@ -131,13 +131,13 @@
     box-shadow: 0 20px 50px -28px rgba(0,0,0,0.8);
   }
 
-  /* Cyan glow button effect */
-  .btn-cyan-glow {
-    box-shadow: 0 0 20px -5px oklch(0.85 0.18 195 / 0.4);
+  /* Brand-red glow button effect */
+  .btn-brand-glow {
+    box-shadow: 0 0 20px -5px oklch(0.6 0.2 27 / 0.4);
     transition: box-shadow 0.3s ease;
   }
-  .btn-cyan-glow:hover {
-    box-shadow: 0 0 35px -5px oklch(0.85 0.18 195 / 0.6);
+  .btn-brand-glow:hover {
+    box-shadow: 0 0 35px -5px oklch(0.6 0.2 27 / 0.6);
   }
 
   /* Section spacing */
@@ -170,7 +170,7 @@ html {
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.85 0.18 195 / 0.5);
+  background: oklch(0.6 0.2 27 / 0.5);
 }
 
 /* Fade-up animation for sections */

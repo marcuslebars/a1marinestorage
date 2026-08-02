@@ -64,7 +64,7 @@ export default function Facility() {
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/30" />
           <div className="absolute inset-0 flex items-end pb-12">
             <div className="container max-w-7xl mx-auto">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.85_0.18_195)] mb-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.6_0.2_27)] mb-3">
                 Our Facility
               </p>
               <h1
@@ -84,7 +84,7 @@ export default function Facility() {
         <div className="container max-w-7xl mx-auto">
           <div className="grid gap-12 lg:grid-cols-2 lg:gap-16 items-center">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.85_0.18_195)] mb-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.6_0.2_27)] mb-3">
                 About the Facility
               </p>
               <h2
@@ -102,7 +102,7 @@ export default function Facility() {
               <ul className="space-y-2.5 mb-8">
                 {facilityHighlights.map((item) => (
                   <li key={item} className="flex items-start gap-2.5">
-                    <CheckCircle2 className="h-4 w-4 text-[oklch(0.85_0.18_195)] mt-0.5 shrink-0" />
+                    <CheckCircle2 className="h-4 w-4 text-[oklch(0.6_0.2_27)] mt-0.5 shrink-0" />
                     <span className="text-sm text-white/65">{item}</span>
                   </li>
                 ))}
@@ -123,7 +123,7 @@ export default function Facility() {
       <section className="section-space bg-[oklch(0.12_0.018_240)]">
         <div className="container max-w-7xl mx-auto">
           <div className="text-center mb-10">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.85_0.18_195)] mb-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.6_0.2_27)] mb-3">
               Your Investment Is Protected
             </p>
             <h2
@@ -142,8 +142,8 @@ export default function Facility() {
               return (
                 <div key={feature.title} className="marine-card p-5">
                   <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[oklch(0.85_0.18_195)/10]">
-                      <Icon className="h-5 w-5 text-[oklch(0.85_0.18_195)]" />
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[oklch(0.6_0.2_27)/10]">
+                      <Icon className="h-5 w-5 text-[oklch(0.6_0.2_27)]" />
                     </div>
                     <div>
                       <h3 className="text-sm font-bold text-white mb-1">{feature.title}</h3>
@@ -163,7 +163,7 @@ export default function Facility() {
           <div className="grid gap-10 lg:grid-cols-2 lg:gap-16">
             {/* Location Info */}
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.85_0.18_195)] mb-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.6_0.2_27)] mb-3">
                 Location & Hours
               </p>
               <h2
@@ -174,7 +174,7 @@ export default function Facility() {
               </h2>
               <div className="space-y-5">
                 <div className="flex items-start gap-3">
-                  <MapPin className="h-5 w-5 text-[oklch(0.85_0.18_195)] mt-0.5 shrink-0" />
+                  <MapPin className="h-5 w-5 text-[oklch(0.6_0.2_27)] mt-0.5 shrink-0" />
                   <div>
                     <p className="text-sm font-semibold text-white">Address</p>
                     <p className="text-sm text-white/60 mt-0.5">
@@ -184,7 +184,7 @@ export default function Facility() {
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <Clock className="h-5 w-5 text-[oklch(0.85_0.18_195)] mt-0.5 shrink-0" />
+                  <Clock className="h-5 w-5 text-[oklch(0.6_0.2_27)] mt-0.5 shrink-0" />
                   <div>
                     <p className="text-sm font-semibold text-white">Business Hours</p>
                     <div className="text-sm text-white/60 mt-0.5 space-y-0.5">
@@ -197,7 +197,7 @@ export default function Facility() {
               <div className="mt-8 flex flex-col sm:flex-row gap-4">
                 <Button
                   asChild
-                  className="bg-[oklch(0.85_0.18_195)] text-[oklch(0.12_0.018_240)] font-semibold hover:bg-[oklch(0.78_0.18_195)] btn-cyan-glow"
+                  className="bg-[oklch(0.6_0.2_27)] text-[oklch(0.12_0.018_240)] font-semibold hover:bg-[oklch(0.53_0.2_27)] btn-brand-glow"
                 >
                   <Link href="/contact">
                     Contact Us
@@ -245,7 +245,7 @@ export default function Facility() {
         <div className="container max-w-7xl mx-auto">
           <div className="marine-card p-6 md:p-8 flex flex-col md:flex-row items-center gap-6">
             <div className="flex-1">
-              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[oklch(0.85_0.18_195)] mb-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[oklch(0.6_0.2_27)] mb-2">
                 Part of the A1 Marine Family
               </p>
               <h3
@@ -261,7 +261,7 @@ export default function Facility() {
             <Button
               asChild
               variant="outline"
-              className="shrink-0 border-[oklch(0.85_0.18_195)/40] text-[oklch(0.85_0.18_195)] hover:bg-[oklch(0.85_0.18_195)/10]"
+              className="shrink-0 border-[oklch(0.6_0.2_27)/40] text-[oklch(0.6_0.2_27)] hover:bg-[oklch(0.6_0.2_27)/10]"
             >
               <a href="https://a1marinecare.ca" target="_blank" rel="noopener noreferrer">
                 Visit A1 Marine Care
