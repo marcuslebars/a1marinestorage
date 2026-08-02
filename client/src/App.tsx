@@ -17,6 +17,7 @@ import Calculator from "./pages/Calculator";
 import Facility from "./pages/Facility";
 import Contact from "./pages/Contact";
 import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
 
 function Router() {
   // SPA route tracking: wouter doesn't fire page_view on navigation, so do it here
@@ -35,6 +36,7 @@ function Router() {
       <Route path="/facility" component={Facility} />
       <Route path="/contact" component={Contact} />
       <Route path="/privacy" component={Privacy} />
+      <Route path="/terms" component={Terms} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
