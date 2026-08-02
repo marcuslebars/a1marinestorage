@@ -10,7 +10,7 @@ const LAST_UPDATED = "August 1, 2026"; // creation date — update on legal revi
 const ADDRESS = "639 Concession Road 16 East, Tiny, ON L9M 1R2";
 
 const emailLink = (
-  <a href={BUSINESS.emailHref} className="text-[oklch(0.85_0.18_195)] hover:underline">
+  <a href={BUSINESS.emailHref} className="text-[oklch(0.6_0.2_27)] hover:underline">
     {BUSINESS.email}
   </a>
 );
@@ -63,7 +63,7 @@ const sections: { title: string; body: ReactNode }[] = [
         <a
           href={BUSINESS.phoneHref}
           onClick={() => trackPhoneClick("privacy")}
-          className="text-[oklch(0.85_0.18_195)] hover:underline"
+          className="text-[oklch(0.6_0.2_27)] hover:underline"
         >
           {BUSINESS.phone}
         </a>
@@ -80,7 +80,7 @@ export default function Privacy() {
       <section className="relative pt-32 pb-12 bg-black overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-black via-black/90 to-[oklch(0.12_0.018_240)]" />
         <div className="container max-w-3xl mx-auto relative z-10">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.85_0.18_195)] mb-4">Legal</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.6_0.2_27)] mb-4">Legal</p>
           <h1 className="text-4xl font-black text-white md:text-5xl" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
             Privacy Policy
           </h1>

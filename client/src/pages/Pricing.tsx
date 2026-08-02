@@ -26,7 +26,7 @@ function RateTable({ columns, rows }: { columns: string[]; rows: string[][] }) {
             {columns.map((c, i) => (
               <th
                 key={c}
-                className={`px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-[oklch(0.85_0.18_195)] ${
+                className={`px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-[oklch(0.6_0.2_27)] ${
                   i === 0 ? "" : "text-right"
                 }`}
               >
@@ -61,7 +61,7 @@ function QuoteCTA({ position, label = "Get My Instant Quote" }: { position: "her
     <Button
       asChild
       size="lg"
-      className="h-14 px-10 text-base font-semibold bg-[oklch(0.85_0.18_195)] text-[oklch(0.12_0.018_240)] hover:bg-[oklch(0.78_0.18_195)] btn-cyan-glow active:scale-[0.97] transition-all duration-150"
+      className="h-14 px-10 text-base font-semibold bg-[oklch(0.6_0.2_27)] text-[oklch(0.12_0.018_240)] hover:bg-[oklch(0.53_0.2_27)] btn-brand-glow active:scale-[0.97] transition-all duration-150"
     >
       <Link href="/calculator" onClick={() => track("quote_cta_click", { position })}>
         {label}
@@ -83,14 +83,14 @@ function SectionHeading({
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-4">
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[oklch(0.85_0.18_195)/10]">
-          <Icon className="h-5 w-5 text-[oklch(0.85_0.18_195)]" />
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[oklch(0.6_0.2_27)/10]">
+          <Icon className="h-5 w-5 text-[oklch(0.6_0.2_27)]" />
         </div>
         <h2 className="text-3xl font-black text-white md:text-4xl" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
           {title}
         </h2>
       </div>
-      <span className="rounded-full bg-[oklch(0.85_0.18_195)/12] px-3 py-1 text-sm font-bold text-[oklch(0.85_0.18_195)] tabular-nums">
+      <span className="rounded-full bg-[oklch(0.6_0.2_27)/12] px-3 py-1 text-sm font-bold text-[oklch(0.6_0.2_27)] tabular-nums">
         {rate}
       </span>
     </div>
@@ -159,7 +159,7 @@ export default function Pricing() {
       <section className="relative pt-32 pb-16 bg-black overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-black via-black/90 to-[oklch(0.12_0.018_240)]" />
         <div className="container max-w-4xl mx-auto relative z-10 text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.85_0.18_195)] mb-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.6_0.2_27)] mb-4">
             Transparent Pricing
           </p>
           <h1 className="text-5xl font-black text-white md:text-6xl" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
@@ -173,7 +173,7 @@ export default function Pricing() {
             <QuoteCTA position="hero" />
           </div>
           <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2">
-            <Info className="h-4 w-4 text-[oklch(0.85_0.18_195)]" />
+            <Info className="h-4 w-4 text-[oklch(0.6_0.2_27)]" />
             <p className="text-sm text-white/60">All prices in CAD. HST applies.</p>
           </div>
         </div>
@@ -232,10 +232,10 @@ export default function Pricing() {
               return (
                 <div key={a.title} id={a.id} className="marine-card p-6 flex flex-col scroll-mt-24">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[oklch(0.85_0.18_195)/10]">
-                      <Icon className="h-5 w-5 text-[oklch(0.85_0.18_195)]" />
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[oklch(0.6_0.2_27)/10]">
+                      <Icon className="h-5 w-5 text-[oklch(0.6_0.2_27)]" />
                     </div>
-                    <span className="text-xl font-black text-[oklch(0.85_0.18_195)] tabular-nums" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+                    <span className="text-xl font-black text-[oklch(0.6_0.2_27)] tabular-nums" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
                       {a.rate}
                     </span>
                   </div>
@@ -252,7 +252,7 @@ export default function Pricing() {
       <section className="section-space border-t border-white/10">
         <div className="container max-w-4xl mx-auto">
           <div className="text-center mb-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.85_0.18_195)] mb-3">Bundle &amp; Save</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.6_0.2_27)] mb-3">Bundle &amp; Save</p>
             <h2 className="text-4xl font-black text-white md:text-5xl" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
               Winter Ready Packages
             </h2>
@@ -264,11 +264,11 @@ export default function Pricing() {
 
           {/* Worked example — produced by the engine's quote function */}
           <div className="marine-card mt-6 p-5 flex items-start gap-3">
-            <Info className="h-4 w-4 text-[oklch(0.85_0.18_195)] mt-0.5 shrink-0" />
+            <Info className="h-4 w-4 text-[oklch(0.6_0.2_27)] mt-0.5 shrink-0" />
             <p className="text-sm text-white/70 leading-relaxed">
               <span className="font-semibold text-white">Example:</span> a {ex.lengthFt} ft sterndrive with storage, wrap, and
               winterization is <span className="font-semibold text-white tabular-nums">{ex.aLaCarte}</span> à la carte —{" "}
-              <span className="font-semibold text-[oklch(0.85_0.18_195)] tabular-nums">{ex.bundled}</span> with Winter Ready Plus.
+              <span className="font-semibold text-[oklch(0.6_0.2_27)] tabular-nums">{ex.bundled}</span> with Winter Ready Plus.
             </p>
           </div>
 
@@ -292,7 +292,7 @@ export default function Pricing() {
                 "Full payment at booking secures your slot — yard capacity is limited and fills before freeze-up.",
               ].map((line) => (
                 <li key={line} className="flex items-start gap-2.5">
-                  <span className="text-[oklch(0.85_0.18_195)] font-bold shrink-0">•</span>
+                  <span className="text-[oklch(0.6_0.2_27)] font-bold shrink-0">•</span>
                   {line}
                 </li>
               ))}

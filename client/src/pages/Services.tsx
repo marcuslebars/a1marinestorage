@@ -118,7 +118,7 @@ export default function Services() {
       <section className="relative pt-32 pb-16 bg-black overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-black via-black/90 to-[oklch(0.12_0.018_240)]" />
         <div className="container max-w-7xl mx-auto relative z-10 text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.85_0.18_195)] mb-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.6_0.2_27)] mb-4">
             What We Offer
           </p>
           <h1
@@ -133,7 +133,7 @@ export default function Services() {
           <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
             <Button
               asChild
-              className="bg-[oklch(0.85_0.18_195)] text-[oklch(0.12_0.018_240)] font-semibold hover:bg-[oklch(0.78_0.18_195)] btn-cyan-glow"
+              className="bg-[oklch(0.6_0.2_27)] text-[oklch(0.12_0.018_240)] font-semibold hover:bg-[oklch(0.53_0.2_27)] btn-brand-glow"
             >
               <Link href="/calculator">Get an Instant Quote</Link>
             </Button>
@@ -172,7 +172,7 @@ export default function Services() {
                     </div>
                   ) : (
                     <div className="rounded-2xl border border-white/10 bg-[oklch(0.16_0.018_240)] h-72 flex items-center justify-center">
-                      <Icon className="h-24 w-24 text-[oklch(0.85_0.18_195)/20]" />
+                      <Icon className="h-24 w-24 text-[oklch(0.6_0.2_27)/20]" />
                     </div>
                   )}
                 </div>
@@ -180,11 +180,11 @@ export default function Services() {
                 {/* Content Block */}
                 <div className={isEven ? "order-2" : "order-2 lg:order-1"}>
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[oklch(0.85_0.18_195)/10]">
-                      <Icon className="h-5 w-5 text-[oklch(0.85_0.18_195)]" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[oklch(0.6_0.2_27)/10]">
+                      <Icon className="h-5 w-5 text-[oklch(0.6_0.2_27)]" />
                     </div>
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[oklch(0.85_0.18_195)]">
+                      <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[oklch(0.6_0.2_27)]">
                         {service.subtitle}
                       </p>
                     </div>
@@ -201,7 +201,7 @@ export default function Services() {
                   <ul className="space-y-2.5 mb-6">
                     {service.features.map((feature) => (
                       <li key={feature} className="flex items-start gap-2.5">
-                        <CheckCircle2 className="h-4 w-4 text-[oklch(0.85_0.18_195)] mt-0.5 shrink-0" />
+                        <CheckCircle2 className="h-4 w-4 text-[oklch(0.6_0.2_27)] mt-0.5 shrink-0" />
                         <span className="text-sm text-white/65">{feature}</span>
                       </li>
                     ))}
@@ -216,7 +216,7 @@ export default function Services() {
                     <Button
                       asChild
                       size="sm"
-                      className="bg-[oklch(0.85_0.18_195)] text-[oklch(0.12_0.018_240)] font-semibold hover:bg-[oklch(0.78_0.18_195)]"
+                      className="bg-[oklch(0.6_0.2_27)] text-[oklch(0.12_0.018_240)] font-semibold hover:bg-[oklch(0.53_0.2_27)]"
                     >
                       <Link href="/calculator">
                         Get Quote
@@ -234,7 +234,7 @@ export default function Services() {
       {/* Bundle CTA */}
       <section className="section-space bg-black border-t border-white/10">
         <div className="container max-w-7xl mx-auto text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.85_0.18_195)] mb-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.6_0.2_27)] mb-3">
             Best Value
           </p>
           <h2
@@ -249,7 +249,7 @@ export default function Services() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button
               asChild
-              className="bg-[oklch(0.85_0.18_195)] text-[oklch(0.12_0.018_240)] font-semibold hover:bg-[oklch(0.78_0.18_195)] btn-cyan-glow"
+              className="bg-[oklch(0.6_0.2_27)] text-[oklch(0.12_0.018_240)] font-semibold hover:bg-[oklch(0.53_0.2_27)] btn-brand-glow"
             >
               <Link href="/pricing">See Bundle Pricing</Link>
             </Button>

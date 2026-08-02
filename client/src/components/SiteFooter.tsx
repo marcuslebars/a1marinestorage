@@ -33,7 +33,7 @@ export function SiteFooter() {
           <div className="lg:col-span-1">
             <div className="mb-4">
               <img
-                src="/manus-storage/A1MarineStorageLogo700x200_379cd6b3.svg"
+                src="/a1-marine-storage-logo.png"
                 alt="A1 Marine Storage"
                 className="h-12 w-auto"
               />
@@ -48,7 +48,7 @@ export function SiteFooter() {
                 href="https://a1marinecare.ca"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-[oklch(0.85_0.18_195)] hover:text-[oklch(0.78_0.18_195)] transition-colors"
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-[oklch(0.6_0.2_27)] hover:text-[oklch(0.53_0.2_27)] transition-colors"
               >
                 Visit A1 Marine Care
                 <ExternalLink className="h-3.5 w-3.5" />
@@ -65,7 +65,7 @@ export function SiteFooter() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-sm text-slate-400 hover:text-[oklch(0.85_0.18_195)] transition-colors"
+                    className="text-sm text-slate-400 hover:text-[oklch(0.6_0.2_27)] transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -82,7 +82,7 @@ export function SiteFooter() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-sm text-slate-400 hover:text-[oklch(0.85_0.18_195)] transition-colors"
+                    className="text-sm text-slate-400 hover:text-[oklch(0.6_0.2_27)] transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -96,33 +96,33 @@ export function SiteFooter() {
             <p className="text-sm font-semibold uppercase tracking-[0.15em] text-white mb-4">Contact</p>
             <ul className="space-y-3">
               <li className="flex items-start gap-2.5">
-                <MapPin className="h-4 w-4 text-[oklch(0.85_0.18_195)] mt-0.5 shrink-0" />
+                <MapPin className="h-4 w-4 text-[oklch(0.6_0.2_27)] mt-0.5 shrink-0" />
                 <span className="text-sm text-slate-400">
                   639 Concession Road 16 East<br />
                   Tiny, ON L9M 1R2
                 </span>
               </li>
               <li className="flex items-center gap-2.5">
-                <Phone className="h-4 w-4 text-[oklch(0.85_0.18_195)] shrink-0" />
+                <Phone className="h-4 w-4 text-[oklch(0.6_0.2_27)] shrink-0" />
                 <a
                   href="tel:+12492016677"
                   onClick={() => trackPhoneClick("footer")}
-                  className="text-sm text-slate-400 hover:text-[oklch(0.85_0.18_195)] transition-colors"
+                  className="text-sm text-slate-400 hover:text-[oklch(0.6_0.2_27)] transition-colors"
                 >
                   (249) 201-6677
                 </a>
               </li>
               <li className="flex items-center gap-2.5">
-                <Mail className="h-4 w-4 text-[oklch(0.85_0.18_195)] shrink-0" />
+                <Mail className="h-4 w-4 text-[oklch(0.6_0.2_27)] shrink-0" />
                 <a
                   href="mailto:contact@a1marinestorage.ca"
-                  className="text-sm text-slate-400 hover:text-[oklch(0.85_0.18_195)] transition-colors"
+                  className="text-sm text-slate-400 hover:text-[oklch(0.6_0.2_27)] transition-colors"
                 >
                   contact@a1marinestorage.ca
                 </a>
               </li>
               <li className="flex items-start gap-2.5">
-                <Clock className="h-4 w-4 text-[oklch(0.85_0.18_195)] mt-0.5 shrink-0" />
+                <Clock className="h-4 w-4 text-[oklch(0.6_0.2_27)] mt-0.5 shrink-0" />
                 <div className="text-sm text-slate-400">
                   Mon–Fri: 9am – 6pm<br />
                   By appointment only

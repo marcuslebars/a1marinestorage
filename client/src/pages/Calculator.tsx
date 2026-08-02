@@ -1,6 +1,6 @@
 // A1 Marine Storage — Storage Quote Calculator
 // Bundles-first quote & booking flow, powered by the shared @a1/pricing-engine.
-// Style: Contemporary Coastal Modernism — dark harbor, cyan accents, sticky price panel.
+// Style: Contemporary Coastal Modernism — dark harbor, red accents, sticky price panel.
 import { useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 import {
@@ -227,8 +227,8 @@ export default function Calculator() {
     return (
       <div className="min-h-screen bg-[oklch(0.12_0.018_240)] pt-24 pb-20">
         <div className="container max-w-xl mx-auto text-center">
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[oklch(0.85_0.18_195)/10] mx-auto mb-6">
-            <CheckCircle2 className="h-10 w-10 text-[oklch(0.85_0.18_195)]" />
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[oklch(0.6_0.2_27)/10] mx-auto mb-6">
+            <CheckCircle2 className="h-10 w-10 text-[oklch(0.6_0.2_27)]" />
           </div>
           <h1 className="text-4xl font-black text-white mb-4" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
             Quote Request Received!
@@ -246,19 +246,19 @@ export default function Calculator() {
               </div>
             ))}
             {quote.bundleSavingsCents > 0 && (
-              <div className="flex justify-between text-sm text-[oklch(0.85_0.18_195)] py-1">
+              <div className="flex justify-between text-sm text-[oklch(0.6_0.2_27)] py-1">
                 <span>Bundle savings</span>
                 <span className="tabular-nums">−{money(quote.bundleSavingsCents)}</span>
               </div>
             )}
             <div className="flex justify-between text-base font-bold text-white pt-2 border-t border-white/10">
               <span>Subtotal</span>
-              <span className="tabular-nums text-[oklch(0.85_0.18_195)]">{money(quote.subtotalCents)}</span>
+              <span className="tabular-nums text-[oklch(0.6_0.2_27)]">{money(quote.subtotalCents)}</span>
             </div>
             <p className="text-xs text-white/40 mt-2">Plus HST. Full payment due at booking to reserve your spot.</p>
           </div>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button asChild className="bg-[oklch(0.85_0.18_195)] text-[oklch(0.12_0.018_240)] font-semibold hover:bg-[oklch(0.78_0.18_195)]">
+            <Button asChild className="bg-[oklch(0.6_0.2_27)] text-[oklch(0.12_0.018_240)] font-semibold hover:bg-[oklch(0.53_0.2_27)]">
               <Link href="/">Back to Home</Link>
             </Button>
           </div>
@@ -273,7 +273,7 @@ export default function Calculator() {
       {/* Header */}
       <section className="pt-24 pb-8 bg-black border-b border-white/10">
         <div className="container max-w-7xl mx-auto">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.85_0.18_195)] mb-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.6_0.2_27)] mb-2">
             Instant Estimate · Transparent Per-Foot Pricing
           </p>
           <h1 className="text-4xl font-black text-white md:text-5xl" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
@@ -302,16 +302,16 @@ export default function Calculator() {
                   <div
                     className={`flex items-center gap-2 rounded-full px-3 py-1.5 transition-all ${
                       active
-                        ? "bg-[oklch(0.85_0.18_195)] text-[oklch(0.12_0.018_240)]"
+                        ? "bg-[oklch(0.6_0.2_27)] text-[oklch(0.12_0.018_240)]"
                         : done
-                        ? "bg-[oklch(0.85_0.18_195)/15] text-[oklch(0.85_0.18_195)]"
+                        ? "bg-[oklch(0.6_0.2_27)/15] text-[oklch(0.6_0.2_27)]"
                         : "bg-white/5 text-white/40"
                     }`}
                   >
                     {done ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Icon className="h-3.5 w-3.5" />}
                     {s.label}
                   </div>
-                  {i < 2 && <div className={`h-px w-6 ${step > s.id ? "bg-[oklch(0.85_0.18_195)/40]" : "bg-white/10"}`} />}
+                  {i < 2 && <div className={`h-px w-6 ${step > s.id ? "bg-[oklch(0.6_0.2_27)/40]" : "bg-white/10"}`} />}
                 </div>
               );
             })}
@@ -333,7 +333,7 @@ export default function Calculator() {
                   <div className="grid gap-6 sm:grid-cols-2">
                     <div>
                       <Label className="text-sm font-semibold text-white/80 mb-2 block">
-                        Boat Length (ft) <span className="text-[oklch(0.85_0.18_195)]">*</span>
+                        Boat Length (ft) <span className="text-[oklch(0.6_0.2_27)]">*</span>
                       </Label>
                       <Input
                         type="number"
@@ -346,16 +346,16 @@ export default function Calculator() {
                           markStarted();
                           setLengthInput(e.target.value);
                         }}
-                        className="bg-white/5 border-white/15 text-white placeholder:text-white/30 focus:border-[oklch(0.85_0.18_195)] h-12"
+                        className="bg-white/5 border-white/15 text-white placeholder:text-white/30 focus:border-[oklch(0.6_0.2_27)] h-12"
                       />
                       <p className="text-xs text-white/40 mt-1.5">Length overall (LOA) in feet.</p>
                     </div>
                     <div>
                       <Label className="text-sm font-semibold text-white/80 mb-2 block">
-                        Hull Type <span className="text-[oklch(0.85_0.18_195)]">*</span>
+                        Hull Type <span className="text-[oklch(0.6_0.2_27)]">*</span>
                       </Label>
                       <Select value={hullType} onValueChange={setHullType}>
-                        <SelectTrigger className="bg-white/5 border-white/15 text-white h-12 focus:border-[oklch(0.85_0.18_195)]">
+                        <SelectTrigger className="bg-white/5 border-white/15 text-white h-12 focus:border-[oklch(0.6_0.2_27)]">
                           <SelectValue placeholder="Select hull type" />
                         </SelectTrigger>
                         <SelectContent className="bg-[oklch(0.16_0.018_240)] border-white/15">
@@ -368,7 +368,7 @@ export default function Calculator() {
                         </SelectContent>
                       </Select>
                       {HULL_TYPES.find((h) => h.value === hullType)?.surcharge && (
-                        <p className="text-xs text-[oklch(0.85_0.18_195)]/80 mt-1.5">
+                        <p className="text-xs text-[oklch(0.6_0.2_27)]/80 mt-1.5">
                           Pontoons & tritoons carry a per-foot surcharge on storage & wrapping (wider footprint).
                         </p>
                       )}
@@ -379,7 +379,7 @@ export default function Calculator() {
                     <div>
                       <Label className="text-sm font-semibold text-white/80 mb-2 block">Engine Type</Label>
                       <Select value={engineType} onValueChange={(v) => setEngineType(v as EngineType)}>
-                        <SelectTrigger className="bg-white/5 border-white/15 text-white h-12 focus:border-[oklch(0.85_0.18_195)]">
+                        <SelectTrigger className="bg-white/5 border-white/15 text-white h-12 focus:border-[oklch(0.6_0.2_27)]">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-[oklch(0.16_0.018_240)] border-white/15">
@@ -420,7 +420,7 @@ export default function Calculator() {
                   <Button
                     onClick={() => setStep(2)}
                     disabled={!canProceedStep1}
-                    className="bg-[oklch(0.85_0.18_195)] text-[oklch(0.12_0.018_240)] font-semibold hover:bg-[oklch(0.78_0.18_195)] disabled:opacity-40 btn-cyan-glow"
+                    className="bg-[oklch(0.6_0.2_27)] text-[oklch(0.12_0.018_240)] font-semibold hover:bg-[oklch(0.53_0.2_27)] disabled:opacity-40 btn-brand-glow"
                   >
                     Next: Choose Package <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
@@ -455,17 +455,17 @@ export default function Calculator() {
                         onClick={() => selectBundle(id)}
                         className={`marine-card relative p-5 text-left flex flex-col transition-all ${
                           selected
-                            ? "ring-2 ring-[oklch(0.85_0.18_195)] border-[oklch(0.85_0.18_195)/40]"
+                            ? "ring-2 ring-[oklch(0.6_0.2_27)] border-[oklch(0.6_0.2_27)/40]"
                             : "hover:border-white/25"
                         } ${meta.highlight ? "md:-mt-2" : ""}`}
                       >
                         {meta.badge && (
-                          <span className="absolute -top-2.5 left-4 rounded-full bg-[oklch(0.85_0.18_195)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[oklch(0.12_0.018_240)]">
+                          <span className="absolute -top-2.5 left-4 rounded-full bg-[oklch(0.6_0.2_27)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[oklch(0.12_0.018_240)]">
                             {meta.badge}
                           </span>
                         )}
                         <div className="flex items-center gap-2 mb-2">
-                          <Icon className="h-5 w-5 text-[oklch(0.85_0.18_195)]" />
+                          <Icon className="h-5 w-5 text-[oklch(0.6_0.2_27)]" />
                           <h3 className="text-lg font-black text-white" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
                             {b.label}
                           </h3>
@@ -480,7 +480,7 @@ export default function Calculator() {
                                 </span>
                                 <span className="text-xs text-white/40 line-through mb-1 tabular-nums">{money(q.aLaCarteSubtotalCents)}</span>
                               </div>
-                              <p className="text-xs font-semibold text-[oklch(0.85_0.18_195)] mt-0.5">
+                              <p className="text-xs font-semibold text-[oklch(0.6_0.2_27)] mt-0.5">
                                 Save {money(q.bundleSavingsCents)} ({b.discountPct}% bundle)
                               </p>
                             </>
@@ -488,7 +488,7 @@ export default function Calculator() {
                             <span className="text-sm text-white/40">Enter boat details</span>
                           )}
                           <div className={`mt-3 h-9 rounded-lg flex items-center justify-center text-sm font-semibold ${
-                            selected ? "bg-[oklch(0.85_0.18_195)] text-[oklch(0.12_0.018_240)]" : "border border-white/15 text-white/80"
+                            selected ? "bg-[oklch(0.6_0.2_27)] text-[oklch(0.12_0.018_240)]" : "border border-white/15 text-white/80"
                           }`}>
                             {selected ? "Selected" : "Select"}
                           </div>
@@ -504,11 +504,11 @@ export default function Calculator() {
                     type="button"
                     onClick={() => setCeramicUpgrade((v) => !v)}
                     className={`marine-card w-full p-4 flex items-center gap-4 text-left transition-all ${
-                      ceramicUpgrade ? "ring-2 ring-[oklch(0.85_0.18_195)]" : "hover:border-white/25"
+                      ceramicUpgrade ? "ring-2 ring-[oklch(0.6_0.2_27)]" : "hover:border-white/25"
                     }`}
                   >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[oklch(0.85_0.18_195)/12]">
-                      <Sparkles className="h-5 w-5 text-[oklch(0.85_0.18_195)]" />
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[oklch(0.6_0.2_27)/12]">
+                      <Sparkles className="h-5 w-5 text-[oklch(0.6_0.2_27)]" />
                     </div>
                     <div className="flex-1">
                       <p className="text-sm font-semibold text-white">Add a Winter Ceramic Coating</p>
@@ -518,11 +518,11 @@ export default function Calculator() {
                       </p>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-sm font-bold text-[oklch(0.85_0.18_195)] tabular-nums">
+                      <p className="text-sm font-bold text-[oklch(0.6_0.2_27)] tabular-nums">
                         +{money(Math.round(ceramicService.rateCents * lengthFt))}
                       </p>
                       <div className={`mt-1 h-5 w-5 ml-auto rounded-full border-2 flex items-center justify-center ${
-                        ceramicUpgrade ? "border-[oklch(0.85_0.18_195)] bg-[oklch(0.85_0.18_195)]" : "border-white/20"
+                        ceramicUpgrade ? "border-[oklch(0.6_0.2_27)] bg-[oklch(0.6_0.2_27)]" : "border-white/20"
                       }`}>
                         {ceramicUpgrade && <CheckCircle2 className="h-3.5 w-3.5 text-[oklch(0.12_0.018_240)]" />}
                       </div>
@@ -560,21 +560,21 @@ export default function Calculator() {
                           key={id}
                           onClick={() => toggleAlacarte(id)}
                           className={`flex items-center gap-4 rounded-xl border p-3 cursor-pointer transition-all ${
-                            selected ? "border-[oklch(0.85_0.18_195)/50] bg-[oklch(0.85_0.18_195)/8]" : "border-white/10 hover:border-white/20"
+                            selected ? "border-[oklch(0.6_0.2_27)/50] bg-[oklch(0.6_0.2_27)/8]" : "border-white/10 hover:border-white/20"
                           }`}
                         >
-                          <Icon className={`h-5 w-5 shrink-0 ${selected ? "text-[oklch(0.85_0.18_195)]" : "text-white/40"}`} />
+                          <Icon className={`h-5 w-5 shrink-0 ${selected ? "text-[oklch(0.6_0.2_27)]" : "text-white/40"}`} />
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold text-white">{isWinter ? `Winterization (${engineType})` : svc.label}</p>
                             <p className="text-xs text-white/45">{meta.blurb} · {rateLabel}</p>
                           </div>
                           <div className="text-right shrink-0">
-                            <p className="text-sm font-bold text-[oklch(0.85_0.18_195)] tabular-nums">
+                            <p className="text-sm font-bold text-[oklch(0.6_0.2_27)] tabular-nums">
                               {preview ? money(preview.subtotalCents) : "—"}
                             </p>
                           </div>
                           <div className={`h-5 w-5 shrink-0 rounded-md border-2 flex items-center justify-center ${
-                            selected ? "border-[oklch(0.85_0.18_195)] bg-[oklch(0.85_0.18_195)]" : "border-white/20"
+                            selected ? "border-[oklch(0.6_0.2_27)] bg-[oklch(0.6_0.2_27)]" : "border-white/20"
                           }`}>
                             {selected && <CheckCircle2 className="h-3.5 w-3.5 text-[oklch(0.12_0.018_240)]" />}
                           </div>
@@ -591,7 +591,7 @@ export default function Calculator() {
                   <Button
                     onClick={() => setStep(3)}
                     disabled={!hasSelection}
-                    className="bg-[oklch(0.85_0.18_195)] text-[oklch(0.12_0.018_240)] font-semibold hover:bg-[oklch(0.78_0.18_195)] disabled:opacity-40 btn-cyan-glow"
+                    className="bg-[oklch(0.6_0.2_27)] text-[oklch(0.12_0.018_240)] font-semibold hover:bg-[oklch(0.53_0.2_27)] disabled:opacity-40 btn-brand-glow"
                   >
                     Next: Your Details <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
@@ -614,10 +614,10 @@ export default function Calculator() {
                       <p className="font-semibold text-yellow-200">We couldn't submit your request just now.</p>
                       <p className="mt-1">Please call or email us and we'll lock in your quote right away:</p>
                       <div className="mt-2 flex flex-col gap-1">
-                        <a href={BUSINESS.phoneHref} onClick={() => trackPhoneClick("calculator")} className="inline-flex items-center gap-2 font-semibold text-white hover:text-[oklch(0.85_0.18_195)]">
+                        <a href={BUSINESS.phoneHref} onClick={() => trackPhoneClick("calculator")} className="inline-flex items-center gap-2 font-semibold text-white hover:text-[oklch(0.6_0.2_27)]">
                           <Phone className="h-4 w-4" /> {BUSINESS.phone}
                         </a>
-                        <a href={BUSINESS.emailHref} className="inline-flex items-center gap-2 font-semibold text-white hover:text-[oklch(0.85_0.18_195)]">
+                        <a href={BUSINESS.emailHref} className="inline-flex items-center gap-2 font-semibold text-white hover:text-[oklch(0.6_0.2_27)]">
                           <Mail className="h-4 w-4" /> {BUSINESS.email}
                         </a>
                       </div>
@@ -648,7 +648,7 @@ export default function Calculator() {
                   <Button
                     onClick={submit}
                     disabled={!canSubmit || status === "submitting"}
-                    className="bg-[oklch(0.85_0.18_195)] text-[oklch(0.12_0.018_240)] font-semibold hover:bg-[oklch(0.78_0.18_195)] disabled:opacity-40 btn-cyan-glow"
+                    className="bg-[oklch(0.6_0.2_27)] text-[oklch(0.12_0.018_240)] font-semibold hover:bg-[oklch(0.53_0.2_27)] disabled:opacity-40 btn-brand-glow"
                   >
                     {status === "submitting" ? (
                       <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting…</>
@@ -700,7 +700,7 @@ export default function Calculator() {
                         <span>À-la-carte</span>
                         <span className="line-through tabular-nums">{money(quote.aLaCarteSubtotalCents)}</span>
                       </div>
-                      <div className="flex justify-between text-[oklch(0.85_0.18_195)] font-semibold">
+                      <div className="flex justify-between text-[oklch(0.6_0.2_27)] font-semibold">
                         <span>{quote.bundle.label} savings ({quote.bundle.discountPct}%)</span>
                         <span className="tabular-nums">−{money(quote.bundleSavingsCents)}</span>
                       </div>
@@ -708,7 +708,7 @@ export default function Calculator() {
                   )}
 
                   <div className="text-center py-2">
-                    <p className="text-3xl font-black text-[oklch(0.85_0.18_195)] tabular-nums" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+                    <p className="text-3xl font-black text-[oklch(0.6_0.2_27)] tabular-nums" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
                       {money(quote.subtotalCents)}
                     </p>
                     <p className="text-xs text-white/40 mt-1">Plus HST. Full payment due at booking to reserve your spot.</p>
@@ -717,7 +717,7 @@ export default function Calculator() {
                   {step < 3 && (
                     <Button
                       onClick={() => setStep(step === 1 ? 2 : 3)}
-                      className="w-full mt-3 bg-[oklch(0.85_0.18_195)] text-[oklch(0.12_0.018_240)] font-semibold hover:bg-[oklch(0.78_0.18_195)] btn-cyan-glow"
+                      className="w-full mt-3 bg-[oklch(0.6_0.2_27)] text-[oklch(0.12_0.018_240)] font-semibold hover:bg-[oklch(0.53_0.2_27)] btn-brand-glow"
                     >
                       {step === 1 ? "Choose Package" : "Continue"} <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
@@ -735,10 +735,10 @@ export default function Calculator() {
 
             <div className="marine-card p-4 mt-4">
               <p className="text-xs font-semibold uppercase tracking-[0.15em] text-white/40 mb-2">Questions?</p>
-              <a href={BUSINESS.phoneHref} onClick={() => trackPhoneClick("calculator")} className="flex items-center gap-2 text-sm text-white/70 hover:text-[oklch(0.85_0.18_195)]">
+              <a href={BUSINESS.phoneHref} onClick={() => trackPhoneClick("calculator")} className="flex items-center gap-2 text-sm text-white/70 hover:text-[oklch(0.6_0.2_27)]">
                 <Phone className="h-4 w-4" /> {BUSINESS.phone}
               </a>
-              <a href={BUSINESS.emailHref} className="flex items-center gap-2 text-sm text-white/70 hover:text-[oklch(0.85_0.18_195)] mt-1">
+              <a href={BUSINESS.emailHref} className="flex items-center gap-2 text-sm text-white/70 hover:text-[oklch(0.6_0.2_27)] mt-1">
                 <Mail className="h-4 w-4" /> {BUSINESS.email}
               </a>
             </div>
@@ -776,14 +776,14 @@ function Field(props: {
   return (
     <div>
       <Label className="text-sm font-semibold text-white/80 mb-2 block">
-        {props.label} {props.required && <span className="text-[oklch(0.85_0.18_195)]">*</span>}
+        {props.label} {props.required && <span className="text-[oklch(0.6_0.2_27)]">*</span>}
       </Label>
       <Input
         type={props.type ?? "text"}
         value={props.value}
         placeholder={props.placeholder}
         onChange={(e) => props.onChange(e.target.value)}
-        className="bg-white/5 border-white/15 text-white placeholder:text-white/30 focus:border-[oklch(0.85_0.18_195)] h-12"
+        className="bg-white/5 border-white/15 text-white placeholder:text-white/30 focus:border-[oklch(0.6_0.2_27)] h-12"
       />
     </div>
   );
