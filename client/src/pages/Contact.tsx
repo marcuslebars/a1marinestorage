@@ -1,6 +1,7 @@
 // A1 Marine Storage — Contact Page
 // SEO: "contact boat storage Tiny Ontario", "A1 Marine Storage phone"
 import { useState } from "react";
+import { Link } from "wouter";
 import { MapPin, Phone, Mail, Clock, Send, CheckCircle2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -283,6 +284,10 @@ export default function Contact() {
                   </Button>
                   <p className="text-xs text-white/35 text-center mt-3">
                     We respond within 1–2 business days. For urgent inquiries, please call us directly.
+                  </p>
+                  <p className="mt-2 text-center text-xs text-white/40">
+                    By booking, you agree to our{" "}
+                    <Link href="/terms" className="text-[oklch(0.6_0.2_27)] hover:underline">Terms of Service</Link>.
                   </p>
                 </div>
               </form>

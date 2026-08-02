@@ -22,6 +22,7 @@ const pageLinks = [
   { href: "/facility", label: "Our Facility" },
   { href: "/contact", label: "Contact Us" },
   { href: "/privacy", label: "Privacy Policy" },
+  { href: "/terms", label: "Terms of Service" },
 ];
 
 export function SiteFooter() {
