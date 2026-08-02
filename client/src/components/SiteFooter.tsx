@@ -2,6 +2,7 @@
 // Style: Dark harbor, cross-links to A1 Marine Care, structured columns
 import { Link } from "wouter";
 import { MapPin, Phone, Mail, Clock, ExternalLink } from "lucide-react";
+import { trackPhoneClick } from "@/lib/analytics";
 
 const serviceLinks = [
   { href: "/services#shrink-wrapping", label: "Shrink Wrapping" },
@@ -20,6 +21,7 @@ const pageLinks = [
   { href: "/calculator", label: "Storage Calculator" },
   { href: "/facility", label: "Our Facility" },
   { href: "/contact", label: "Contact Us" },
+  { href: "/privacy", label: "Privacy Policy" },
 ];
 
 export function SiteFooter() {
@@ -104,6 +106,7 @@ export function SiteFooter() {
                 <Phone className="h-4 w-4 text-[oklch(0.85_0.18_195)] shrink-0" />
                 <a
                   href="tel:+12492016677"
+                  onClick={() => trackPhoneClick("footer")}
                   className="text-sm text-slate-400 hover:text-[oklch(0.85_0.18_195)] transition-colors"
                 >
                   (249) 201-6677

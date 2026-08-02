@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MapView } from "@/components/Map";
 import { BUSINESS } from "@/content/business";
+import { track, trackPhoneClick } from "@/lib/analytics";
 
 interface FormData {
   name: string;
@@ -66,6 +67,11 @@ export default function Contact() {
           if (res.ok) {
             const data = await res.json().catch(() => ({ ok: true }));
             if (data.ok) {
+              // Conversion event on successful native submit — no PII in params.
+              track("request_form_submit", {
+                service: form.serviceInterest || undefined,
+                boat_length: Number(form.boatLength) || undefined,
+              });
               setSubmitted(true);
               return;
             }
@@ -309,6 +315,7 @@ export default function Contact() {
                       <p className="text-sm font-semibold text-white">Phone</p>
                       <a
                         href="tel:+12492016677"
+                        onClick={() => trackPhoneClick("contact")}
                         className="text-sm text-white/60 hover:text-[oklch(0.85_0.18_195)] transition-colors"
                       >
                         (249) 201-6677

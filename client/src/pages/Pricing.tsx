@@ -7,6 +7,7 @@
 import { Link } from "wouter";
 import { ArrowRight, Info, Shield, Snowflake, Wrench, Anchor, Sun, Sparkles, BatteryCharging, Truck, Scissors } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { track } from "@/lib/analytics";
 import {
   RATES,
   WINTERIZATION,
@@ -55,14 +56,14 @@ function RateTable({ columns, rows }: { columns: string[]; rows: string[][] }) {
   );
 }
 
-function QuoteCTA({ label = "Get My Instant Quote" }: { label?: string }) {
+function QuoteCTA({ position, label = "Get My Instant Quote" }: { position: "hero" | "bottom"; label?: string }) {
   return (
     <Button
       asChild
       size="lg"
       className="h-14 px-10 text-base font-semibold bg-[oklch(0.85_0.18_195)] text-[oklch(0.12_0.018_240)] hover:bg-[oklch(0.78_0.18_195)] btn-cyan-glow active:scale-[0.97] transition-all duration-150"
     >
-      <Link href="/calculator">
+      <Link href="/calculator" onClick={() => track("quote_cta_click", { position })}>
         {label}
         <ArrowRight className="ml-2 h-5 w-5" />
       </Link>
@@ -169,7 +170,7 @@ export default function Pricing() {
             exact quote in under a minute, or read on for the full breakdown.
           </p>
           <div className="mt-8 flex justify-center">
-            <QuoteCTA />
+            <QuoteCTA position="hero" />
           </div>
           <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2">
             <Info className="h-4 w-4 text-[oklch(0.85_0.18_195)]" />
@@ -310,7 +311,7 @@ export default function Pricing() {
             Pick your boat, choose your services, and see your real price instantly — the same per-foot math shown above.
           </p>
           <div className="flex justify-center">
-            <QuoteCTA />
+            <QuoteCTA position="bottom" />
           </div>
         </div>
       </section>

@@ -3,19 +3,29 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch } from "wouter";
+import { useEffect } from "react";
+import { Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { SiteHeader } from "./components/SiteHeader";
 import { SiteFooter } from "./components/SiteFooter";
+import { trackPageView } from "./lib/analytics";
 import Home from "./pages/Home";
 import Services from "./pages/Services";
 import Pricing from "./pages/Pricing";
 import Calculator from "./pages/Calculator";
 import Facility from "./pages/Facility";
 import Contact from "./pages/Contact";
+import Privacy from "./pages/Privacy";
 
 function Router() {
+  // SPA route tracking: wouter doesn't fire page_view on navigation, so do it here
+  // on every location change (fires the initial view on mount too).
+  const [location] = useLocation();
+  useEffect(() => {
+    trackPageView(location);
+  }, [location]);
+
   return (
     <Switch>
       <Route path="/" component={Home} />
@@ -24,6 +34,7 @@ function Router() {
       <Route path="/calculator" component={Calculator} />
       <Route path="/facility" component={Facility} />
       <Route path="/contact" component={Contact} />
+      <Route path="/privacy" component={Privacy} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
