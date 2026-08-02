@@ -9,7 +9,7 @@ import { useEffect, useRef } from "react";
 
 const HERO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663121655920/VHzsy7iWSckjLQV8t62ZhN/hero-storage-facility-cQ5KsxQarVqwSmuxTc9X9F.webp";
 const SHRINK_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663121655920/VHzsy7iWSckjLQV8t62ZhN/shrink-wrap-service-57oifYehxkp4z67eHW4cAc.webp";
-const INDOOR_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663121655920/VHzsy7iWSckjLQV8t62ZhN/indoor-storage-apY9PKtmA8reaijP5bqUq3.webp";
+const INDOOR_IMG = "/facility-front.jpg"; // real facility — front / drive-up view
 const WINTER_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663121655920/VHzsy7iWSckjLQV8t62ZhN/winterization-service-ZEgrfSXyrsmSHLKqGrhDUu.webp";
 
 const services = [
@@ -309,7 +309,7 @@ export default function Home() {
                 <div className="rounded-2xl overflow-hidden border border-white/10">
                   <img
                     src={INDOOR_IMG}
-                    alt="A1 Marine Storage indoor facility — clean, secure, well-lit"
+                    alt="A1 Marine Storage facility in Tiny, Ontario"
                     className="w-full h-80 object-cover md:h-96"
                   />
                 </div>

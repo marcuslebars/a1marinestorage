@@ -5,8 +5,8 @@ import { MapPin, Shield, Camera, Lightbulb, Lock, Clock, CheckCircle2, ArrowRigh
 import { Button } from "@/components/ui/button";
 import { MapView } from "@/components/Map";
 
-const FACILITY_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663121655920/VHzsy7iWSckjLQV8t62ZhN/hero-storage-facility-cQ5KsxQarVqwSmuxTc9X9F.webp";
-const INDOOR_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663121655920/VHzsy7iWSckjLQV8t62ZhN/indoor-storage-apY9PKtmA8reaijP5bqUq3.webp";
+const FACILITY_IMG = "/facility-front.jpg"; // real facility — front / drive-up view
+const INDOOR_IMG = "/facility-side.jpg"; // real facility — side / lot view
 
 const securityFeatures = [
   {
@@ -59,7 +59,7 @@ export default function Facility() {
           <img
             src={FACILITY_IMG}
             alt="A1 Marine Storage facility at 639 Concession Road 16 East, Tiny, Ontario"
-            className="absolute inset-0 w-full h-full object-cover"
+            className="absolute inset-0 w-full h-full object-cover object-[center_38%]"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/30" />
           <div className="absolute inset-0 flex items-end pb-12">
@@ -111,7 +111,7 @@ export default function Facility() {
             <div className="rounded-2xl overflow-hidden border border-white/10">
               <img
                 src={INDOOR_IMG}
-                alt="A1 Marine Storage indoor building — clean, well-lit, secure"
+                alt="A1 Marine Storage facility — secured lot with drive-up access, Tiny, Ontario"
                 className="w-full h-80 object-cover md:h-96"
               />
             </div>
