@@ -1,12 +1,11 @@
 // A1 Marine Storage — Privacy Policy
 // Working template supplied by the owner (to be legally reviewed). Bracketed
-// values filled from repo/config where findable; [BUSINESS LEGAL NAME] is left
-// bracketed (not in the repo) and flagged. Contact email/phone come from BUSINESS.
+// values filled from repo/config (legal name, address, email/phone) via BUSINESS.
 import { type ReactNode } from "react";
 import { BUSINESS } from "@/content/business";
 import { trackPhoneClick } from "@/lib/analytics";
 
-const LAST_UPDATED = "August 1, 2026"; // creation date — update on legal review
+const LAST_UPDATED = "August 4, 2026";
 const ADDRESS = "639 Concession Road 16 East, Tiny, ON L9M 1R2";
 
 const emailLink = (
@@ -59,7 +58,7 @@ const sections: { title: string; body: ReactNode }[] = [
     title: "Contact",
     body: (
       <>
-        [BUSINESS LEGAL NAME], {ADDRESS}, {emailLink},{" "}
+        {BUSINESS.legalName}, {ADDRESS}, {emailLink},{" "}
         <a
           href={BUSINESS.phoneHref}
           onClick={() => trackPhoneClick("privacy")}
