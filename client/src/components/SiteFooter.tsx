@@ -14,7 +14,7 @@ const serviceLinks = [
   { href: "/pricing#spring-wrap-removal", label: "Spring Wrap Removal" },
 ];
 
-const pageLinks = [
+const pageLinks: { href: string; label: string; external?: boolean }[] = [
   { href: "/", label: "Home" },
   { href: "/services", label: "Services" },
   { href: "/pricing", label: "Pricing" },
@@ -22,7 +22,9 @@ const pageLinks = [
   { href: "/facility", label: "Our Facility" },
   { href: "/contact", label: "Contact Us" },
   { href: "/privacy", label: "Privacy Policy" },
-  { href: "/terms", label: "Terms of Service" },
+  // /terms is a server-side 301 to a1marine.ca/terms — render as a real anchor
+  // (full navigation) so it hits the redirect instead of client-side routing.
+  { href: "/terms", label: "Terms of Service", external: true },
 ];
 
 export function SiteFooter() {
@@ -81,12 +83,21 @@ export function SiteFooter() {
             <ul className="space-y-2">
               {pageLinks.map((link) => (
                 <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    className="text-sm text-slate-400 hover:text-[oklch(0.6_0.2_27)] transition-colors"
-                  >
-                    {link.label}
-                  </Link>
+                  {link.external ? (
+                    <a
+                      href={link.href}
+                      className="text-sm text-slate-400 hover:text-[oklch(0.6_0.2_27)] transition-colors"
+                    >
+                      {link.label}
+                    </a>
+                  ) : (
+                    <Link
+                      href={link.href}
+                      className="text-sm text-slate-400 hover:text-[oklch(0.6_0.2_27)] transition-colors"
+                    >
+                      {link.label}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>
