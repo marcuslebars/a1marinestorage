@@ -43,6 +43,14 @@ async function startServer() {
     }
   });
 
+  // The canonical Terms of Service now lives on the A1 Marine umbrella. Redirect
+  // /terms (direct loads, the old SPA route, and booking-consent links all land
+  // here) with a real 301 — declared before the static + SPA-fallback handlers
+  // so no dead page is ever served and no client-side bounce occurs.
+  app.get(["/terms", "/terms/"], (_req, res) => {
+    res.redirect(301, "https://a1marine.ca/terms");
+  });
+
   app.use(express.static(staticPath));
 
   // Handle client-side routing - serve index.html for all routes
