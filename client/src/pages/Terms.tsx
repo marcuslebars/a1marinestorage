@@ -2,8 +2,8 @@
 // Working template supplied by the owner (to be legally reviewed). Mirrors the
 // Privacy page's structure/typography. Bracketed values filled from repo/config
 // where findable (legal name via BUSINESS.legalName, address, contacts). The two
-// clauses the owner must confirm (cancellation §3, holdover §10) carry the proposed
-// defaults.
+// owner-decision clauses (cancellation §3, holdover §10) were confirmed by the
+// owner on 2026-08-04; the proposed defaults are retained.
 import { type ReactNode } from "react";
 import { BUSINESS } from "@/content/business";
 import { trackPhoneClick } from "@/lib/analytics";
