@@ -20,6 +20,17 @@ describe("/terms — Terms of Service", () => {
     expect(terms).toContain("13. General");
   });
 
+  it("has the legal entity filled from BUSINESS (no placeholder left)", () => {
+    const terms = read("Terms.tsx");
+    const privacy = read("Privacy.tsx");
+    const business = read("../content/business.ts");
+    expect(business).toContain('legalName: "Thinker Holdings Inc."');
+    expect(terms).toContain("BUSINESS.legalName");
+    expect(privacy).toContain("BUSINESS.legalName");
+    expect(terms).not.toContain("[BUSINESS LEGAL NAME]");
+    expect(privacy).not.toContain("[BUSINESS LEGAL NAME]");
+  });
+
   it("is wired into the router", () => {
     const app = read("../App.tsx");
     expect(app).toContain('import Terms from "./pages/Terms"');

@@ -1,15 +1,15 @@
 // A1 Marine Storage — Terms of Service
 // Working template supplied by the owner (to be legally reviewed). Mirrors the
 // Privacy page's structure/typography. Bracketed values filled from repo/config
-// where findable; [BUSINESS LEGAL NAME] is left bracketed (not in the repo) and
-// flagged. The two clauses the owner must confirm (cancellation §3, holdover §10)
-// carry the proposed defaults.
+// where findable (legal name via BUSINESS.legalName, address, contacts). The two
+// clauses the owner must confirm (cancellation §3, holdover §10) carry the proposed
+// defaults.
 import { type ReactNode } from "react";
 import { BUSINESS } from "@/content/business";
 import { trackPhoneClick } from "@/lib/analytics";
 
-const LEGAL_NAME = "[BUSINESS LEGAL NAME]"; // not in repo — owner to fill
-const LAST_UPDATED = "August 2, 2026"; // creation date — update on legal review
+const LEGAL_NAME = BUSINESS.legalName; // Thinker Holdings Inc.
+const LAST_UPDATED = "August 4, 2026";
 const ADDRESS = "639 Concession Road 16 East, Tiny, ON L9M 1R2";
 
 const INTRO =
