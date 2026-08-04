@@ -659,7 +659,7 @@ export default function Calculator() {
                 </div>
                 <p className="mt-4 text-center text-xs text-white/40">
                   By booking, you agree to our{" "}
-                  <Link href="/terms" className="text-[oklch(0.6_0.2_27)] hover:underline">Terms of Service</Link>.
+                  <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-[oklch(0.6_0.2_27)] hover:underline">Terms of Service</a>.
                 </p>
               </div>
             )}

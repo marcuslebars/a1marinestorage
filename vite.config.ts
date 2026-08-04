@@ -239,7 +239,22 @@ function vitePluginLeadApi(): Plugin {
   };
 }
 
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector(), vitePluginStorageProxy(), vitePluginLeadApi()];
+// Dev parity with the production Express server: 301 /terms to the canonical
+// A1 Marine terms so `pnpm dev` behaves like prod (no dead page, no SPA bounce).
+function vitePluginTermsRedirect(): Plugin {
+  return {
+    name: "a1-terms-redirect",
+    configureServer(server: ViteDevServer) {
+      server.middlewares.use("/terms", (_req: IncomingMessage, res: ServerResponse) => {
+        res.statusCode = 301;
+        res.setHeader("Location", "https://a1marine.ca/terms");
+        res.end();
+      });
+    },
+  };
+}
+
+const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector(), vitePluginStorageProxy(), vitePluginLeadApi(), vitePluginTermsRedirect()];
 
 export default defineConfig({
   plugins,
