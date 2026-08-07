@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { MapView } from "@/components/Map";
 import { BUSINESS } from "@/content/business";
 import { track, trackPhoneClick } from "@/lib/analytics";
+import { getUtm } from "@/lib/utm";
 
 interface FormData {
   name: string;
@@ -53,6 +54,8 @@ export default function Contact() {
       boatLength: form.boatLength,
       serviceInterest: form.serviceInterest,
       message: form.message,
+      utm: getUtm(),
+      page: "/contact",
     };
 
     const maxAttempts = 3;

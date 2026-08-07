@@ -7,25 +7,25 @@ import { Button } from "@/components/ui/button";
 import { RATES, WINTERIZATION } from "@/lib/storage-pricing";
 import { useEffect, useRef } from "react";
 
-const HERO_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663121655920/VHzsy7iWSckjLQV8t62ZhN/hero-storage-facility-cQ5KsxQarVqwSmuxTc9X9F.webp";
-const SHRINK_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663121655920/VHzsy7iWSckjLQV8t62ZhN/shrink-wrap-service-57oifYehxkp4z67eHW4cAc.webp";
+// Real facility photos only (client/public) — no external/stock imagery on the
+// homepage. Side view anchors the hero + CTA; front/drive-up view the mid-page.
+const HERO_IMG = "/facility-side.jpg"; // real facility — wide side view
 const INDOOR_IMG = "/facility-front.jpg"; // real facility — front / drive-up view
-const WINTER_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663121655920/VHzsy7iWSckjLQV8t62ZhN/winterization-service-ZEgrfSXyrsmSHLKqGrhDUu.webp";
 
 const services = [
   {
     icon: Snowflake,
     title: "Shrink Wrapping",
     desc: "Professional-grade white heat-shrink film with vents installed. Protects against snow, ice, UV, and debris all winter.",
-    href: "/services#shrink-wrapping",
-    img: SHRINK_IMG,
+    href: "/shrink-wrapping",
+    img: null,
     price: `From ${RATES.shrinkPerFoot}/ft`,
   },
   {
     icon: Shield,
     title: "Outdoor Storage",
     desc: "Secure seasonal storage on our fenced Tiny, ON lot — professionally blocked and positioned on your trailer, monitored all winter.",
-    href: "/services#outdoor-storage",
+    href: "/boat-storage",
     img: INDOOR_IMG,
     price: `From ${RATES.outdoorPerFoot}/ft/season`,
   },
@@ -33,8 +33,8 @@ const services = [
     icon: Wrench,
     title: "Winterization",
     desc: "Engine flush & fogging, antifreeze in engine and lines, fuel stabilizer, battery disconnect, drain plug removal.",
-    href: "/services#winterization",
-    img: WINTER_IMG,
+    href: "/winterization",
+    img: null,
     price: `From ${WINTERIZATION[0].price}`,
   },
   {

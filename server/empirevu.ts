@@ -53,6 +53,8 @@ export function buildStorageContactEnvelope(input: {
   id: string;
   receivedAt: string;
   contact: { name: string; email: string; phone: string; boatMakeModel?: string; boatLength?: string; serviceInterest?: string; message?: string };
+  utm?: Record<string, string>;
+  page?: string;
 }): LeadEnvelope {
   const c = input.contact;
   return {
@@ -64,7 +66,10 @@ export function buildStorageContactEnvelope(input: {
     contact: { name: c.name, email: c.email, phone: c.phone },
     message: joinText(c.serviceInterest ? `Service interest: ${c.serviceInterest}` : undefined, c.message),
     asset: compact({ makeModel: c.boatMakeModel, lengthFt: parseFeet(c.boatLength) }),
-    meta: { site: "a1marinestorage.ca", page: "/contact" },
+    // utm dropped by compact() when absent → unchanged output for non-campaign leads (golden-safe).
+    meta: compact({ site: "a1marinestorage.ca", page: input.page ?? "/contact", utm: input.utm }) ?? {
+      site: "a1marinestorage.ca",
+    },
   };
 }
 

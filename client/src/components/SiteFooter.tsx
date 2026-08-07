@@ -5,9 +5,9 @@ import { MapPin, Phone, Mail, Clock, ExternalLink } from "lucide-react";
 import { trackPhoneClick } from "@/lib/analytics";
 
 const serviceLinks = [
-  { href: "/services#shrink-wrapping", label: "Shrink Wrapping" },
-  { href: "/services#outdoor-storage", label: "Outdoor Storage" },
-  { href: "/services#winterization", label: "Winterization" },
+  { href: "/boat-storage", label: "Outdoor Storage" },
+  { href: "/shrink-wrapping", label: "Shrink Wrapping" },
+  { href: "/winterization", label: "Winterization" },
   { href: "/services#spring-launch", label: "Spring Commissioning" },
   { href: "/pricing#battery-storage", label: "Battery Storage" },
   { href: "/pricing#trailer-storage", label: "Trailer Storage" },
@@ -21,6 +21,8 @@ const pageLinks: { href: string; label: string; external?: boolean }[] = [
   { href: "/calculator", label: "Storage Calculator" },
   { href: "/facility", label: "Our Facility" },
   { href: "/contact", label: "Contact Us" },
+  { href: "/about", label: "About" },
+  { href: "/faq", label: "FAQ" },
   { href: "/privacy", label: "Privacy Policy" },
   // /terms is a server-side 301 to a1marine.ca/terms — render as a real anchor
   // (full navigation) so it hits the redirect instead of client-side routing.

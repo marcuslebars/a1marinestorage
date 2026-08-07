@@ -56,9 +56,18 @@ export async function handleContactSubmission(rawBody: unknown): Promise<Handler
   if (!check.ok) return { status: 400, body: { ok: false, error: check.error } };
   const contact = check.contact;
 
+  // Optional campaign attribution + landing page (from ad landing pages / locality
+  // forms). Best-effort — never required, never blocks the lead.
+  const raw = (rawBody ?? {}) as Record<string, unknown>;
+  const utm =
+    raw.utm && typeof raw.utm === "object" && !Array.isArray(raw.utm)
+      ? (raw.utm as Record<string, string>)
+      : undefined;
+  const page = typeof raw.page === "string" ? raw.page : undefined;
+
   const id = randomUUID();
   const receivedAt = new Date().toISOString();
-  const record = { id, receivedAt, source: LEAD_TAG, sourceSite: SOURCE_SITE, contact };
+  const record = { id, receivedAt, source: LEAD_TAG, sourceSite: SOURCE_SITE, contact, utm, page };
 
   // (1) Durable record FIRST — success only after this succeeds.
   try {
@@ -84,6 +93,8 @@ export async function handleContactSubmission(rawBody: unknown): Promise<Handler
     boatLength: contact.boatLength ?? "",
     service: contact.serviceInterest ?? "",
     message: contact.message ?? "",
+    utm: utm ?? {},
+    landingPage: page ?? "",
     notes: [
       "Source: A1 Marine Storage contact form",
       contact.boatMakeModel ? `Boat: ${contact.boatMakeModel}` : "",
@@ -99,7 +110,7 @@ export async function handleContactSubmission(rawBody: unknown): Promise<Handler
 
   // (3) Additive dual-send: the SAME lead to EmpireVu's canonical intake, best-effort.
   //     The legacy forward above is untouched; an EmpireVu failure never affects this response.
-  void forwardToEmpireVu(buildStorageContactEnvelope({ id, receivedAt, contact }));
+  void forwardToEmpireVu(buildStorageContactEnvelope({ id, receivedAt, contact, utm, page }));
 
   return { status: 200, body: { ok: true, id, submittedAt: receivedAt } };
 }
