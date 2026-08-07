@@ -31,6 +31,8 @@ interface ServicePageLayoutProps {
   pricingIntro?: ReactNode;
   /** Engine-derived pricing block (never hardcoded). */
   pricing: ReactNode;
+  /** Optional section rendered after pricing (e.g. Areas We Serve on /boat-storage). */
+  extraSection?: ReactNode;
   related: RelatedLink[];
 }
 
@@ -46,6 +48,7 @@ export function ServicePageLayout({
   pricingHeading,
   pricingIntro,
   pricing,
+  extraSection,
   related,
 }: ServicePageLayoutProps) {
   return (
@@ -151,6 +154,8 @@ export function ServicePageLayout({
           </div>
         </div>
       </section>
+
+      {extraSection}
 
       {/* Related services */}
       <section className="section-space bg-black">

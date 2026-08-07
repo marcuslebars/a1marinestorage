@@ -11,6 +11,7 @@
 // in @a1/pricing-engine and are rendered on-page from there. Keeping numbers out
 // of this file avoids both hardcoding and staleness.
 import { localBusinessLd, webSiteLd, serviceLd, faqPageLd, breadcrumbLd } from "./structured-data";
+import { LOCALITIES, localityFaq, type Locality } from "./localities";
 
 export const SITE = {
   origin: "https://a1marinestorage.ca",
@@ -336,3 +337,34 @@ export function renderSitemap(): string {
     .join("\n");
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
 }
+
+// ── Locality pages (Phase 2) — registered from the shared localities config so
+//    getPageMeta(), the server injection, and the sitemap all pick them up. ─────
+function localityPageMeta(loc: Locality): PageMeta {
+  const path = `/boat-storage/${loc.slug}`;
+  return {
+    path,
+    title: `Boat Storage & Shrink Wrapping in ${loc.name}, ON | A1 Marine Storage`,
+    description: `Secure winter boat storage, shrink wrapping, and winterization for ${loc.name} boaters — about ${loc.driveMin} minutes from our fenced Tiny, Ontario yard. Serving ${loc.waters}.`,
+    jsonLd: [
+      localBusinessLd(),
+      serviceLd({
+        name: `Boat Storage & Shrink Wrapping in ${loc.name}`,
+        description: `Seasonal boat storage, shrink wrapping, and winterization for ${loc.name}, Ontario and ${loc.waters}.`,
+        path,
+        serviceType: "Boat storage and winterization",
+        areaServedCity: loc.name,
+      }),
+      faqPageLd(localityFaq(loc)),
+      breadcrumbLd([
+        { name: "Home", path: "/" },
+        { name: "Boat Storage", path: "/boat-storage" },
+        { name: loc.name, path },
+      ]),
+    ],
+    changefreq: "monthly",
+    priority: 0.7,
+  };
+}
+
+registerPages(LOCALITIES.map(localityPageMeta));

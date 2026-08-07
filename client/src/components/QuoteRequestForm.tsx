@@ -19,10 +19,14 @@ interface QuoteRequestFormProps {
   page: string;
   /** Optional context prefixed to the service interest, e.g. "Winter storage — Midland". */
   serviceContext?: string;
+  /** Town name for locality pages — added to the lead envelope payload. */
+  locality?: string;
+  /** Lead envelope formType (locality pages use "winter-storage-quote"). */
+  formType?: "contact" | "winter-storage-quote";
   submitLabel?: string;
 }
 
-export function QuoteRequestForm({ page, serviceContext, submitLabel = "Request My Quote" }: QuoteRequestFormProps) {
+export function QuoteRequestForm({ page, serviceContext, locality, formType, submitLabel = "Request My Quote" }: QuoteRequestFormProps) {
   const [form, setForm] = useState({ name: "", phone: "", email: "", boatLength: "", boatType: "", message: "" });
   const [services, setServices] = useState<string[]>([]);
   const [status, setStatus] = useState<"idle" | "submitting" | "error">("idle");
@@ -55,6 +59,8 @@ export function QuoteRequestForm({ page, serviceContext, submitLabel = "Request 
       message: form.message || undefined,
       utm: getUtm(),
       page,
+      locality,
+      formType,
     };
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {

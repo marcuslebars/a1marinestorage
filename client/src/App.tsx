@@ -21,6 +21,7 @@ import Privacy from "./pages/Privacy";
 import BoatStorage from "./pages/BoatStorage";
 import ShrinkWrapping from "./pages/ShrinkWrapping";
 import Winterization from "./pages/Winterization";
+import LocalityPage from "./pages/LocalityPage";
 import FAQ from "./pages/FAQ";
 import About from "./pages/About";
 import WinterQuote from "./pages/WinterQuote";
@@ -39,6 +40,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/services" component={Services} />
       <Route path="/boat-storage" component={BoatStorage} />
+      <Route path="/boat-storage/:locality" component={LocalityPage} />
       <Route path="/shrink-wrapping" component={ShrinkWrapping} />
       <Route path="/winterization" component={Winterization} />
       <Route path="/pricing" component={Pricing} />

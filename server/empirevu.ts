@@ -19,13 +19,13 @@ export interface LeadEnvelope {
   schemaVersion: 1;
   source: string;
   sourceSite: string;
-  formType: "quote" | "contact" | "booking";
+  formType: "quote" | "contact" | "booking" | "winter-storage-quote";
   receivedAt: string;
   contact: { name?: string; email?: string; phone?: string };
   message?: string;
   lineItems?: LeadLineItem[];
   asset?: { makeModel?: string; lengthFt?: number; type?: string; marina?: string };
-  meta?: { site?: string; page?: string; preferredDate?: string; preferredTime?: string; utm?: Record<string, string> };
+  meta?: { site?: string; page?: string; preferredDate?: string; preferredTime?: string; utm?: Record<string, string>; locality?: string };
 }
 
 // ── Builders (spoke-specific mapping → canonical envelope) ───────────────────
@@ -55,19 +55,21 @@ export function buildStorageContactEnvelope(input: {
   contact: { name: string; email: string; phone: string; boatMakeModel?: string; boatLength?: string; serviceInterest?: string; message?: string };
   utm?: Record<string, string>;
   page?: string;
+  formType?: LeadEnvelope["formType"];
+  locality?: string;
 }): LeadEnvelope {
   const c = input.contact;
   return {
     schemaVersion: 1,
-    source: "a1marinestorage-contact",
+    source: input.formType === "winter-storage-quote" ? "a1marinestorage-winter-quote" : "a1marinestorage-contact",
     sourceSite: SOURCE_SITE,
-    formType: "contact",
+    formType: input.formType ?? "contact",
     receivedAt: input.receivedAt,
     contact: { name: c.name, email: c.email, phone: c.phone },
     message: joinText(c.serviceInterest ? `Service interest: ${c.serviceInterest}` : undefined, c.message),
     asset: compact({ makeModel: c.boatMakeModel, lengthFt: parseFeet(c.boatLength) }),
-    // utm dropped by compact() when absent → unchanged output for non-campaign leads (golden-safe).
-    meta: compact({ site: "a1marinestorage.ca", page: input.page ?? "/contact", utm: input.utm }) ?? {
+    // utm/locality dropped by compact() when absent → unchanged output for plain contact leads (golden-safe).
+    meta: compact({ site: "a1marinestorage.ca", page: input.page ?? "/contact", utm: input.utm, locality: input.locality }) ?? {
       site: "a1marinestorage.ca",
     },
   };

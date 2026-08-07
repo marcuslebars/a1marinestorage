@@ -3,6 +3,7 @@
 // engine-derived via storage-pricing.ts. JSON-LD comes from the SEO registry.
 import { Shield } from "lucide-react";
 import { ServicePageLayout } from "@/components/ServicePageLayout";
+import { AreasWeServe } from "@/components/AreasWeServe";
 import { perFootBrackets, RATES } from "@/lib/storage-pricing";
 
 const brackets = perFootBrackets("outdoor_storage");
@@ -78,6 +79,7 @@ export default function BoatStorage() {
           </div>
         </div>
       }
+      extraSection={<AreasWeServe />}
       related={[
         { href: "/shrink-wrapping", label: "Shrink Wrapping", desc: "Tight, vented heat-shrink cover — pairs perfectly with outdoor storage." },
         { href: "/winterization", label: "Winterization", desc: "Protect your engine and systems from freeze damage over winter." },
