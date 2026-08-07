@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BUSINESS } from "@/content/business";
+import { getUtm } from "@/lib/utm";
 import { track, trackPhoneClick } from "@/lib/analytics";
 import {
   calculateQuote,
@@ -184,7 +185,7 @@ export default function Calculator() {
     const payload = {
       quoteInput: selectedInput,
       contact,
-      meta: { mode, bundleId, ceramicUpgrade, boat, lengthFt },
+      meta: { mode, bundleId, ceramicUpgrade, boat, lengthFt, utm: getUtm() },
     };
     const maxAttempts = 3;
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {

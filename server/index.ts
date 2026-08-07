@@ -4,6 +4,8 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { handleQuoteSubmission } from "./quote-handler";
 import { handleContactSubmission } from "./contact-handler";
+import fs from "fs";
+import { getPageMeta, hasPage, injectMeta, renderSitemap } from "../shared/seo";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -51,11 +53,34 @@ async function startServer() {
     res.redirect(301, "https://a1marine.ca/terms");
   });
 
-  app.use(express.static(staticPath));
+  // Generated sitemap from the shared SEO registry — declared before the static
+  // handler so it always wins over any stale physical sitemap.xml.
+  app.get("/sitemap.xml", (_req, res) => {
+    res.type("application/xml").send(renderSitemap());
+  });
 
-  // Handle client-side routing - serve index.html for all routes
-  app.get("*", (_req, res) => {
-    res.sendFile(path.join(staticPath, "index.html"));
+  // index:false so directory requests ("/", "/boat-storage/") fall through to the
+  // meta-injecting handler below instead of static-serving the un-injected index.html.
+  app.use(express.static(staticPath, { index: false }));
+
+  // Client-side routing: serve index.html with the route's SEO <head> injected,
+  // so crawlers and social scrapers get real per-page title/description/canonical
+  // + JSON-LD without running the SPA's JS. Unknown routes return a real 404.
+  let indexHtmlCache: string | null = null;
+  const indexHtml = (): string => {
+    if (indexHtmlCache === null) {
+      indexHtmlCache = fs.readFileSync(path.join(staticPath, "index.html"), "utf-8");
+    }
+    return indexHtmlCache;
+  };
+  app.get("*", (req, res) => {
+    try {
+      const html = injectMeta(indexHtml(), getPageMeta(req.path));
+      res.status(hasPage(req.path) ? 200 : 404).type("html").send(html);
+    } catch (err) {
+      console.error("[seo] meta injection failed, serving base index.html:", err instanceof Error ? err.message : String(err));
+      res.sendFile(path.join(staticPath, "index.html"));
+    }
   });
 
   const port = process.env.PORT || 3000;
