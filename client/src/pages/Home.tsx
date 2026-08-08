@@ -4,6 +4,7 @@
 import { Link } from "wouter";
 import { ArrowRight, Shield, Snowflake, Wrench, Sun, CheckCircle2, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ServiceCardMedia } from "@/components/ServiceCardMedia";
 import { RATES, WINTERIZATION } from "@/lib/storage-pricing";
 import { useEffect, useRef } from "react";
 
@@ -210,21 +211,7 @@ export default function Home() {
                       className="group marine-card overflow-hidden cursor-pointer hover:border-[oklch(0.6_0.2_27)/30] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_60px_-20px_oklch(0.6_0.2_27/0.2)]"
                       style={{ animationDelay: `${0.1 + i * 0.08}s` }}
                     >
-                      {service.img && (
-                        <div className="relative h-44 overflow-hidden">
-                          <img
-                            src={service.img}
-                            alt={service.title}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-[oklch(0.16_0.018_240)] via-transparent to-transparent" />
-                        </div>
-                      )}
-                      {!service.img && (
-                        <div className="h-44 bg-gradient-to-br from-[oklch(0.20_0.02_240)] to-[oklch(0.14_0.015_240)] flex items-center justify-center">
-                          <Icon className="h-16 w-16 text-[oklch(0.6_0.2_27)/30]" />
-                        </div>
-                      )}
+                      <ServiceCardMedia src={service.img} alt={service.title} Icon={Icon} variant="card" />
                       <div className="p-5">
                         <div className="flex items-center gap-2.5 mb-3">
                           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[oklch(0.6_0.2_27)/10]">

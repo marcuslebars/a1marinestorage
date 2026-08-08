@@ -6,11 +6,14 @@
 import { Link } from "wouter";
 import { Snowflake, Shield, Wrench, Sun, Lock, ArrowRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ServiceCardMedia } from "@/components/ServiceCardMedia";
 import { RATES, WINTERIZATION } from "@/lib/storage-pricing";
 
-const SHRINK_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663121655920/VHzsy7iWSckjLQV8t62ZhN/shrink-wrap-service-57oifYehxkp4z67eHW4cAc.webp";
-const INDOOR_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663121655920/VHzsy7iWSckjLQV8t62ZhN/indoor-storage-apY9PKtmA8reaijP5bqUq3.webp";
-const WINTER_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663121655920/VHzsy7iWSckjLQV8t62ZhN/winterization-service-ZEgrfSXyrsmSHLKqGrhDUu.webp";
+// Real facility photos only (client/public) — never external/stock imagery. Services we
+// don't yet have a real photo of (shrink wrap, winterization, spring launch) render the
+// branded ServiceCardMedia fallback until the owner supplies one.
+const OUTDOOR_IMG = "/facility-side.jpg"; // real — the storage lot
+const SECURITY_IMG = "/facility-front.jpg"; // real — gated entrance / drive-up
 
 const services = [
   {
@@ -18,7 +21,7 @@ const services = [
     icon: Snowflake,
     title: "Shrink Wrapping",
     subtitle: "Professional-grade winter protection",
-    img: SHRINK_IMG,
+    img: null, // real shrink-wrap photo pending → branded fallback
     description:
       "Our professional boat shrink wrapping service uses commercial-grade white heat-shrink film to create a tight, weatherproof seal around your entire vessel. Every wrap includes strategically placed ventilation ports to prevent moisture buildup and mould growth — a critical detail that separates professional wrapping from DIY attempts.",
     features: [
@@ -37,7 +40,7 @@ const services = [
     icon: Shield,
     title: "Outdoor Winter Storage",
     subtitle: "Secure seasonal storage at our Tiny, ON facility",
-    img: INDOOR_IMG,
+    img: OUTDOOR_IMG,
     description:
       "Our storage yard at 639 Concession Road 16 East, Tiny, ON offers economical outdoor seasonal storage on a secured, fenced lot — particularly effective when combined with professional shrink wrapping. Your boat is professionally blocked and positioned on its trailer, with planned spring access.",
     features: [
@@ -56,7 +59,7 @@ const services = [
     icon: Wrench,
     title: "Winterization",
     subtitle: "Protect your engine and systems from freeze damage",
-    img: WINTER_IMG,
+    img: null, // real winterization photo pending → branded fallback
     description:
       "Proper winterization is the single most important thing you can do to protect your engine and mechanical systems from Ontario's harsh winters. Our winterization service follows industry-standard procedures to ensure every system is properly protected before temperatures drop.",
     features: [
@@ -95,7 +98,7 @@ const services = [
     icon: Lock,
     title: "Facility Security",
     subtitle: "Your investment is protected all season",
-    img: null,
+    img: SECURITY_IMG,
     description:
       "We take the security of your vessel seriously. Our Tiny, ON storage facility is designed to keep your boat safe and protected throughout the off-season.",
     features: [
@@ -162,19 +165,7 @@ export default function Services() {
               >
                 {/* Image / Icon Block */}
                 <div className={isEven ? "order-1" : "order-1 lg:order-2"}>
-                  {service.img ? (
-                    <div className="rounded-2xl overflow-hidden border border-white/10">
-                      <img
-                        src={service.img}
-                        alt={service.title}
-                        className="w-full h-72 object-cover md:h-80"
-                      />
-                    </div>
-                  ) : (
-                    <div className="rounded-2xl border border-white/10 bg-[oklch(0.16_0.018_240)] h-72 flex items-center justify-center">
-                      <Icon className="h-24 w-24 text-[oklch(0.6_0.2_27)/20]" />
-                    </div>
-                  )}
+                  <ServiceCardMedia src={service.img} alt={service.title} Icon={Icon} variant="feature" />
                 </div>
 
                 {/* Content Block */}
