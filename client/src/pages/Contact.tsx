@@ -382,16 +382,8 @@ export default function Contact() {
         <div className="container max-w-7xl mx-auto">
           <div className="rounded-2xl overflow-hidden border border-white/10 h-80 md:h-96">
             <MapView
-              onMapReady={(map) => {
-                const location = { lat: 44.7167, lng: -79.9167 };
-                map.setCenter(location);
-                map.setZoom(14);
-                new google.maps.Marker({
-                  position: location,
-                  map,
-                  title: "A1 Marine Storage — 639 Concession Rd 16 E, Tiny, ON",
-                });
-              }}
+              query="639 Concession Road 16 East, Tiny, ON L9M 1R2"
+              title="A1 Marine Storage — 639 Concession Rd 16 E, Tiny, ON"
             />
           </div>
           <div className="mt-4 text-center">
