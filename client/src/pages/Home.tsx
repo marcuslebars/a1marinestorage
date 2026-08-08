@@ -19,7 +19,7 @@ const services = [
     title: "Shrink Wrapping",
     desc: "Professional-grade white heat-shrink film with vents installed. Protects against snow, ice, UV, and debris all winter.",
     href: "/shrink-wrapping",
-    img: null,
+    img: "/shrink-wrapping.jpg",
     price: `From ${RATES.shrinkPerFoot}/ft`,
   },
   {
@@ -27,7 +27,7 @@ const services = [
     title: "Outdoor Storage",
     desc: "Secure seasonal storage on our fenced Tiny, ON lot — professionally blocked and positioned on your trailer, monitored all winter.",
     href: "/boat-storage",
-    img: INDOOR_IMG,
+    img: "/facility-aerial.jpg",
     price: `From ${RATES.outdoorPerFoot}/ft/season`,
   },
   {
@@ -35,7 +35,7 @@ const services = [
     title: "Winterization",
     desc: "Engine flush & fogging, antifreeze in engine and lines, fuel stabilizer, battery disconnect, drain plug removal.",
     href: "/winterization",
-    img: null,
+    img: "/winterization.jpg",
     price: `From ${WINTERIZATION[0].price}`,
   },
   {
@@ -43,7 +43,7 @@ const services = [
     title: "Spring Commissioning",
     desc: "De-winterization, battery reconnect and test, fluid and system checks, and an engine run to temperature — launch-ready for spring.",
     href: "/services#spring-launch",
-    img: null,
+    img: "/spring-launch.jpg",
     price: `${RATES.springCommissioning} flat`,
   },
 ];

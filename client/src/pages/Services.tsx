@@ -12,7 +12,7 @@ import { RATES, WINTERIZATION } from "@/lib/storage-pricing";
 // Real facility photos only (client/public) — never external/stock imagery. Services we
 // don't yet have a real photo of (shrink wrap, winterization, spring launch) render the
 // branded ServiceCardMedia fallback until the owner supplies one.
-const OUTDOOR_IMG = "/facility-side.jpg"; // real — the storage lot
+const OUTDOOR_IMG = "/facility-aerial.jpg"; // aerial of the storage yard (rows of wrapped boats)
 const SECURITY_IMG = "/facility-front.jpg"; // real — gated entrance / drive-up
 
 const services = [
@@ -21,7 +21,7 @@ const services = [
     icon: Snowflake,
     title: "Shrink Wrapping",
     subtitle: "Professional-grade winter protection",
-    img: null, // real shrink-wrap photo pending → branded fallback
+    img: "/shrink-wrapping.jpg",
     description:
       "Our professional boat shrink wrapping service uses commercial-grade white heat-shrink film to create a tight, weatherproof seal around your entire vessel. Every wrap includes strategically placed ventilation ports to prevent moisture buildup and mould growth — a critical detail that separates professional wrapping from DIY attempts.",
     features: [
@@ -59,7 +59,7 @@ const services = [
     icon: Wrench,
     title: "Winterization",
     subtitle: "Protect your engine and systems from freeze damage",
-    img: null, // real winterization photo pending → branded fallback
+    img: "/winterization.jpg",
     description:
       "Proper winterization is the single most important thing you can do to protect your engine and mechanical systems from Ontario's harsh winters. Our winterization service follows industry-standard procedures to ensure every system is properly protected before temperatures drop.",
     features: [
@@ -79,7 +79,7 @@ const services = [
     icon: Sun,
     title: "Spring Commissioning",
     subtitle: "De-winterizing and launch-ready service",
-    img: null,
+    img: "/spring-launch.jpg",
     description:
       "When the ice breaks and Georgian Bay calls, we'll have your boat ready to go. Our spring commissioning service reverses the winterization process and gets your boat launch-ready — so you can spend your weekend on the lake, not in the driveway.",
     features: [

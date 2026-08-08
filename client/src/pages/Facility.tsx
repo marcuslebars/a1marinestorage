@@ -1,5 +1,5 @@
 // A1 Marine Storage — Facility / About Page
-// SEO: "boat storage facility Tiny Ontario", "indoor boat storage Georgian Bay", "A1 Marine Storage"
+// SEO: "boat storage facility Tiny Ontario", "winter boat storage Georgian Bay", "A1 Marine Storage"
 import { Link } from "wouter";
 import { MapPin, Shield, Camera, Lightbulb, Lock, Clock, CheckCircle2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -41,8 +41,6 @@ const securityFeatures = [
 ];
 
 const facilityHighlights = [
-  "New construction — clean, modern building and lot",
-  "High-ceiling indoor building for tall vessels",
   "Level, well-drained outdoor storage lot",
   "Boats stored on owner's trailer — no lift required",
   "Ample space for maneuvering trailers",
@@ -93,10 +91,10 @@ export default function Facility() {
                 A New Standard for Boat Storage in Georgian Bay
               </h2>
               <p className="text-base text-white/65 leading-relaxed mb-5">
-                A1 Marine Storage is the storage and winterizing division of A1 Marine Care — the trusted mobile boat detailing company serving Georgian Bay and Lake Simcoe. Our new facility at 639 Concession Road 16 East in Tiny Township was purpose-built to provide boat owners with a secure, professional alternative to leaving their vessels exposed all winter.
+                A1 Marine Storage is the storage and winterizing division of A1 Marine Care — the trusted mobile boat detailing company serving Georgian Bay and Lake Simcoe. Our facility at 639 Concession Road 16 East in Tiny Township gives boat owners a secure, professional alternative to leaving their vessels exposed all winter.
               </p>
               <p className="text-base text-white/65 leading-relaxed mb-6">
-                Whether you need indoor storage for maximum protection, outdoor storage combined with professional shrink wrapping, or a complete winterization package, our facility has the space and the expertise to handle it all.
+                Whether you need secure outdoor storage combined with professional shrink wrapping or a complete winterization package, our facility has the space and the expertise to handle it all.
               </p>
               <ul className="space-y-2.5 mb-8">
                 {facilityHighlights.map((item) => (
