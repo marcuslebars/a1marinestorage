@@ -12,7 +12,7 @@ import { RATES, WINTERIZATION } from "@/lib/storage-pricing";
 // Real facility photos only (client/public) — never external/stock imagery. Services we
 // don't yet have a real photo of (shrink wrap, winterization, spring launch) render the
 // branded ServiceCardMedia fallback until the owner supplies one.
-const OUTDOOR_IMG = "/facility-side.jpg"; // real — the storage lot
+const OUTDOOR_IMG = "/facility-aerial.jpg"; // aerial of the storage yard (rows of wrapped boats)
 const SECURITY_IMG = "/facility-front.jpg"; // real — gated entrance / drive-up
 
 const services = [

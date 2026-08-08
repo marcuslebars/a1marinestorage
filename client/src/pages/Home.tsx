@@ -27,7 +27,7 @@ const services = [
     title: "Outdoor Storage",
     desc: "Secure seasonal storage on our fenced Tiny, ON lot — professionally blocked and positioned on your trailer, monitored all winter.",
     href: "/boat-storage",
-    img: INDOOR_IMG,
+    img: "/facility-aerial.jpg",
     price: `From ${RATES.outdoorPerFoot}/ft/season`,
   },
   {
