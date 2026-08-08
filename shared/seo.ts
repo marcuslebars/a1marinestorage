@@ -175,7 +175,7 @@ const STATIC_PAGES: PageMeta[] = [
     path: "/facility",
     title: "Our Boat Storage Facility — 639 Concession Rd 16 E, Tiny ON",
     description:
-      "Tour A1 Marine Storage's secure, gated boat storage facility in Tiny, Ontario — fenced, monitored, and purpose-built for Georgian Bay boat owners.",
+      "Tour A1 Marine Storage's secure, gated boat storage facility in Tiny, Ontario — fenced, monitored, and dedicated to Georgian Bay boat owners.",
     changefreq: "monthly",
     priority: 0.6,
   },
