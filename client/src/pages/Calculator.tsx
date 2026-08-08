@@ -32,6 +32,38 @@ import {
   type BoatState,
 } from "@/lib/quote-items";
 
+// ── Booking-deposit copy toggle ──────────────────────────────────────────────
+// Presentational ONLY: flips the calculator copy from "quote request" to "pay a
+// deposit to reserve." The actual deposit + pay-link happen in EmpireVu (Jobber
+// Payments). Coordinate this flag with EmpireVu's JOBBER_SYNC_ENABLED — turn it ON
+// only once the backend actually sends the link, or the site promises a link that
+// never arrives. Public, build-time Vite flags (no secret); changing them needs a
+// redeploy. VITE_BOOKING_DEPOSIT_PERCENT should match EmpireVu's JOBBER_DEPOSIT_PERCENT.
+const DEPOSIT_ENABLED = import.meta.env.VITE_BOOKING_DEPOSIT_ENABLED === "1";
+const DEPOSIT_PCT = (() => {
+  const n = Number(import.meta.env.VITE_BOOKING_DEPOSIT_PERCENT as string | undefined);
+  return Number.isFinite(n) && n > 0 && n <= 100 ? n : 25;
+})();
+
+// The copy that differs between the quote-request flow and the deposit flow, in one place.
+const BOOKING_COPY = DEPOSIT_ENABLED
+  ? {
+      step3Subtitle: `Submitting sends a secure link to pay your ${DEPOSIT_PCT}% deposit and reserve your spot.`,
+      submitButton: "Reserve My Spot",
+      priceNote: `Plus HST. A ${DEPOSIT_PCT}% deposit reserves your spot; the balance is due at drop-off. Reservation subject to availability confirmation.`,
+      successHeading: "You're almost booked!",
+      // Follows "Thanks, <name>!" — keep it a standalone sentence.
+      successBody: `We've sent a secure link to pay your ${DEPOSIT_PCT}% deposit — check your email and text. Paying it reserves your spot (subject to availability confirmation).`,
+    }
+  : {
+      step3Subtitle: "This is a quote request, not a payment. We'll confirm your booking.",
+      submitButton: "Submit Quote Request",
+      priceNote: "Plus HST. Full payment due at booking to reserve your spot.",
+      successHeading: "Quote Request Received!",
+      successBody:
+        "We've saved your storage quote and will reach out within 1–2 business days to confirm your booking and reserve your spot.",
+    };
+
 // ── Static presentation data ─────────────────────────────────────────────────
 
 const HULL_TYPES: { value: string; label: string; surcharge?: boolean }[] = [
@@ -232,11 +264,10 @@ export default function Calculator() {
             <CheckCircle2 className="h-10 w-10 text-[oklch(0.6_0.2_27)]" />
           </div>
           <h1 className="text-4xl font-black text-white mb-4" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
-            Quote Request Received!
+            {BOOKING_COPY.successHeading}
           </h1>
           <p className="text-base text-white/65 mb-6">
-            Thanks, <strong className="text-white">{contact.name}</strong>! We've saved your storage quote and will
-            reach out within 1–2 business days to confirm your booking and reserve your spot.
+            Thanks, <strong className="text-white">{contact.name}</strong>! {BOOKING_COPY.successBody}
           </p>
           <div className="marine-card p-5 mb-6 text-left">
             <p className="text-sm font-semibold text-white mb-3">Your Estimate</p>
@@ -256,7 +287,7 @@ export default function Calculator() {
               <span>Subtotal</span>
               <span className="tabular-nums text-[oklch(0.6_0.2_27)]">{money(quote.subtotalCents)}</span>
             </div>
-            <p className="text-xs text-white/40 mt-2">Plus HST. Full payment due at booking to reserve your spot.</p>
+            <p className="text-xs text-white/40 mt-2">{BOOKING_COPY.priceNote}</p>
           </div>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button asChild className="bg-[oklch(0.6_0.2_27)] text-[oklch(0.12_0.018_240)] font-semibold hover:bg-[oklch(0.53_0.2_27)]">
@@ -606,7 +637,7 @@ export default function Calculator() {
                 <h2 className="text-2xl font-black text-white mb-1" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
                   Step 3 — Your Details
                 </h2>
-                <p className="text-sm text-white/50 mb-6">This is a quote request, not a payment. We'll confirm your booking.</p>
+                <p className="text-sm text-white/50 mb-6">{BOOKING_COPY.step3Subtitle}</p>
 
                 {status === "fallback" && (
                   <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4 mb-6 flex gap-3">
@@ -654,7 +685,7 @@ export default function Calculator() {
                     {status === "submitting" ? (
                       <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting…</>
                     ) : (
-                      <><Send className="mr-2 h-4 w-4" /> Submit Quote Request</>
+                      <><Send className="mr-2 h-4 w-4" /> {BOOKING_COPY.submitButton}</>
                     )}
                   </Button>
                 </div>
@@ -716,7 +747,7 @@ export default function Calculator() {
                     <p className="text-3xl font-black text-[oklch(0.6_0.2_27)] tabular-nums" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
                       {money(quote.subtotalCents)}
                     </p>
-                    <p className="text-xs text-white/40 mt-1">Plus HST. Full payment due at booking to reserve your spot.</p>
+                    <p className="text-xs text-white/40 mt-1">{BOOKING_COPY.priceNote}</p>
                   </div>
 
                   {step < 3 && (
