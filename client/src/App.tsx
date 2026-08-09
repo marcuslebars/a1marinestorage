@@ -10,6 +10,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { SiteHeader } from "./components/SiteHeader";
 import { SiteFooter } from "./components/SiteFooter";
 import { trackPageView } from "./lib/analytics";
+import { trackPixelPageView } from "./lib/meta-pixel";
 import { applyPageMeta } from "./lib/usePageMeta";
 import Home from "./pages/Home";
 import Services from "./pages/Services";
@@ -33,6 +34,7 @@ function Router() {
   useEffect(() => {
     applyPageMeta(location); // keep <title>/canonical/OG/JSON-LD in sync on SPA nav
     trackPageView(location);
+    trackPixelPageView();
   }, [location]);
 
   return (

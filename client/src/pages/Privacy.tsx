@@ -33,7 +33,7 @@ const sections: { title: string; body: ReactNode }[] = [
   {
     title: "Advertising",
     body:
-      "We may use Google Ads conversion tracking to measure whether our advertising leads to quote requests. This uses cookies to connect an ad click to a later action on our site.",
+      "We may use Google Ads conversion tracking to measure whether our advertising leads to quote requests. This uses cookies to connect an ad click to a later action on our site. We also use the Meta (Facebook and Instagram) Pixel to measure the performance of our Meta ads and to show relevant ads to people who have visited our site; this shares limited event data, such as page views, with Meta. You can control ad personalization in your Meta account settings and through your browser's cookie controls.",
   },
   {
     title: "Who we share it with",
