@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { BUSINESS } from "@/content/business";
 import { getUtm } from "@/lib/utm";
 import { track, trackPhoneClick } from "@/lib/analytics";
+import { trackPixelEvent } from "@/lib/meta-pixel";
 import {
   calculateQuote,
   formatCents,
@@ -236,6 +237,11 @@ export default function Calculator() {
               boat_length: lengthFt,
             });
           }
+          // Meta Pixel Lead conversion (value/currency when known; never PII).
+          trackPixelEvent(
+            "Lead",
+            quote ? { value: Math.round(quote.subtotalCents) / 100, currency: "CAD" } : {},
+          );
           setStatus("success");
           return;
         }
