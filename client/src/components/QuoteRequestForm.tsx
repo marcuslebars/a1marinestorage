@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { track } from "@/lib/analytics";
+import { trackPixelEvent } from "@/lib/meta-pixel";
 import { getUtm } from "@/lib/utm";
 
 const SERVICE_OPTIONS = ["Outdoor Storage", "Shrink Wrapping", "Winterization", "Spring Commissioning"];
@@ -76,6 +77,7 @@ export function QuoteRequestForm({ page, serviceContext, locality, formType, sub
               service: serviceInterest || undefined,
               boat_length: Number(form.boatLength) || undefined,
             });
+            trackPixelEvent("Lead"); // Meta Pixel lead conversion (no PII)
             setDone(true);
             return;
           }

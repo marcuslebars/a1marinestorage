@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { MapView } from "@/components/Map";
 import { BUSINESS } from "@/content/business";
 import { track, trackPhoneClick } from "@/lib/analytics";
+import { trackPixelEvent } from "@/lib/meta-pixel";
 import { getUtm } from "@/lib/utm";
 
 interface FormData {
@@ -75,6 +76,7 @@ export default function Contact() {
                 service: form.serviceInterest || undefined,
                 boat_length: Number(form.boatLength) || undefined,
               });
+              trackPixelEvent("Lead"); // Meta Pixel lead conversion (no PII)
               setSubmitted(true);
               return;
             }
