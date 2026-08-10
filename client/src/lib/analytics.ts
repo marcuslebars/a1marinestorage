@@ -2,18 +2,24 @@
 //
 // IDs come from PUBLIC, build-time Vite env vars. These are client-side IDs by
 // design — never put a server secret behind a VITE_ var:
-//   VITE_GA4_MEASUREMENT_ID  — GA4, e.g. "G-XXXXXXXXXX" (REQUIRED to enable)
+//   VITE_GA4_MEASUREMENT_ID  — GA4, e.g. "G-XXXXXXXXXX". Overrides the baked-in
+//                              production default (G-Z629H2P6LQ).
 //   VITE_GOOGLE_ADS_ID       — Google Ads, e.g. "AW-XXXXXXXXX" (optional; loaded
 //                              alongside GA4 so enhanced conversions / Ads import
 //                              is a config change later, not a code change)
 //   VITE_GA4_DEBUG=true       — enable gtag debug_mode for GA4 DebugView
 //
-// When VITE_GA4_MEASUREMENT_ID is absent (dev, or an unconfigured deploy) NOTHING
+// In production the default id ensures GA4 always loads. In dev (no env var) NOTHING
 // is injected and every track() call is a silent no-op — no console errors.
 //
 // PII RULE: never pass names, emails, or phone numbers as event params.
 
-const GA4_ID = import.meta.env.VITE_GA4_MEASUREMENT_ID as string | undefined;
+// Defaults to the A1 Marine Storage property in production builds so analytics can't
+// silently break if the env var is ever cleared; VITE_GA4_MEASUREMENT_ID overrides it,
+// and dev stays clean (no id unless the var is explicitly set).
+const GA4_ID =
+  (import.meta.env.VITE_GA4_MEASUREMENT_ID as string | undefined)?.trim() ||
+  (import.meta.env.PROD ? "G-Z629H2P6LQ" : undefined);
 const ADS_ID = import.meta.env.VITE_GOOGLE_ADS_ID as string | undefined;
 const DEBUG = (import.meta.env.VITE_GA4_DEBUG as string | undefined) === "true";
 
