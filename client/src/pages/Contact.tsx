@@ -323,11 +323,11 @@ export default function Contact() {
                     <div>
                       <p className="text-sm font-semibold text-white">Phone</p>
                       <a
-                        href="tel:+12492016677"
+                        href={BUSINESS.phoneHref}
                         onClick={() => trackPhoneClick("contact")}
                         className="text-sm text-white/60 hover:text-[oklch(0.6_0.2_27)] transition-colors"
                       >
-                        (249) 201-6677
+                        {BUSINESS.phone}
                       </a>
                     </div>
                   </div>
