@@ -3,6 +3,7 @@
 import { Link } from "wouter";
 import { MapPin, Phone, Mail, Clock, ExternalLink } from "lucide-react";
 import { trackPhoneClick } from "@/lib/analytics";
+import { BUSINESS } from "@/content/business";
 
 const serviceLinks = [
   { href: "/boat-storage", label: "Outdoor Storage" },
@@ -119,11 +120,11 @@ export function SiteFooter() {
               <li className="flex items-center gap-2.5">
                 <Phone className="h-4 w-4 text-[oklch(0.6_0.2_27)] shrink-0" />
                 <a
-                  href="tel:+12492016677"
+                  href={BUSINESS.phoneHref}
                   onClick={() => trackPhoneClick("footer")}
                   className="text-sm text-slate-400 hover:text-[oklch(0.6_0.2_27)] transition-colors"
                 >
-                  (249) 201-6677
+                  {BUSINESS.phone}
                 </a>
               </li>
               <li className="flex items-center gap-2.5">
