@@ -26,11 +26,80 @@ export function bundleServiceIds(bundleId: string, boat: BoatState): string[] {
   return STORAGE.bundles[bundleId].services.map((s) => (s === "winterization_*" ? winterizationId(boat.engineType) : s));
 }
 
+/** Where the boat is when the season ends. Drives which transport lines are offered. */
+export type BoatLocation = "self_transport" | "home_trailer" | "marina_ramp" | "lift_or_water";
+
+/**
+ * Transport band. The names match the engine's `transport_<band>` service keys;
+ * `beyond` has no flat service — it is quoted per km, or by hand.
+ */
+export type TransportBand = "local" | "regional" | "extended" | "beyond";
+
+/** How the band was arrived at. Rides in the lead envelope for auditability. */
+export type BandResolution = "locality" | "postal_estimate";
+
+export interface Logistics {
+  boatLocation: BoatLocation;
+  /** Locality slug when resolved from the town list. */
+  townSlug?: string | null;
+  /** Postal code when resolved from the fallback path. */
+  postalCode?: string | null;
+  transportBand?: TransportBand | null;
+  distanceKm?: number | null;
+  bandResolution?: BandResolution | null;
+  /** Fall pickup — one trip. */
+  pickup?: boolean;
+  /** Spring delivery & launch — one trip. */
+  delivery?: boolean;
+  trailerProvided?: boolean;
+}
+
+/** Quantities for the ratified per-unit add-ons. Absent/zero means not selected. */
+export interface AddOns {
+  batteryCount?: number;
+  /** Months stored past April 30, for one vessel. */
+  extendedMonths?: number;
+  oilChangeOutboard?: boolean;
+  springWrapRemoval?: boolean;
+}
+
 export interface Selection {
   mode: "bundle" | "alacarte" | null;
   bundleId?: string | null;
   alacarteIds?: string[];
   ceramicUpgrade?: boolean;
+  logistics?: Logistics;
+  addOns?: AddOns;
+}
+
+/** Only these locations can have the boat collected. */
+export function supportsTransport(location: BoatLocation): boolean {
+  return location !== "self_transport";
+}
+
+/** In-water pickups need a haul-out plan; there is no engine line for it. */
+export function needsHaulOutNotice(location: BoatLocation): boolean {
+  return location === "lift_or_water";
+}
+
+/** The engine service key for a band, or null when the band has no flat rate. */
+export function transportServiceId(band: TransportBand): string | null {
+  return band === "beyond" ? null : `transport_${band}`;
+}
+
+/**
+ * A line this repo appends beyond the package/à-la-carte selection.
+ *
+ * The engine prices every one of them; this only records WHICH engine line is
+ * which, because two transport trips share a service key and would otherwise be
+ * indistinguishable in the engine's output. The UI and the PDF label rows from
+ * here; they never invent a price.
+ */
+export interface ExtraLineRef {
+  purpose: "ceramic" | "pickup" | "delivery" | "trailer" | "battery" | "extended" | "oil" | "wrap_removal";
+  serviceId: string;
+  /** Index into QuoteResult.lineItems. Appended in a deterministic order. */
+  index: number;
 }
 
 /** Build the engine QuoteInput for the current selection, or null if incomplete. */
@@ -48,8 +117,100 @@ export function buildStorageQuoteInput(sel: Selection, boat: BoatState): QuoteIn
   if (serviceIds.length === 0) return null;
 
   const items: QuoteItemInput[] = serviceIds.map((sid) => itemForService(sid, boat));
+  appendExtras(items, sel, boat);
+  return { serviceLine: "storage", items, hullType: boat.hullType || undefined, bundleId };
+}
+
+/**
+ * Append everything that sits OUTSIDE the bundle discount: the ceramic upgrade,
+ * transport, trailer, and the per-unit add-ons.
+ *
+ * None of these is bundle-eligible, and that is the engine's doing rather than
+ * ours — a bundle discounts only the services named in its own list, so anything
+ * appended here is automatically excluded. There is no "don't discount this"
+ * flag in this repo, and there must not be one.
+ *
+ * Order is DETERMINISTIC because two transport trips share a service key and are
+ * otherwise indistinguishable in the engine's output. describeExtras() returns
+ * the matching index map.
+ */
+function appendExtras(items: QuoteItemInput[], sel: Selection, boat: BoatState): void {
   if (sel.ceramicUpgrade && boat.lengthFt <= CERAMIC_MAX_FT) {
     items.push({ serviceId: "ceramic_upgrade", lengthFt: boat.lengthFt });
   }
-  return { serviceLine: "storage", items, hullType: boat.hullType || undefined, bundleId };
+
+  const log = sel.logistics;
+  if (log) {
+    const band = log.transportBand ?? null;
+    const svc = band ? transportServiceId(band) : null;
+    // `beyond` yields no line: it is quoted by hand, so showing a total would be
+    // inventing a price the business has not set.
+    if (svc && supportsTransport(log.boatLocation)) {
+      if (log.pickup) items.push({ serviceId: svc, quantity: 1 });
+      if (log.delivery) items.push({ serviceId: svc, quantity: 1 });
+    }
+    if (log.trailerProvided) items.push({ serviceId: "trailer_storage" });
+  }
+
+  const add = sel.addOns;
+  if (add) {
+    if ((add.batteryCount ?? 0) > 0) {
+      items.push({ serviceId: "battery_storage", quantity: add.batteryCount });
+    }
+    if ((add.extendedMonths ?? 0) > 0) {
+      // Per vessel-month; one vessel here (PWC support is a separate task).
+      items.push({ serviceId: "extended_storage", quantity: add.extendedMonths });
+    }
+    // Gated on engine type: the engine has no sterndrive/inboard oil-change service.
+    if (add.oilChangeOutboard && boat.engineType === "outboard") {
+      items.push({ serviceId: "oil_change_outboard", quantity: boat.engineCount });
+    }
+    if (add.springWrapRemoval) {
+      items.push({ serviceId: "spring_wrap_removal", lengthFt: boat.lengthFt });
+    }
+  }
+}
+
+/**
+ * Which appended line is which, by index into the engine's lineItems.
+ *
+ * Mirrors appendExtras exactly. Kept beside it so the two cannot drift: if a line
+ * is added there without being described here, the UI silently mislabels a price.
+ */
+export function describeExtras(sel: Selection, boat: BoatState): ExtraLineRef[] {
+  if (!(boat.lengthFt > 0) || !sel.mode) return [];
+
+  const base =
+    sel.mode === "bundle" && sel.bundleId
+      ? bundleServiceIds(sel.bundleId, boat).length
+      : (sel.alacarteIds ?? []).length;
+
+  const refs: ExtraLineRef[] = [];
+  let i = base;
+  const push = (purpose: ExtraLineRef["purpose"], serviceId: string) => {
+    refs.push({ purpose, serviceId, index: i });
+    i += 1;
+  };
+
+  if (sel.ceramicUpgrade && boat.lengthFt <= CERAMIC_MAX_FT) push("ceramic", "ceramic_upgrade");
+
+  const log = sel.logistics;
+  if (log) {
+    const svc = log.transportBand ? transportServiceId(log.transportBand) : null;
+    if (svc && supportsTransport(log.boatLocation)) {
+      if (log.pickup) push("pickup", svc);
+      if (log.delivery) push("delivery", svc);
+    }
+    if (log.trailerProvided) push("trailer", "trailer_storage");
+  }
+
+  const add = sel.addOns;
+  if (add) {
+    if ((add.batteryCount ?? 0) > 0) push("battery", "battery_storage");
+    if ((add.extendedMonths ?? 0) > 0) push("extended", "extended_storage");
+    if (add.oilChangeOutboard && boat.engineType === "outboard") push("oil", "oil_change_outboard");
+    if (add.springWrapRemoval) push("wrap_removal", "spring_wrap_removal");
+  }
+
+  return refs;
 }
