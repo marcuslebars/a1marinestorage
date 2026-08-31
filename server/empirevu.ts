@@ -49,6 +49,52 @@ function joinText(...parts: Array<string | undefined>): string | undefined {
   return text || undefined;
 }
 
+/**
+ * Transport, trailer and add-on selections from the calculator.
+ *
+ * Rides in `meta`, NOT at the top level. docs/LEAD_SCHEMA.md fixes the envelope's
+ * top level at schemaVersion 1 and says to version the contract rather than
+ * mutate it; `meta` is the documented capture-context extension point. A
+ * top-level `logistics` key would be a schema change EmpireVu validates against.
+ *
+ * Every field is optional and compacted away when unset, so a quote with no
+ * logistics produces byte-identical output to before this existed — which is what
+ * keeps the golden fixtures unchanged.
+ */
+export interface LeadLogistics {
+  /** self_transport | home_trailer | marina_ramp | lift_or_water */
+  boatLocation?: string;
+  town?: string;
+  postalCode?: string;
+  /** local | regional | extended | beyond */
+  transportBand?: string;
+  distanceKm?: number;
+  /** locality | postal_estimate — how the band was arrived at. */
+  bandResolution?: string;
+  pickup?: boolean;
+  delivery?: boolean;
+  trailerProvided?: boolean;
+  /** In-water pickup needs a haul-out plan; there is no priced line for it. */
+  inWaterNotice?: boolean;
+  batteryCount?: number;
+  extendedMonths?: number;
+  oilChangeOutboard?: boolean;
+  springWrapRemoval?: boolean;
+}
+
+/**
+ * Compact the logistics block, or drop it entirely.
+ *
+ * `false` is deliberately PRESERVED: "pickup: false, delivery: true" is a real
+ * choice (the customer tows it in and we deliver in spring), and losing it would
+ * make a delivery-only quote look like it had no transport at all. Only
+ * undefined/null/"" are dropped, so an untouched section vanishes completely.
+ */
+export function compactLogistics(log?: LeadLogistics): LeadLogistics | undefined {
+  if (!log) return undefined;
+  return compact(log as Record<string, unknown>) as LeadLogistics | undefined;
+}
+
 export function buildStorageContactEnvelope(input: {
   id: string;
   receivedAt: string;
@@ -82,6 +128,9 @@ export function buildStorageQuoteEnvelope(input: {
   quote: { hullType?: string | null; subtotalCents: number; bundle?: { label: string } | null; lineItems: Array<{ detail: { lengthFt?: number | null } }> };
   jobberLineItems: LeadLineItem[];
   utm?: Record<string, string>;
+  logistics?: LeadLogistics;
+  /** Short human reference (A1MS-Q-XXXXXX) when the quote came from a PDF download. */
+  quoteRef?: string;
 }): LeadEnvelope {
   const c = input.contact;
   const q = input.quote;
@@ -100,7 +149,15 @@ export function buildStorageQuoteEnvelope(input: {
     message: summary,
     lineItems: input.jobberLineItems,
     asset: compact({ makeModel: c.boatMakeModelYear, type: q.hullType ?? undefined, marina: c.marina, lengthFt }),
-    meta: compact({ site: "a1marinestorage.ca", page: "/calculator", utm: input.utm }) ?? { site: "a1marinestorage.ca" },
+    // logistics/quoteRef dropped by compact() when absent → unchanged output for
+    // quotes without them (golden-safe, same trick as the contact envelope's utm).
+    meta: compact({
+      site: "a1marinestorage.ca",
+      page: "/calculator",
+      utm: input.utm,
+      logistics: compactLogistics(input.logistics),
+      quoteRef: input.quoteRef,
+    }) ?? { site: "a1marinestorage.ca" },
   };
 }
 

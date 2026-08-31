@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "source": "a1marinestorage-quote",
+  "sourceSite": "a1marinestorage",
+  "formType": "quote",
+  "receivedAt": "2026-09-02T14:00:00.000Z",
+  "contact": {
+    "name": "Pat Quinn",
+    "email": "pat@example.com",
+    "phone": "705-555-0142"
+  },
+  "message": "Package: Winter Ready Plus\n\nSubtotal (pre-HST): $2375.00",
+  "lineItems": [
+    {
+      "description": "Outdoor winter storage — 24ft",
+      "quantity": 1,
+      "unitPriceCents": 120000
+    },
+    {
+      "description": "Transport — local (fall pickup)",
+      "quantity": 1,
+      "unitPriceCents": 15000
+    },
+    {
+      "description": "Transport — local (spring delivery)",
+      "quantity": 1,
+      "unitPriceCents": 15000
+    }
+  ],
+  "asset": {
+    "makeModel": "2018 Sea Ray 240",
+    "marina": "Queen's Cove",
+    "lengthFt": 24
+  },
+  "meta": {
+    "site": "a1marinestorage.ca",
+    "page": "/calculator",
+    "logistics": {
+      "boatLocation": "home_trailer",
+      "town": "midland",
+      "transportBand": "local",
+      "distanceKm": 18,
+      "bandResolution": "locality",
+      "pickup": true,
+      "delivery": true
+    }
+  }
+}

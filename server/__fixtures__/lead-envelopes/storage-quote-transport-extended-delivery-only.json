@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "source": "a1marinestorage-quote",
+  "sourceSite": "a1marinestorage",
+  "formType": "quote",
+  "receivedAt": "2026-09-02T14:05:00.000Z",
+  "contact": {
+    "name": "Pat Quinn",
+    "email": "pat@example.com",
+    "phone": "705-555-0142"
+  },
+  "message": "À la carte\n\nSubtotal (pre-HST): $1575.00",
+  "lineItems": [
+    {
+      "description": "Outdoor winter storage — 22ft",
+      "quantity": 1,
+      "unitPriceCents": 110000
+    },
+    {
+      "description": "Transport — extended (spring delivery)",
+      "quantity": 1,
+      "unitPriceCents": 37500
+    }
+  ],
+  "asset": {
+    "makeModel": "2018 Sea Ray 240",
+    "marina": "Queen's Cove",
+    "lengthFt": 22
+  },
+  "meta": {
+    "site": "a1marinestorage.ca",
+    "page": "/calculator",
+    "logistics": {
+      "boatLocation": "marina_ramp",
+      "postalCode": "L4M 1A1",
+      "transportBand": "extended",
+      "distanceKm": 95,
+      "bandResolution": "postal_estimate",
+      "pickup": false,
+      "delivery": true
+    }
+  }
+}
