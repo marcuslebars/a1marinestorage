@@ -30,11 +30,49 @@ export class ResumeTokenError extends Error {
   }
 }
 
+/**
+ * The dev fallback, so the PDF works locally with no setup.
+ *
+ * It is a MODULE CONSTANT, identical in every process and committed to this
+ * repo — which is exactly why production must never reach it. A comment here
+ * once claimed it was "per-process", so an unset secret in production looked
+ * like a self-correcting inconvenience rather than what it is: signing with a
+ * key anyone can read off GitHub.
+ */
+const DEV_SECRET = "a1ms-dev-resume-secret";
+
+export class ResumeTokenConfigError extends Error {
+  constructor() {
+    super(
+      "RESUME_TOKEN_SECRET is not set. Refusing to sign or verify resume tokens " +
+        "with the public development key. Set it on the a1marinestorage service.",
+    );
+    this.name = "ResumeTokenConfigError";
+  }
+}
+
+/** True only for a real production boot; dev and tests keep the fallback. */
+function isProduction(): boolean {
+  return process.env.NODE_ENV === "production";
+}
+
+/**
+ * Is the token secret usable? Called at startup so a misconfigured deploy is
+ * visible in the boot log, rather than discovered by the first customer who
+ * tries to download a quote.
+ */
+export function resumeTokenSecretConfigured(): boolean {
+  return !isProduction() || Boolean(process.env.RESUME_TOKEN_SECRET);
+}
+
 function secret(): string {
-  // Falls back to a per-process constant in dev so the feature works locally
-  // without setup. In production an unset secret means tokens stop verifying
-  // across restarts, which is why the summary lists it as required.
-  return process.env.RESUME_TOKEN_SECRET ?? "a1ms-dev-resume-secret";
+  const configured = process.env.RESUME_TOKEN_SECRET;
+  if (configured) return configured;
+  // FAIL CLOSED. Signing with a known key would let anyone mint a resume link,
+  // and verifying against one would make the signature decorative — a tampered
+  // transport band would sail through and misprice the quote it restores.
+  if (isProduction()) throw new ResumeTokenConfigError();
+  return DEV_SECRET;
 }
 
 const b64url = {

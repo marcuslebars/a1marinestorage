@@ -6,6 +6,7 @@ import { handleQuoteSubmission } from "./quote-handler";
 import { handleContactSubmission } from "./contact-handler";
 import { resolveTransportBand, TransportBandError } from "./transport-band";
 import { handleQuotePdf, QuotePdfError } from "./quote-pdf-handler";
+import { resumeTokenSecretConfigured } from "./resume-token";
 import { buildStorageQuoteInput } from "../client/src/lib/quote-items";
 import fs from "fs";
 import { getPageMeta, hasPage, injectMeta, renderSitemap } from "../shared/seo";
@@ -163,6 +164,20 @@ async function startServer() {
   });
 
   const port = process.env.PORT || 3000;
+
+  // Surfaced at BOOT, not at first use. resume-token.ts refuses to sign with the
+  // public dev key in production, so without this the site would come up looking
+  // healthy and only fail when a customer pressed Download — which is the worst
+  // moment to discover a missing env var. Deliberately a loud log rather than a
+  // hard exit: the marketing pages, quote form and contact form are unaffected,
+  // and taking the whole site down in storage season over one feature's secret
+  // would do more harm than the misconfiguration it reports.
+  if (!resumeTokenSecretConfigured()) {
+    console.error(
+      "[startup] RESUME_TOKEN_SECRET is NOT SET. Quote PDF downloads will fail " +
+        "until it is. Set it on this service and redeploy.",
+    );
+  }
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
