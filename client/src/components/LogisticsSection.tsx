@@ -22,7 +22,7 @@ import {
 
 const money = (cents: number) => formatCents(cents);
 
-/** "Other / not listed" — the postal-code fallback, not a town slug. */
+/** "Other / not listed" — the free-text town fallback, not a town slug. */
 export const OTHER_TOWN = "__other__";
 
 const BOAT_LOCATIONS: { value: BoatLocation; label: string; hint: string }[] = [
@@ -36,7 +36,8 @@ export interface LogisticsValue {
   boatLocation: BoatLocation | null;
   /** A locality slug, OTHER_TOWN, or "" while unset. */
   townSlug: string;
-  postalCode: string;
+  /** Free-text town when "Other / not listed" is chosen. */
+  placeName: string;
   pickup: boolean;
   delivery: boolean;
   trailerProvided: boolean;
@@ -49,7 +50,7 @@ export interface LogisticsValue {
 export const EMPTY_LOGISTICS: LogisticsValue = {
   boatLocation: null,
   townSlug: "",
-  postalCode: "",
+  placeName: "",
   pickup: false,
   delivery: false,
   trailerProvided: false,
@@ -64,11 +65,13 @@ export interface ResolvedBand {
   band: TransportBand;
   distanceKm: number;
   resolution: BandResolution;
+  /** What the geocoder matched, shown back so an ambiguous name is visible. */
+  place?: string;
 }
 
 const TOWNS = localitiesWithBands();
 
-/** Resolve the band from a chosen town. Postal codes resolve on the server. */
+/** Resolve the band from a listed town. Free-text names resolve on the server. */
 export function bandForTown(slug: string): ResolvedBand | null {
   const t = TOWNS.find((x) => x.slug === slug);
   return t ? { band: t.band, distanceKm: t.distanceKm, resolution: "locality" } : null;
@@ -177,17 +180,17 @@ export function LogisticsSection({
   engineType,
   engineCount,
   resolvedBand,
-  onPostalResolved,
+  onPlaceResolved,
 }: {
   value: LogisticsValue;
   onChange: (patch: Partial<LogisticsValue>) => void;
   engineType: EngineType;
   engineCount: number;
   resolvedBand: ResolvedBand | null;
-  onPostalResolved: (r: ResolvedBand | null) => void;
+  onPlaceResolved: (r: ResolvedBand | null) => void;
 }) {
   const [checking, setChecking] = useState(false);
-  const [postalError, setPostalError] = useState("");
+  const [lookupError, setLookupError] = useState("");
 
   const location = value.boatLocation;
   const wantsTransport = location != null && supportsTransport(location);
@@ -195,39 +198,44 @@ export function LogisticsSection({
   // `beyond` has no flat rate: it is quoted by hand, so the UI must not imply one.
   const bandPriced = bandInfo?.rateCents != null;
 
-  async function checkPostal() {
-    const postal = value.postalCode.trim();
-    if (!postal) return;
+  async function checkPlace() {
+    const place = value.placeName.trim();
+    if (!place) return;
     setChecking(true);
-    setPostalError("");
-    onPostalResolved(null);
+    setLookupError("");
+    onPlaceResolved(null);
     try {
       const res = await fetch("/api/transport/band", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ postalCode: postal }),
+        body: JSON.stringify({ place }),
       });
       const data = (await res.json().catch(() => ({}))) as {
         ok?: boolean;
         code?: string;
         band?: TransportBand;
         distanceKm?: number;
+        place?: string;
         error?: string;
       };
       if (res.ok && data.ok && data.band && typeof data.distanceKm === "number") {
-        onPostalResolved({ band: data.band, distanceKm: data.distanceKm, resolution: "postal_estimate" });
-      } else if (data.code === "invalid_postal") {
-        // The only case where the input really is wrong.
-        setPostalError(data.error ?? "That doesn't look like a Canadian postal code.");
+        onPlaceResolved({
+          band: data.band,
+          distanceKm: data.distanceKm,
+          resolution: "place_estimate",
+          place: data.place,
+        });
+      } else if (data.code === "invalid_place" || data.code === "not_found") {
+        // These two ARE about the input: nothing typed, or a town the geocoder
+        // does not know. Both are worth the customer re-reading and retrying.
+        setLookupError(data.error ?? "We couldn't find that town.");
       } else {
-        // Everything else is OUR lookup failing, not their typing. Saying "no
-        // location found" sends someone hunting for a typo that isn't there —
-        // and today that is the usual outcome, because the geocoder we use has
-        // no Canadian postal coverage (see server/transport-band.ts).
-        setPostalError("We couldn't look that up right now — pick the nearest town instead.");
+        // Our lookup, not their typing. Never send someone hunting for a typo
+        // that isn't there — and always leave the town list as a way through.
+        setLookupError("We couldn't look that up right now — pick the nearest town instead.");
       }
     } catch {
-      setPostalError("We couldn't reach the lookup. Pick the nearest town instead.");
+      setLookupError("We couldn't reach the lookup. Pick the nearest town instead.");
     } finally {
       setChecking(false);
     }
@@ -296,9 +304,9 @@ export function LogisticsSection({
                 value={value.townSlug}
                 onValueChange={(v) => {
                   onChange({ townSlug: v });
-                  setPostalError("");
-                  // A town resolves immediately; "Other" waits for a postal check.
-                  onPostalResolved(v === OTHER_TOWN ? null : bandForTown(v));
+                  setLookupError("");
+                  // A listed town resolves immediately; "Other" waits for a lookup.
+                  onPlaceResolved(v === OTHER_TOWN ? null : bandForTown(v));
                 }}
               >
                 <SelectTrigger className="h-12 border-white/15 bg-white/5 text-white focus:border-[oklch(0.6_0.2_27)]">
@@ -319,33 +327,39 @@ export function LogisticsSection({
 
             {value.townSlug === OTHER_TOWN && (
               <div>
-                <Label className="mb-2 block text-sm font-semibold text-white/80">Postal code</Label>
+                <Label className="mb-2 block text-sm font-semibold text-white/80">Town or city</Label>
                 <div className="flex gap-2">
                   <Input
-                    value={value.postalCode}
-                    onChange={(e) => onChange({ postalCode: e.target.value })}
+                    value={value.placeName}
+                    onChange={(e) => {
+                      onChange({ placeName: e.target.value });
+                      // The old band belonged to the old name. Clearing it stops
+                      // a stale price sitting under a town nobody looked up.
+                      if (resolvedBand?.resolution === "place_estimate") onPlaceResolved(null);
+                      setLookupError("");
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
-                        void checkPostal();
+                        void checkPlace();
                       }
                     }}
-                    placeholder="L4R 1A1"
+                    placeholder="e.g. Gravenhurst"
                     className="h-12 border-white/15 bg-white/5 text-white placeholder:text-white/30 focus:border-[oklch(0.6_0.2_27)]"
                   />
                   <button
                     type="button"
-                    onClick={() => void checkPostal()}
-                    disabled={checking || value.postalCode.trim().length < 3}
+                    onClick={() => void checkPlace()}
+                    disabled={checking || value.placeName.trim().length < 2}
                     className="h-12 shrink-0 rounded-lg bg-[oklch(0.6_0.2_27)] px-4 text-sm font-semibold text-[oklch(0.12_0.018_240)] disabled:opacity-40"
                   >
                     {checking ? <Loader2 className="h-4 w-4 animate-spin" /> : "Check"}
                   </button>
                 </div>
-                {postalError && <p className="mt-1.5 text-xs text-yellow-400">{postalError}</p>}
+                {lookupError && <p className="mt-1.5 text-xs text-yellow-400">{lookupError}</p>}
                 <p className="mt-1.5 text-xs text-white/40">
-                  We estimate road distance from your postal code. Pick the nearest town instead if you'd
-                  rather not share it.
+                  Ontario towns only. We estimate road distance from the town centre and confirm it when we
+                  book you in.
                 </p>
               </div>
             )}
@@ -358,10 +372,16 @@ export function LogisticsSection({
                     {bandInfo.label}
                     <span className="ml-2 font-normal text-white/45">
                       ≈{Math.round(resolvedBand.distanceKm)} km
-                      {resolvedBand.resolution === "postal_estimate" ? " (estimated)" : ""}
+                      {resolvedBand.resolution === "place_estimate" ? " (estimated)" : ""}
                     </span>
                   </p>
                 </div>
+                {/* A typed name is ambiguous in a way a list choice is not —
+                    "London" and "Midland" both exist elsewhere. Showing what we
+                    matched lets the customer catch it before a price rests on it. */}
+                {resolvedBand.place && resolvedBand.resolution === "place_estimate" && (
+                  <p className="mt-1 text-xs text-white/40">Matched: {resolvedBand.place}</p>
+                )}
                 <p className="mt-1 text-xs text-white/50">
                   {bandPriced
                     ? `${money(bandInfo.rateCents as number)} per trip.`

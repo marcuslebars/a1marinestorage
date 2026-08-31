@@ -35,15 +35,23 @@ export type BoatLocation = "self_transport" | "home_trailer" | "marina_ramp" | "
  */
 export type TransportBand = "local" | "regional" | "extended" | "beyond";
 
-/** How the band was arrived at. Rides in the lead envelope for auditability. */
-export type BandResolution = "locality" | "postal_estimate";
+/**
+ * How the band was arrived at. Rides in the lead envelope for auditability.
+ *
+ * `locality` is a ratified distance from our own town list; `place_estimate` is
+ * geocoded from a name the customer typed. Worth telling apart when someone
+ * queries a transport charge later.
+ */
+export type BandResolution = "locality" | "place_estimate";
 
 export interface Logistics {
   boatLocation: BoatLocation;
-  /** Locality slug when resolved from the town list. */
+  /**
+   * The town, either way: a locality slug from our list, or the name the
+   * customer typed. `bandResolution` says which, so the two never have to be
+   * told apart by inspecting the string.
+   */
   townSlug?: string | null;
-  /** Postal code when resolved from the fallback path. */
-  postalCode?: string | null;
   transportBand?: TransportBand | null;
   distanceKm?: number | null;
   bandResolution?: BandResolution | null;

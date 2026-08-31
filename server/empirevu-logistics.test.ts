@@ -66,10 +66,10 @@ describe("logistics envelopes match their fixtures (drift guard)", () => {
       ],
       logistics: {
         boatLocation: "marina_ramp",
-        postalCode: "L4M 1A1",
+        town: "Gravenhurst",
         transportBand: "extended",
         distanceKm: 95,
-        bandResolution: "postal_estimate",
+        bandResolution: "place_estimate",
         pickup: false,
         delivery: true,
       },
@@ -103,10 +103,10 @@ describe("logistics envelopes match their fixtures (drift guard)", () => {
       ],
       logistics: {
         boatLocation: "lift_or_water",
-        postalCode: "K7L 3N6",
+        town: "Kingston",
         transportBand: "beyond",
         distanceKm: 310,
-        bandResolution: "postal_estimate",
+        bandResolution: "place_estimate",
         pickup: true,
         delivery: true,
         inWaterNotice: true,
@@ -174,7 +174,7 @@ describe("compactLogistics", () => {
   });
 
   it("drops empty strings, which is how an untouched text field arrives", () => {
-    expect(compactLogistics({ postalCode: "", transportBand: "local" })).toEqual({
+    expect(compactLogistics({ town: "", transportBand: "local" })).toEqual({
       transportBand: "local",
     });
   });

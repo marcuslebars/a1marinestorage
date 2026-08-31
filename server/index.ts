@@ -100,19 +100,27 @@ async function startServer() {
   // User-Agent and rate limiting, neither enforceable from a browser, and
   // because geocoding from the client would let anyone proxy through the site.
   app.post("/api/transport/band", async (req, res) => {
-    const postal = typeof req.body?.postalCode === "string" ? req.body.postalCode : "";
+    // `postalCode` is still read so a browser running a CACHED older bundle gets
+    // a clear answer instead of a puzzling failure — it will not resolve, and
+    // saying why is better than a bare 404.
+    const place =
+      typeof req.body?.place === "string"
+        ? req.body.place
+        : typeof req.body?.postalCode === "string"
+        ? ""
+        : "";
     try {
-      res.json({ ok: true, ...(await resolveTransportBand(postal)) });
+      res.json({ ok: true, ...(await resolveTransportBand(place)) });
     } catch (err) {
       if (err instanceof TransportBandError) {
         // A provider outage is NOT the customer's fault: 503 and a message that
         // sends them to the town list rather than hunting for a typo.
-        const status = err.code === "invalid_postal" ? 400 : err.code === "not_found" ? 404 : 503;
+        const status = err.code === "invalid_place" ? 400 : err.code === "not_found" ? 404 : 503;
         res.status(status).json({ ok: false, code: err.code, error: err.message });
         return;
       }
       console.error("[transport] unhandled error:", err instanceof Error ? err.message : String(err));
-      res.status(500).json({ ok: false, error: "We couldn't check that postal code. Please try again." });
+      res.status(500).json({ ok: false, error: "We couldn't look that up. Please try again." });
     }
   });
 

@@ -113,8 +113,10 @@ function logisticsForModel(sel: Selection) {
     bandLabel: band ? transportBandInfo(band).label : null,
     bandRange: band ? bandRangeLabel(band) : null,
     distanceKm: log.distanceKm ?? town?.distanceKm ?? null,
-    estimated: log.bandResolution === "postal_estimate",
-    townLabel: town?.name ?? null,
+    estimated: log.bandResolution === "place_estimate",
+    // A slug resolves to a proper name; a typed town has no slug to resolve, so
+    // it prints as the customer wrote it rather than vanishing from the PDF.
+    townLabel: town?.name ?? (log.bandResolution === "place_estimate" ? log.townSlug ?? null : null),
     pickup: log.pickup === true,
     delivery: log.delivery === true,
     trailerProvided: log.trailerProvided === true,

@@ -32,10 +32,10 @@
     "page": "/calculator",
     "logistics": {
       "boatLocation": "marina_ramp",
-      "postalCode": "L4M 1A1",
+      "town": "Gravenhurst",
       "transportBand": "extended",
       "distanceKm": 95,
-      "bandResolution": "postal_estimate",
+      "bandResolution": "place_estimate",
       "pickup": false,
       "delivery": true
     }

@@ -1,5 +1,12 @@
-// Transport band resolution from a postal code — the fallback for "Other / not
-// listed" when the customer's town isn't in the locality list.
+// Transport band resolution from a TOWN OR CITY NAME — the fallback for
+// "Other / not listed" when the customer's town isn't in the locality list.
+//
+// It asked for a postal code until 2026-08-31. That never worked: OpenStreetMap
+// has no Canadian postal-code coverage, so a bare FSA, a full postal code and a
+// free-text postal query all returned an empty result with HTTP 200, and every
+// lookup ended as "not found". Place names resolve reliably, so the fix was to
+// change the INPUT rather than the provider. Asking for a town is also less
+// personal data than asking for a postal code.
 //
 // SERVER-SIDE ONLY. Nominatim asks for a real User-Agent and at most one request
 // per second; neither is enforceable from a browser, and geocoding from the
@@ -32,38 +39,71 @@ export interface TransportBandResult {
   distanceKm: number;
   /** Always true on this path: the distance is a road-distance ESTIMATE. */
   estimated: boolean;
+  /**
+   * What the geocoder actually matched, shortened for display.
+   *
+   * Shown back to the customer because a name is ambiguous in a way a postal
+   * code is not — someone typing "London" should be able to see we found the
+   * one in Ontario before they accept a transport price based on it.
+   */
+  place: string;
 }
 
 export class TransportBandError extends Error {
   constructor(
     message: string,
-    readonly code: "invalid_postal" | "not_found" | "provider_unavailable",
+    readonly code: "invalid_place" | "not_found" | "provider_unavailable",
   ) {
     super(message);
     this.name = "TransportBandError";
   }
 }
 
-/** Canadian postal code, full (K1A 0B1) or FSA-only (K1A). Case/space tolerant. */
-const POSTAL_RE = /^[ABCEGHJKLMNPRSTVXY]\d[ABCEGHJKLMNPRSTVWXYZ](\s?\d[ABCEGHJKLMNPRSTVWXYZ]\d)?$/i;
+/**
+ * Letters (accented included), spaces, hyphens, apostrophes and periods — enough
+ * for "Sainte-Anne-de-Bellevue" or "St. Catharines", and nothing else. This is a
+ * sanity check on a free-text field that becomes a cache key and an outbound
+ * query, not an attempt to validate that a place exists; the geocoder answers
+ * that.
+ *
+ * Written with explicit Latin ranges rather than \p{L}, because unicode property
+ * escapes need the /u flag and this project compiles with the default ES5
+ * target. The ranges cover the accented characters Quebec and Ontario place
+ * names actually use.
+ */
+const PLACE_RE = /^[A-Za-zÀ-ɏ][A-Za-zÀ-ɏ\s'.-]*$/;
 
-export function normalizePostal(raw: string): string | null {
-  const cleaned = String(raw ?? "").trim().toUpperCase().replace(/\s+/g, " ");
-  if (!POSTAL_RE.test(cleaned)) return null;
+const PLACE_MIN = 2;
+const PLACE_MAX = 60;
+
+/** Trim, collapse inner whitespace, and reject what cannot be a place name. */
+export function normalizePlace(raw: string): string | null {
+  const cleaned = String(raw ?? "").trim().replace(/\s+/g, " ");
+  if (cleaned.length < PLACE_MIN || cleaned.length > PLACE_MAX) return null;
+  if (!PLACE_RE.test(cleaned)) return null;
   return cleaned;
 }
 
 /**
- * The FSA — first three characters.
- *
- * Everything is cached and looked up by FSA rather than full postal code: an FSA
- * covers a few km at most, which is far finer than the band boundaries it feeds,
- * and it means one lookup serves every customer in that area. It also avoids
- * sending a customer's full postal code to a third party when the first three
- * characters answer the question.
+ * Nominatim returns a full administrative chain
+ * ("Gravenhurst, District Municipality of Muskoka, Muskoka District, Ontario,
+ * Canada"). The first two parts are what a person recognises.
  */
-export function fsaOf(postal: string): string {
-  return postal.slice(0, 3);
+export function shortenPlaceLabel(displayName: string): string {
+  return displayName.split(",").map((p) => p.trim()).filter(Boolean).slice(0, 2).join(", ");
+}
+
+/**
+ * Cache key for a normalized place name.
+ *
+ * Case- and accent-insensitive so "Gravenhurst", "gravenhurst" and "GRAVENHURST"
+ * are one cached lookup rather than three requests to a service that asks for at
+ * most one per second.
+ */
+export function placeKey(place: string): string {
+  // U+0300–U+036F is the combining-diacritic block NFD decomposes accents into;
+  // spelled out for the same ES5-target reason as PLACE_RE above.
+  return place.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 }
 
 export function haversineKm(a: { lat: number; lon: number }, b: { lat: number; lon: number }): number {
@@ -81,9 +121,11 @@ export function estimateRoadKm(point: { lat: number; lon: number }): number {
   return Math.round(haversineKm(YARD, point) * ROAD_FACTOR);
 }
 
-// FSA -> result. Process-local and unbounded-but-tiny: there are ~1600 Canadian
-// FSAs and we will only ever see a handful. Cleared on restart, which is fine.
+// Place key -> result. Process-local, cleared on restart, and capped so a
+// scripted caller cannot grow it without bound — the real traffic is a handful
+// of nearby towns.
 const cache = new Map<string, TransportBandResult>();
+const CACHE_MAX = 500;
 
 export function __clearTransportBandCache(): void {
   cache.clear();
@@ -91,8 +133,17 @@ export function __clearTransportBandCache(): void {
 
 type Fetcher = typeof fetch;
 
-async function geocodeFsa(fsa: string, doFetch: Fetcher): Promise<{ lat: number; lon: number }> {
-  const url = `${NOMINATIM}?format=json&limit=1&countrycodes=ca&postalcode=${encodeURIComponent(fsa)}`;
+/**
+ * Geocode a place name, constrained to Ontario, Canada.
+ *
+ * The region is appended rather than left to the customer: "Midland" alone can
+ * match Michigan or Texas, and a wrong continent would silently produce a
+ * `beyond` band and an apologetic "we'll quote this by hand" for someone twenty
+ * minutes down the road.
+ */
+async function geocodePlace(place: string, doFetch: Fetcher): Promise<{ lat: number; lon: number; label: string }> {
+  const q = `${place}, Ontario, Canada`;
+  const url = `${NOMINATIM}?format=json&limit=1&countrycodes=ca&q=${encodeURIComponent(q)}`;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
@@ -113,37 +164,43 @@ async function geocodeFsa(fsa: string, doFetch: Fetcher): Promise<{ lat: number;
 
   if (!res.ok) throw new TransportBandError("Geocoding provider unavailable.", "provider_unavailable");
 
-  const json = (await res.json().catch(() => null)) as Array<{ lat: string; lon: string }> | null;
-  if (!json?.length) throw new TransportBandError("No location found for that postal code.", "not_found");
+  const json = (await res.json().catch(() => null)) as
+    | Array<{ lat: string; lon: string; display_name?: string }>
+    | null;
+  // An empty array now genuinely means "we could not find that town" — unlike
+  // the postal query this replaced, which returned empty for every input.
+  if (!json?.length) throw new TransportBandError("We couldn't find that town.", "not_found");
 
   const lat = Number(json[0].lat);
   const lon = Number(json[0].lon);
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
     throw new TransportBandError("Geocoding provider returned no usable location.", "provider_unavailable");
   }
-  return { lat, lon };
+  return { lat, lon, label: shortenPlaceLabel(json[0].display_name ?? place) };
 }
 
 /**
- * Resolve a postal code to a transport band.
+ * Resolve a town or city name to a transport band.
  *
  * `doFetch` is injectable so the tests never touch the network — hitting
- * Nominatim from CI would be both slow and rude.
+ * Nominatim from CI would be both slow and rude. That injection is also why the
+ * postal version's failure went unnoticed for so long, so there is now a
+ * separate, opt-in live check: `npm run check:geocoder`.
  */
 export async function resolveTransportBand(
-  rawPostal: string,
+  rawPlace: string,
   doFetch: Fetcher = fetch,
 ): Promise<TransportBandResult> {
-  const postal = normalizePostal(rawPostal);
-  if (!postal) {
-    throw new TransportBandError("That doesn't look like a Canadian postal code.", "invalid_postal");
+  const place = normalizePlace(rawPlace);
+  if (!place) {
+    throw new TransportBandError("Enter the town or city your boat is in.", "invalid_place");
   }
 
-  const fsa = fsaOf(postal);
-  const hit = cache.get(fsa);
+  const key = placeKey(place);
+  const hit = cache.get(key);
   if (hit) return hit;
 
-  const point = await geocodeFsa(fsa, doFetch);
+  const point = await geocodePlace(place, doFetch);
   const distanceKm = estimateRoadKm(point);
 
   const result: TransportBandResult = {
@@ -151,31 +208,14 @@ export async function resolveTransportBand(
     band: transportBandForDistanceKm(distanceKm),
     distanceKm,
     estimated: true,
+    place: point.label,
   };
-  cache.set(fsa, result);
+  // Drop the oldest entry rather than letting the map grow without bound. Map
+  // preserves insertion order, so the first key is the oldest.
+  if (cache.size >= CACHE_MAX) {
+    const oldest = cache.keys().next().value;
+    if (oldest !== undefined) cache.delete(oldest);
+  }
+  cache.set(key, result);
   return result;
 }
-
-/*
- * KNOWN DEFECT — the postal path does not resolve against the live provider.
- *
- * Verified 2026-08-31 against nominatim.openstreetmap.org: a bare FSA ("L4R"),
- * a full postal code ("L4R 1A1") and a free-text FSA query all return an EMPTY
- * result array with HTTP 200. OSM simply has no Canadian postal-code coverage;
- * place names ("Midland, Ontario") resolve fine.
- *
- * So every postal lookup ends as `not_found`, and the calculator's town list is
- * carrying the whole feature. The unit tests do not catch this because they
- * inject `doFetch` — which was the right call for CI (hitting Nominatim from a
- * test suite is slow and rude), but it means the real provider's behaviour was
- * never exercised.
- *
- * The fix is a change of input, not of provider: ask for a TOWN OR CITY and
- * geocode "<name>, Ontario, Canada", which Nominatim answers reliably. That is
- * also less personal data than a postal code. It needs a request-field rename
- * (postalCode -> place), the matching envelope field, and new tests, so it is
- * left as its own change rather than folded into the Step 2 UI.
- *
- * Until then the UI reports a lookup failure rather than blaming the customer's
- * typing, and always offers the town list as the way through.
- */

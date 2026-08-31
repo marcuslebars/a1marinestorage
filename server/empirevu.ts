@@ -64,12 +64,20 @@ function joinText(...parts: Array<string | undefined>): string | undefined {
 export interface LeadLogistics {
   /** self_transport | home_trailer | marina_ramp | lift_or_water */
   boatLocation?: string;
+  /**
+   * The town, either way: a slug from our locality list, or a name the customer
+   * typed. `bandResolution` says which, so nothing downstream has to guess by
+   * inspecting the string.
+   */
   town?: string;
-  postalCode?: string;
   /** local | regional | extended | beyond */
   transportBand?: string;
   distanceKm?: number;
-  /** locality | postal_estimate — how the band was arrived at. */
+  /**
+   * locality | place_estimate — how the band was arrived at. A ratified distance
+   * from our own list, or one geocoded from a typed name. Worth telling apart
+   * when someone queries a transport charge months later.
+   */
   bandResolution?: string;
   pickup?: boolean;
   delivery?: boolean;

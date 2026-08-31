@@ -242,15 +242,15 @@ function vitePluginLeadApi(): Plugin {
       server.middlewares.use(
         "/api/transport/band",
         jsonPost(async (body) => {
-          const postal =
-            body && typeof body === "object" && typeof (body as { postalCode?: unknown }).postalCode === "string"
-              ? (body as { postalCode: string }).postalCode
+          const place =
+            body && typeof body === "object" && typeof (body as { place?: unknown }).place === "string"
+              ? (body as { place: string }).place
               : "";
           try {
-            return { status: 200, body: { ok: true, ...(await resolveTransportBand(postal)) } };
+            return { status: 200, body: { ok: true, ...(await resolveTransportBand(place)) } };
           } catch (err) {
             if (err instanceof TransportBandError) {
-              const status = err.code === "invalid_postal" ? 400 : err.code === "not_found" ? 404 : 503;
+              const status = err.code === "invalid_place" ? 400 : err.code === "not_found" ? 404 : 503;
               return { status, body: { ok: false, code: err.code, error: err.message } };
             }
             throw err;

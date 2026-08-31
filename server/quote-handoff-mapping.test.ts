@@ -50,7 +50,6 @@ const captured = {
     logistics: {
       boatLocation: "home_trailer",
       townSlug: "honey-harbour",
-      postalCode: null,
       transportBand: "regional",
       distanceKm: 35,
       bandResolution: "locality",
@@ -80,9 +79,17 @@ describe("logistics reaches the envelope", () => {
     expect(lastCall().logistics).toMatchObject({ pickup: true, delivery: true, trailerProvided: true });
   });
 
-  it("drops a null postal code rather than sending null", async () => {
-    await handleQuoteSubmission(captured);
-    expect(lastCall().logistics).not.toHaveProperty("postalCode");
+  it("carries a typed town through the same field as a listed one", async () => {
+    await handleQuoteSubmission({
+      ...captured,
+      meta: {
+        ...captured.meta,
+        logistics: { ...captured.meta.logistics, townSlug: "Gravenhurst", bandResolution: "place_estimate" },
+      },
+    });
+    // One field for both paths; bandResolution is what tells them apart, so
+    // nothing downstream has to guess by inspecting the string.
+    expect(lastCall().logistics).toMatchObject({ town: "Gravenhurst", bandResolution: "place_estimate" });
   });
 
   it("keeps a zeroed add-on out of the envelope", async () => {

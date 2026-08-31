@@ -27,10 +27,10 @@
     "page": "/calculator",
     "logistics": {
       "boatLocation": "lift_or_water",
-      "postalCode": "K7L 3N6",
+      "town": "Kingston",
       "transportBand": "beyond",
       "distanceKm": 310,
-      "bandResolution": "postal_estimate",
+      "bandResolution": "place_estimate",
       "pickup": true,
       "delivery": true,
       "inWaterNotice": true

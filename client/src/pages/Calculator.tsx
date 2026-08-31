@@ -204,10 +204,13 @@ export default function Calculator() {
     const v = logisticsValue;
     if (!v.boatLocation) return undefined;
     const towable = supportsTransport(v.boatLocation);
+    // One `townSlug` field for both paths: a slug from the list, or the name the
+    // customer typed. bandResolution below is what tells them apart.
+    const town =
+      v.townSlug === OTHER_TOWN ? v.placeName.trim() || null : v.townSlug || null;
     return {
       boatLocation: v.boatLocation,
-      townSlug: towable && v.townSlug && v.townSlug !== OTHER_TOWN ? v.townSlug : null,
-      postalCode: towable && v.townSlug === OTHER_TOWN ? v.postalCode.trim() || null : null,
+      townSlug: towable ? town : null,
       transportBand: towable ? resolvedBand?.band ?? null : null,
       distanceKm: towable ? resolvedBand?.distanceKm ?? null : null,
       bandResolution: towable ? resolvedBand?.resolution ?? null : null,
@@ -711,7 +714,7 @@ export default function Calculator() {
                     engineType={engineType}
                     engineCount={engineCount}
                     resolvedBand={resolvedBand}
-                    onPostalResolved={setResolvedBand}
+                    onPlaceResolved={setResolvedBand}
                   />
                 )}
 

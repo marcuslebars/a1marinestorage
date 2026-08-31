@@ -114,9 +114,9 @@ function logisticsFromMeta(meta: Record<string, unknown>): LeadLogistics | undef
   const location = str(log?.boatLocation);
   const out: LeadLogistics = {
     boatLocation: location,
-    // The client calls it townSlug; the envelope calls it town.
+    // The client calls it townSlug; the envelope calls it town. It holds either a
+    // locality slug or a typed town name — bandResolution says which.
     town: str(log?.townSlug),
-    postalCode: str(log?.postalCode),
     transportBand: str(log?.transportBand),
     distanceKm: num(log?.distanceKm),
     bandResolution: str(log?.bandResolution),
