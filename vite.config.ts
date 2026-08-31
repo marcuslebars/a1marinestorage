@@ -8,6 +8,8 @@ import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { handleQuoteSubmission } from "./server/quote-handler";
 import { handleContactSubmission } from "./server/contact-handler";
+import { handleQuotePdf, QuotePdfError } from "./server/quote-pdf-handler";
+import { resolveTransportBand, TransportBandError } from "./server/transport-band";
 
 // =============================================================================
 // Manus Debug Collector - Vite Plugin
@@ -233,6 +235,63 @@ function vitePluginLeadApi(): Plugin {
   return {
     name: "a1-lead-api",
     configureServer(server: ViteDevServer) {
+      // ORDER MATTERS. connect matches middleware by PREFIX, so "/api/quote"
+      // also matches "/api/quote/pdf" — and the submission handler ignores the
+      // URL, so in dev a PDF request was being handled as a quote submission.
+      // The more specific paths must be registered first.
+      server.middlewares.use(
+        "/api/transport/band",
+        jsonPost(async (body) => {
+          const place =
+            body && typeof body === "object" && typeof (body as { place?: unknown }).place === "string"
+              ? (body as { place: string }).place
+              : "";
+          try {
+            return { status: 200, body: { ok: true, ...(await resolveTransportBand(place)) } };
+          } catch (err) {
+            if (err instanceof TransportBandError) {
+              const status = err.code === "invalid_place" ? 400 : err.code === "not_found" ? 404 : 503;
+              return { status, body: { ok: false, code: err.code, error: err.message } };
+            }
+            throw err;
+          }
+        }),
+      );
+      // The PDF replies with BINARY plus headers, so it cannot go through
+      // jsonPost. Without its own route it fell through to the submission
+      // handler above and dev could never exercise a download at all.
+      server.middlewares.use("/api/quote/pdf", (req, res, next) => {
+        if (req.method !== "POST") return next();
+        let raw = "";
+        req.on("data", (c) => {
+          raw += c.toString();
+        });
+        req.on("end", async () => {
+          try {
+            const body = raw ? JSON.parse(raw) : {};
+            const result = await handleQuotePdf({
+              selection: body.selection,
+              boat: body.boat,
+              email: typeof body.email === "string" ? body.email : undefined,
+              origin: `http://${req.headers.host ?? "localhost:5173"}`,
+            });
+            res.setHeader("Content-Type", "application/pdf");
+            res.setHeader("Content-Disposition", `attachment; filename="${result.filename}"`);
+            res.setHeader("X-Quote-Reference", result.reference);
+            res.end(result.pdf);
+          } catch (err) {
+            const known = err instanceof QuotePdfError;
+            res.statusCode = known && err.code === "invalid_selection" ? 400 : 500;
+            res.setHeader("Content-Type", "application/json");
+            res.end(
+              JSON.stringify({
+                ok: false,
+                error: known ? err.message : "We couldn't build your quote PDF. Please try again.",
+              }),
+            );
+          }
+        });
+      });
       server.middlewares.use("/api/quote", jsonPost(handleQuoteSubmission));
       server.middlewares.use("/api/contact", jsonPost(handleContactSubmission));
     },

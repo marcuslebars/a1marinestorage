@@ -98,10 +98,13 @@ describe("Indoor Storage (still unpriced) is absent from client/src", () => {
   });
 });
 
-describe("v1.2.0 add-on services render with engine-derived prices", () => {
+describe("add-on services render with engine-derived prices", () => {
   it("battery / trailer / wrap-removal figures are engine-derived", () => {
     expect(RATES.batteryPerUnit).toBe("$100");
-    expect(RATES.trailer).toBe("$400");
+    // v1.3.0 ratified the trailer season rate down from $400 to $200. This value
+    // is rendered on LIVE public pages (/pricing and /boat-storage), so the
+    // engine bump changes advertised copy — see the branch summary.
+    expect(RATES.trailer).toBe("$200");
     expect(WRAP_REMOVAL.lower).toBe("$150");
     expect(WRAP_REMOVAL.upper).toBe("$200");
     expect(WRAP_REMOVAL.breakpointFt).toBe(26);

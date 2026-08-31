@@ -4,6 +4,9 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { handleQuoteSubmission } from "./quote-handler";
 import { handleContactSubmission } from "./contact-handler";
+import { resolveTransportBand, TransportBandError } from "./transport-band";
+import { handleQuotePdf, QuotePdfError } from "./quote-pdf-handler";
+import { buildStorageQuoteInput } from "../client/src/lib/quote-items";
 import fs from "fs";
 import { getPageMeta, hasPage, injectMeta, renderSitemap } from "../shared/seo";
 
@@ -42,6 +45,82 @@ async function startServer() {
     } catch (err) {
       console.error("[contact] unhandled error:", err instanceof Error ? err.message : String(err));
       res.status(500).json({ ok: false, error: "We couldn't record your message. Please try again." });
+    }
+  });
+
+  // Downloadable quote PDF. The client sends its SELECTION and the server
+  // re-prices through the engine — client totals are never trusted, and the
+  // request has nowhere to put a price.
+  app.post("/api/quote/pdf", async (req, res) => {
+    try {
+      const proto = (req.headers["x-forwarded-proto"] as string) ?? req.protocol;
+      const result = await handleQuotePdf({
+        selection: req.body?.selection,
+        boat: req.body?.boat,
+        email: typeof req.body?.email === "string" ? req.body.email : undefined,
+        origin: `${proto}://${req.get("host")}`,
+      });
+
+      // Downloading a quote is high intent, so a volunteered email is filed as a
+      // lead through the normal durable-first path. BEST-EFFORT on purpose: the
+      // download must never be blocked or failed by lead handling. The customer
+      // came for their quote.
+      if (result.email) {
+        void handleQuoteSubmission({
+          contact: { name: "", email: result.email, phone: "" },
+          quoteInput: buildStorageQuoteInput(req.body?.selection, req.body?.boat),
+          meta: {
+            site: "a1marinestorage.ca",
+            page: "/calculator",
+            source: "pdf_download",
+            quoteRef: result.reference,
+          },
+        }).catch((err) => {
+          console.error("[quote-pdf] lead capture failed (download unaffected):", err instanceof Error ? err.message : err);
+        });
+      }
+
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="${result.filename}"`);
+      res.setHeader("X-Quote-Reference", result.reference);
+      res.send(result.pdf);
+    } catch (err) {
+      if (err instanceof QuotePdfError) {
+        const status = err.code === "invalid_selection" ? 400 : 500;
+        res.status(status).json({ ok: false, code: err.code, error: err.message });
+        return;
+      }
+      console.error("[quote-pdf] unhandled error:", err instanceof Error ? err.message : String(err));
+      res.status(500).json({ ok: false, error: "We couldn't build your quote PDF. Please try again." });
+    }
+  });
+
+  // Transport band from a postal code — the fallback when the customer's town
+  // isn't in the locality list. Server-side because Nominatim requires a real
+  // User-Agent and rate limiting, neither enforceable from a browser, and
+  // because geocoding from the client would let anyone proxy through the site.
+  app.post("/api/transport/band", async (req, res) => {
+    // `postalCode` is still read so a browser running a CACHED older bundle gets
+    // a clear answer instead of a puzzling failure — it will not resolve, and
+    // saying why is better than a bare 404.
+    const place =
+      typeof req.body?.place === "string"
+        ? req.body.place
+        : typeof req.body?.postalCode === "string"
+        ? ""
+        : "";
+    try {
+      res.json({ ok: true, ...(await resolveTransportBand(place)) });
+    } catch (err) {
+      if (err instanceof TransportBandError) {
+        // A provider outage is NOT the customer's fault: 503 and a message that
+        // sends them to the town list rather than hunting for a typo.
+        const status = err.code === "invalid_place" ? 400 : err.code === "not_found" ? 404 : 503;
+        res.status(status).json({ ok: false, code: err.code, error: err.message });
+        return;
+      }
+      console.error("[transport] unhandled error:", err instanceof Error ? err.message : String(err));
+      res.status(500).json({ ok: false, error: "We couldn't look that up. Please try again." });
     }
   });
 
