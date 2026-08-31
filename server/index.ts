@@ -5,6 +5,8 @@ import { fileURLToPath } from "url";
 import { handleQuoteSubmission } from "./quote-handler";
 import { handleContactSubmission } from "./contact-handler";
 import { resolveTransportBand, TransportBandError } from "./transport-band";
+import { handleQuotePdf, QuotePdfError } from "./quote-pdf-handler";
+import { buildStorageQuoteInput } from "../client/src/lib/quote-items";
 import fs from "fs";
 import { getPageMeta, hasPage, injectMeta, renderSitemap } from "../shared/seo";
 
@@ -43,6 +45,53 @@ async function startServer() {
     } catch (err) {
       console.error("[contact] unhandled error:", err instanceof Error ? err.message : String(err));
       res.status(500).json({ ok: false, error: "We couldn't record your message. Please try again." });
+    }
+  });
+
+  // Downloadable quote PDF. The client sends its SELECTION and the server
+  // re-prices through the engine — client totals are never trusted, and the
+  // request has nowhere to put a price.
+  app.post("/api/quote/pdf", async (req, res) => {
+    try {
+      const proto = (req.headers["x-forwarded-proto"] as string) ?? req.protocol;
+      const result = await handleQuotePdf({
+        selection: req.body?.selection,
+        boat: req.body?.boat,
+        email: typeof req.body?.email === "string" ? req.body.email : undefined,
+        origin: `${proto}://${req.get("host")}`,
+      });
+
+      // Downloading a quote is high intent, so a volunteered email is filed as a
+      // lead through the normal durable-first path. BEST-EFFORT on purpose: the
+      // download must never be blocked or failed by lead handling. The customer
+      // came for their quote.
+      if (result.email) {
+        void handleQuoteSubmission({
+          contact: { name: "", email: result.email, phone: "" },
+          quoteInput: buildStorageQuoteInput(req.body?.selection, req.body?.boat),
+          meta: {
+            site: "a1marinestorage.ca",
+            page: "/calculator",
+            source: "pdf_download",
+            quoteRef: result.reference,
+          },
+        }).catch((err) => {
+          console.error("[quote-pdf] lead capture failed (download unaffected):", err instanceof Error ? err.message : err);
+        });
+      }
+
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="${result.filename}"`);
+      res.setHeader("X-Quote-Reference", result.reference);
+      res.send(result.pdf);
+    } catch (err) {
+      if (err instanceof QuotePdfError) {
+        const status = err.code === "invalid_selection" ? 400 : 500;
+        res.status(status).json({ ok: false, code: err.code, error: err.message });
+        return;
+      }
+      console.error("[quote-pdf] unhandled error:", err instanceof Error ? err.message : String(err));
+      res.status(500).json({ ok: false, error: "We couldn't build your quote PDF. Please try again." });
     }
   });
 
