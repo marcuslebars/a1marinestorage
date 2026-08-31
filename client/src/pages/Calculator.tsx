@@ -27,11 +27,23 @@ import {
 import {
   buildStorageQuoteInput,
   bundleServiceIds,
+  describeExtras,
   itemForService,
+  supportsTransport,
   winterizationId,
   CERAMIC_MAX_FT,
   type BoatState,
+  type ExtraLineRef,
+  type Logistics,
+  type Selection,
 } from "@/lib/quote-items";
+import {
+  LogisticsSection,
+  EMPTY_LOGISTICS,
+  OTHER_TOWN,
+  type LogisticsValue,
+  type ResolvedBand,
+} from "@/components/LogisticsSection";
 
 // ── Booking-deposit copy toggle ──────────────────────────────────────────────
 // Presentational ONLY: flips the calculator copy from "quote request" to "pay a
@@ -145,6 +157,12 @@ export default function Calculator() {
   const [alacarte, setAlacarte] = useState<Set<string>>(new Set());
   const [ceramicUpgrade, setCeramicUpgrade] = useState(false);
 
+  // Transport & add-ons. `resolvedBand` is kept apart from the form values
+  // because the postal path resolves it on the SERVER — the client never decides
+  // which band a distance falls into.
+  const [logisticsValue, setLogisticsValue] = useState<LogisticsValue>(EMPTY_LOGISTICS);
+  const [resolvedBand, setResolvedBand] = useState<ResolvedBand | null>(null);
+
   const [contact, setContact] = useState({ name: "", email: "", phone: "", boatMakeModelYear: "", marina: "" });
 
   const [status, setStatus] = useState<SubmitStatus>("idle");
@@ -176,14 +194,65 @@ export default function Calculator() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lengthValid, lengthFt, hullType, engineType, engineCount]);
 
+  /**
+   * The form values as the pricing model's Logistics shape.
+   *
+   * Undefined until a location is chosen, so an untouched section adds no lines
+   * and changes nothing about the quote or the lead envelope.
+   */
+  const logistics = useMemo<Logistics | undefined>(() => {
+    const v = logisticsValue;
+    if (!v.boatLocation) return undefined;
+    const towable = supportsTransport(v.boatLocation);
+    return {
+      boatLocation: v.boatLocation,
+      townSlug: towable && v.townSlug && v.townSlug !== OTHER_TOWN ? v.townSlug : null,
+      postalCode: towable && v.townSlug === OTHER_TOWN ? v.postalCode.trim() || null : null,
+      transportBand: towable ? resolvedBand?.band ?? null : null,
+      distanceKm: towable ? resolvedBand?.distanceKm ?? null : null,
+      bandResolution: towable ? resolvedBand?.resolution ?? null : null,
+      pickup: towable && v.pickup,
+      delivery: towable && v.delivery,
+      trailerProvided: v.trailerProvided,
+    };
+  }, [logisticsValue, resolvedBand]);
+
+  const addOns = useMemo(
+    () => ({
+      batteryCount: logisticsValue.batteryCount,
+      extendedMonths: logisticsValue.extendedMonths,
+      oilChangeOutboard: logisticsValue.oilChangeOutboard,
+      springWrapRemoval: logisticsValue.springWrapRemoval,
+    }),
+    [logisticsValue],
+  );
+
+  const selection = useMemo<Selection>(
+    () => ({ mode, bundleId, alacarteIds: Array.from(alacarte), ceramicUpgrade, logistics, addOns }),
+    [mode, bundleId, alacarte, ceramicUpgrade, logistics, addOns],
+  );
+
   // The QuoteInput for the customer's current selection (incl. ceramic upsell).
   const selectedInput = useMemo<QuoteInput | null>(
-    () => buildStorageQuoteInput({ mode, bundleId, alacarteIds: Array.from(alacarte), ceramicUpgrade }, boat),
+    () => buildStorageQuoteInput(selection, boat),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [lengthValid, lengthFt, hullType, engineType, engineCount, mode, bundleId, alacarte, ceramicUpgrade],
+    [lengthValid, lengthFt, hullType, engineType, engineCount, selection],
   );
 
   const quote = useMemo(() => (selectedInput ? safeQuote(selectedInput) : null), [selectedInput]);
+
+  /**
+   * Which appended lines are which, keyed by index into quote.lineItems.
+   *
+   * Two transport trips share one service key, so the engine's output alone
+   * cannot say which row is the pickup and which is the delivery. This map comes
+   * from the same function that appended them, so the two cannot drift.
+   */
+  const extraRefs = useMemo<Map<number, ExtraLineRef["purpose"]>>(
+    () => new Map(describeExtras(selection, boat).map((r) => [r.index, r.purpose])),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [selection, lengthFt, hullType, engineType, engineCount],
+  );
 
   const canProceedStep1 = lengthValid && hullType !== "";
   const hasSelection = quote != null && quote.lineItems.length > 0;
@@ -218,7 +287,18 @@ export default function Calculator() {
     const payload = {
       quoteInput: selectedInput,
       contact,
-      meta: { mode, bundleId, ceramicUpgrade, boat, lengthFt, utm: getUtm() },
+      meta: {
+        mode,
+        bundleId,
+        ceramicUpgrade,
+        boat,
+        lengthFt,
+        utm: getUtm(),
+        // Undefined when the section was never touched, so the lead envelope is
+        // byte-identical to before this existed.
+        logistics,
+        addOns,
+      },
     };
     const maxAttempts = 3;
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -277,9 +357,9 @@ export default function Calculator() {
           </p>
           <div className="marine-card p-5 mb-6 text-left">
             <p className="text-sm font-semibold text-white mb-3">Your Estimate</p>
-            {quote.lineItems.map((l) => (
-              <div key={l.serviceId} className="flex justify-between gap-4 text-sm text-white/65 py-1 border-b border-white/5">
-                <span>{l.label}</span>
+            {quote.lineItems.map((l, i) => (
+              <div key={i} className="flex justify-between gap-4 text-sm text-white/65 py-1 border-b border-white/5">
+                <span>{extraLabel(l.label, extraRefs.get(i))}</span>
                 <span className="tabular-nums">{money(l.amountCents)}</span>
               </div>
             ))}
@@ -622,6 +702,19 @@ export default function Calculator() {
                   </div>
                 </details>
 
+                {/* Transport & add-ons — only once a package is chosen, so the
+                    page does not open with three sections of options at once. */}
+                {mode && (
+                  <LogisticsSection
+                    value={logisticsValue}
+                    onChange={(patch) => setLogisticsValue((v) => ({ ...v, ...patch }))}
+                    engineType={engineType}
+                    engineCount={engineCount}
+                    resolvedBand={resolvedBand}
+                    onPostalResolved={setResolvedBand}
+                  />
+                )}
+
                 <div className="flex justify-between">
                   <Button onClick={() => setStep(1)} variant="outline" className="border-white/20 text-white/70 hover:border-white/40 hover:text-white">
                     <ArrowLeft className="mr-2 h-4 w-4" /> Back
@@ -724,10 +817,13 @@ export default function Calculator() {
                 <>
                   {showBreakdown && (
                     <div className="space-y-2 mb-3 pb-3 border-b border-white/10">
-                      {quote.lineItems.map((l) => (
-                        <div key={l.serviceId} className="flex justify-between gap-3 text-xs">
+                      {/* Keyed by INDEX, not serviceId: a pickup and a spring
+                          delivery are the same engine service, so a serviceId key
+                          collides and React drops one of the two rows. */}
+                      {quote.lineItems.map((l, i) => (
+                        <div key={i} className="flex justify-between gap-3 text-xs">
                           <div className="min-w-0">
-                            <p className="text-white/80 truncate">{l.label}</p>
+                            <p className="text-white/80 truncate">{extraLabel(l.label, extraRefs.get(i))}</p>
                             <p className="text-white/40">{lineDetail(l)}</p>
                           </div>
                           <span className="text-white/80 font-medium tabular-nums shrink-0">{money(l.amountCents)}</span>
@@ -792,6 +888,19 @@ export default function Calculator() {
 }
 
 // ── Small helpers ────────────────────────────────────────────────────────────
+
+/**
+ * Disambiguate the appended lines the engine cannot tell apart.
+ *
+ * Both transport trips price as "Transport — local"; only the append order says
+ * which is the fall pickup and which is the spring delivery. The engine's own
+ * label is kept as the base so the price and its wording still come from there.
+ */
+function extraLabel(label: string, purpose?: ExtraLineRef["purpose"]): string {
+  if (purpose === "pickup") return `${label} (fall pickup)`;
+  if (purpose === "delivery") return `${label} (spring delivery)`;
+  return label;
+}
 
 function lineDetail(l: QuoteResult["lineItems"][number]): string {
   const d = l.detail;
