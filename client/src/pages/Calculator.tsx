@@ -37,6 +37,7 @@ import {
   type Logistics,
   type Selection,
 } from "@/lib/quote-items";
+import { DownloadQuoteButton } from "@/components/DownloadQuoteButton";
 import {
   LogisticsSection,
   EMPTY_LOGISTICS,
@@ -791,6 +792,12 @@ export default function Calculator() {
                     )}
                   </Button>
                 </div>
+                {hasSelection && (
+                  <div className="mt-6">
+                    <DownloadQuoteButton selection={selection} boat={boat} defaultEmail={contact.email} />
+                  </div>
+                )}
+
                 <p className="mt-4 text-center text-xs text-white/40">
                   By booking, you agree to our{" "}
                   <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-[oklch(0.6_0.2_27)] hover:underline">Terms of Service</a>.
