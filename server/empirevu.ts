@@ -121,6 +121,21 @@ export function buildStorageContactEnvelope(input: {
   };
 }
 
+/**
+ * What the customer chose, by catalog SERVICE KEY.
+ *
+ * EmpireVu re-prices this against the tenant's own catalog to auto-generate a
+ * quote. It cannot use `lineItems`: those carry priced customer-facing
+ * DESCRIPTIONS, and matching them back to services would mean string-matching
+ * prose. Keys survive a label change; prose does not.
+ */
+export interface LeadSelection {
+  bundleKey?: string;
+  /** Hull type — selects a variant surcharge. */
+  variant?: string;
+  services?: Array<{ serviceKey: string; measure?: number; quantity?: number }>;
+}
+
 export function buildStorageQuoteEnvelope(input: {
   id: string;
   receivedAt: string;
@@ -129,6 +144,7 @@ export function buildStorageQuoteEnvelope(input: {
   jobberLineItems: LeadLineItem[];
   utm?: Record<string, string>;
   logistics?: LeadLogistics;
+  selection?: LeadSelection;
   /** Short human reference (A1MS-Q-XXXXXX) when the quote came from a PDF download. */
   quoteRef?: string;
 }): LeadEnvelope {
@@ -156,6 +172,7 @@ export function buildStorageQuoteEnvelope(input: {
       page: "/calculator",
       utm: input.utm,
       logistics: compactLogistics(input.logistics),
+      selection: input.selection ? compact(input.selection as Record<string, unknown>) : undefined,
       quoteRef: input.quoteRef,
     }) ?? { site: "a1marinestorage.ca" },
   };

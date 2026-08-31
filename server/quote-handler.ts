@@ -16,7 +16,13 @@
 import { randomUUID } from "node:crypto";
 import { calculateQuote, type QuoteInput, type QuoteResult } from "@a1/pricing-engine";
 import { SOURCE_SITE, appendSubmission, logAnalytics, forwardToLeadPipeline } from "./lead-pipeline";
-import { buildStorageQuoteEnvelope, forwardToEmpireVu } from "./empirevu";
+import {
+  buildStorageQuoteEnvelope,
+  compactLogistics,
+  forwardToEmpireVu,
+  type LeadLogistics,
+  type LeadSelection,
+} from "./empirevu";
 
 export interface QuoteContact {
   name: string;
@@ -74,6 +80,81 @@ function toJobberLineItems(quote: QuoteResult): JobberLineItem[] {
     quantity: l.quantity,
     unitPriceCents: l.unitPriceCents,
   }));
+}
+
+const str = (v: unknown): string | undefined => (typeof v === "string" && v ? v : undefined);
+const num = (v: unknown): number | undefined => (typeof v === "number" && Number.isFinite(v) ? v : undefined);
+const bool = (v: unknown): boolean | undefined => (typeof v === "boolean" ? v : undefined);
+
+// Add-ons are counted, not chosen: 0 batteries and no batteries are the same
+// thing, so they drop out. Transport booleans use `bool` instead, because
+// `pickup: false` is a real answer — "I'll tow it in, you deliver it back" is a
+// different job from "no transport", and compact() preserves it on purpose.
+const count = (v: unknown): number | undefined => {
+  const n = num(v);
+  return n && n > 0 ? n : undefined;
+};
+const chosen = (v: unknown): true | undefined => (v === true ? true : undefined);
+
+/**
+ * Flatten the calculator's `logistics` + `addOns` into the envelope's block.
+ *
+ * Every field is read defensively and dropped when absent, so a submission from
+ * a cached older bundle — which sends neither — produces exactly the envelope it
+ * produced before, and a hand-crafted body cannot inject arbitrary keys.
+ *
+ * Nothing here affects PRICE. The quote was already computed from `quoteInput`
+ * above; this is capture context travelling alongside it.
+ */
+function logisticsFromMeta(meta: Record<string, unknown>): LeadLogistics | undefined {
+  const log = (meta.logistics ?? undefined) as Record<string, unknown> | undefined;
+  const add = (meta.addOns ?? undefined) as Record<string, unknown> | undefined;
+  if (!log && !add) return undefined;
+
+  const location = str(log?.boatLocation);
+  const out: LeadLogistics = {
+    boatLocation: location,
+    // The client calls it townSlug; the envelope calls it town.
+    town: str(log?.townSlug),
+    postalCode: str(log?.postalCode),
+    transportBand: str(log?.transportBand),
+    distanceKm: num(log?.distanceKm),
+    bandResolution: str(log?.bandResolution),
+    pickup: bool(log?.pickup),
+    delivery: bool(log?.delivery),
+    trailerProvided: bool(log?.trailerProvided),
+    // Derived, not sent: an in-water boat needs a haul-out, which has no priced
+    // line. Flagging it here is what tells EmpireVu not to auto-quote the lead.
+    inWaterNotice: location === "lift_or_water" ? true : undefined,
+    batteryCount: count(add?.batteryCount),
+    extendedMonths: count(add?.extendedMonths),
+    oilChangeOutboard: chosen(add?.oilChangeOutboard),
+    springWrapRemoval: chosen(add?.springWrapRemoval),
+  };
+  return compactLogistics(out);
+}
+
+/**
+ * The selection, by service key, from the input the engine just priced.
+ *
+ * Taken from `quoteInput` rather than a separate client field so it cannot
+ * disagree with what was quoted: `calculateQuote` has already rejected unknown
+ * services by the time this runs.
+ */
+function selectionFromInput(input: QuoteInput | undefined): LeadSelection | undefined {
+  const items = input?.items ?? [];
+  if (items.length === 0) return undefined;
+  return {
+    bundleKey: input?.bundleId,
+    variant: input?.hullType,
+    services: items.map((i) => ({
+      serviceKey: i.serviceId,
+      measure: i.lengthFt,
+      // A flat_per_engine service carries its count as engineCount; per_unit
+      // services carry quantity. EmpireVu's catalog wants one field.
+      quantity: i.quantity ?? i.engineCount,
+    })),
+  };
 }
 
 export async function handleQuoteSubmission(rawBody: unknown): Promise<HandlerResult> {
@@ -177,11 +258,23 @@ export async function handleQuoteSubmission(rawBody: unknown): Promise<HandlerRe
   void forwardToLeadPipeline("quote", forwardPayload);
 
   // Additive dual-send: the SAME quote to EmpireVu's canonical intake, best-effort.
-  const utm =
-    body.meta && typeof (body.meta as Record<string, unknown>).utm === "object"
-      ? ((body.meta as Record<string, unknown>).utm as Record<string, string>)
-      : undefined;
-  void forwardToEmpireVu(buildStorageQuoteEnvelope({ id, receivedAt, contact, quote, jobberLineItems, utm }));
+  const meta = (body.meta ?? {}) as Record<string, unknown>;
+  const utm = typeof meta.utm === "object" ? (meta.utm as Record<string, string>) : undefined;
+  void forwardToEmpireVu(
+    buildStorageQuoteEnvelope({
+      id,
+      receivedAt,
+      contact,
+      quote,
+      jobberLineItems,
+      utm,
+      logistics: logisticsFromMeta(meta),
+      // Derived from the quoteInput the ENGINE just priced, not from a separate
+      // client field: those items are the selection, and they have already been
+      // validated by calculateQuote above.
+      selection: selectionFromInput(body.quoteInput),
+    }),
+  );
 
   return {
     status: 200,
