@@ -4,6 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { handleQuoteSubmission } from "./quote-handler";
 import { handleContactSubmission } from "./contact-handler";
+import { resolveTransportBand, TransportBandError } from "./transport-band";
 import fs from "fs";
 import { getPageMeta, hasPage, injectMeta, renderSitemap } from "../shared/seo";
 
@@ -42,6 +43,27 @@ async function startServer() {
     } catch (err) {
       console.error("[contact] unhandled error:", err instanceof Error ? err.message : String(err));
       res.status(500).json({ ok: false, error: "We couldn't record your message. Please try again." });
+    }
+  });
+
+  // Transport band from a postal code — the fallback when the customer's town
+  // isn't in the locality list. Server-side because Nominatim requires a real
+  // User-Agent and rate limiting, neither enforceable from a browser, and
+  // because geocoding from the client would let anyone proxy through the site.
+  app.post("/api/transport/band", async (req, res) => {
+    const postal = typeof req.body?.postalCode === "string" ? req.body.postalCode : "";
+    try {
+      res.json({ ok: true, ...(await resolveTransportBand(postal)) });
+    } catch (err) {
+      if (err instanceof TransportBandError) {
+        // A provider outage is NOT the customer's fault: 503 and a message that
+        // sends them to the town list rather than hunting for a typo.
+        const status = err.code === "invalid_postal" ? 400 : err.code === "not_found" ? 404 : 503;
+        res.status(status).json({ ok: false, code: err.code, error: err.message });
+        return;
+      }
+      console.error("[transport] unhandled error:", err instanceof Error ? err.message : String(err));
+      res.status(500).json({ ok: false, error: "We couldn't check that postal code. Please try again." });
     }
   });
 
