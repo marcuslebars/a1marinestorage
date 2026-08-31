@@ -155,3 +155,27 @@ export async function resolveTransportBand(
   cache.set(fsa, result);
   return result;
 }
+
+/*
+ * KNOWN DEFECT — the postal path does not resolve against the live provider.
+ *
+ * Verified 2026-08-31 against nominatim.openstreetmap.org: a bare FSA ("L4R"),
+ * a full postal code ("L4R 1A1") and a free-text FSA query all return an EMPTY
+ * result array with HTTP 200. OSM simply has no Canadian postal-code coverage;
+ * place names ("Midland, Ontario") resolve fine.
+ *
+ * So every postal lookup ends as `not_found`, and the calculator's town list is
+ * carrying the whole feature. The unit tests do not catch this because they
+ * inject `doFetch` — which was the right call for CI (hitting Nominatim from a
+ * test suite is slow and rude), but it means the real provider's behaviour was
+ * never exercised.
+ *
+ * The fix is a change of input, not of provider: ask for a TOWN OR CITY and
+ * geocode "<name>, Ontario, Canada", which Nominatim answers reliably. That is
+ * also less personal data than a postal code. It needs a request-field rename
+ * (postalCode -> place), the matching envelope field, and new tests, so it is
+ * left as its own change rather than folded into the Step 2 UI.
+ *
+ * Until then the UI reports a lookup failure rather than blaming the customer's
+ * typing, and always offers the town list as the way through.
+ */
