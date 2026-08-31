@@ -9,6 +9,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { renderSitemap } from "@shared/seo";
+
 const here = dirname(fileURLToPath(import.meta.url)); // client/src/pages
 const read = (rel: string) => readFileSync(join(here, rel), "utf8");
 
@@ -50,9 +52,25 @@ describe("/terms — 301 redirect to the canonical A1 Marine terms", () => {
     expect(contact).not.toContain('<Link href="/terms"');
   });
 
-  it("drops /terms from sitemap.xml but keeps the site-specific /privacy", () => {
-    const sitemap = read("../../public/sitemap.xml");
+  it("drops /terms from the sitemap but keeps the site-specific /privacy", () => {
+    // Asserted against renderSitemap(), not a file. This read
+    // client/public/sitemap.xml until that file was removed as cruft — the
+    // sitemap is generated from the shared SEO registry and served by Express,
+    // which declares the route BEFORE the static handler so a stale physical
+    // file could never win anyway. The test kept reading the deleted path and
+    // failed on ENOENT for weeks. Pointing it at the generator makes it assert
+    // what is actually served.
+    const sitemap = renderSitemap();
     expect(sitemap).not.toContain("/terms");
     expect(sitemap).toContain("/privacy");
+  });
+
+  it("still serves a sitemap with real entries", () => {
+    // Guards the fix above: an empty or malformed sitemap would satisfy
+    // "does not contain /terms" while being completely broken.
+    const sitemap = renderSitemap();
+    expect(sitemap).toContain("<urlset");
+    expect(sitemap.match(/<loc>/g)?.length ?? 0).toBeGreaterThan(5);
+    expect(sitemap).toContain("https://a1marinestorage.ca/");
   });
 });
