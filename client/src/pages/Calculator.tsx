@@ -47,12 +47,17 @@ import {
 } from "@/components/LogisticsSection";
 
 // ── Booking-deposit copy toggle ──────────────────────────────────────────────
-// Presentational ONLY: flips the calculator copy from "quote request" to "pay a
-// deposit to reserve." The actual deposit + pay-link happen in EmpireVu (Jobber
-// Payments). Coordinate this flag with EmpireVu's JOBBER_SYNC_ENABLED — turn it ON
-// only once the backend actually sends the link, or the site promises a link that
-// never arrives. Public, build-time Vite flags (no secret); changing them needs a
-// redeploy. VITE_BOOKING_DEPOSIT_PERCENT should match EmpireVu's JOBBER_DEPOSIT_PERCENT.
+// Presentational ONLY: flips the ANTICIPATORY copy (step 3, submit button) from
+// "quote request" to "reserve your spot".
+//
+// It NO LONGER decides what the confirmation screen claims. It used to, and that
+// was the bug: turned on, the success screen said "we've sent a secure link to
+// pay your deposit — check your email" whether or not anything had sent one.
+// Jobber went away, and the promise stayed. The confirmation screen now keys off
+// the payable link the server actually returned; this flag cannot make a promise
+// on its behalf.
+//
+// Public, build-time Vite flags (no secret); changing them needs a redeploy.
 const DEPOSIT_ENABLED = import.meta.env.VITE_BOOKING_DEPOSIT_ENABLED === "1";
 const DEPOSIT_PCT = (() => {
   const n = Number(import.meta.env.VITE_BOOKING_DEPOSIT_PERCENT as string | undefined);
@@ -65,9 +70,14 @@ const BOOKING_COPY = DEPOSIT_ENABLED
       step3Subtitle: `Submitting sends a secure link to pay your ${DEPOSIT_PCT}% deposit and reserve your spot.`,
       submitButton: "Reserve My Spot",
       priceNote: `Plus HST. A ${DEPOSIT_PCT}% deposit reserves your spot; the balance is due at drop-off. Reservation subject to availability confirmation.`,
-      successHeading: "You're almost booked!",
+      successHeading: "Quote Request Received!",
       // Follows "Thanks, <name>!" — keep it a standalone sentence.
-      successBody: `We've sent a secure link to pay your ${DEPOSIT_PCT}% deposit — check your email and text. Paying it reserves your spot (subject to availability confirmation).`,
+      //
+      // NO LINK IS PROMISED HERE. This is the copy shown when the server did NOT
+      // return a payable link, so it must describe what actually happens next: a
+      // person gets in touch. The deposit wording lives beside the real button.
+      successBody:
+        "We've saved your quote and will reach out within 1–2 business days to confirm your booking and take your deposit.",
     }
   : {
       step3Subtitle: "This is a quote request, not a payment. We'll confirm your booking.",

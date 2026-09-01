@@ -195,6 +195,27 @@ export function signEmpireVuBody(rawBody: string, secret: string): string {
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
+ * Read a response only if it is recognisably the intake's.
+ *
+ * `leadId` is the proof: the intake always returns one, and nothing else does.
+ * Returns null for HTML, empty bodies, unparseable JSON, or a body reader that
+ * does not exist — all of which mean "something answered, but not the intake".
+ *
+ * Deliberately total: it never throws, because a throw here would land in the
+ * retry loop and re-post the SAME lead.
+ */
+async function readIntakeBody(res: Response): Promise<{ leadId: string; quoteUrl?: string } | null> {
+  try {
+    const body = (await res.json()) as { ok?: unknown; leadId?: unknown; quoteUrl?: unknown } | null;
+    if (!body || typeof body.leadId !== "string" || !body.leadId) return null;
+    const quoteUrl = typeof body.quoteUrl === "string" && body.quoteUrl ? body.quoteUrl : undefined;
+    return quoteUrl ? { leadId: body.leadId, quoteUrl } : { leadId: body.leadId };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * What the intake told us. `quoteUrl` is present only when EmpireVu auto-quoted
  * the lead — a minority of them — and is what lets the confirmation screen offer
  * a deposit instead of promising an email.
@@ -230,22 +251,28 @@ export async function forwardToEmpireVu(
     try {
       const res = await fetch(url, { method: "POST", headers, body: rawBody });
       if (res.ok) {
-        console.log(`[empirevu] forwarded ${envelope.formType} (attempt ${attempt}, ${res.status})`);
-        // Reading the body must NEVER affect the outcome: the lead has landed,
-        // and this is only looking for an optional link. Fully isolated, because
-        // a throw escaping here would fall into the retry loop below and post
-        // the SAME lead again — turning a cosmetic parse problem into duplicate
-        // leads. `res.json` is called defensively rather than assumed to exist.
-        let quoteUrl: string | undefined;
-        try {
-          const body = (await res.json()) as { quoteUrl?: unknown } | null;
-          if (typeof body?.quoteUrl === "string" && body.quoteUrl) quoteUrl = body.quoteUrl;
-        } catch {
-          // Non-JSON, empty, or a response object without a body reader.
+        // A 200 IS NOT PROOF THE LEAD LANDED.
+        //
+        // empirevu.com serves a marketing SPA whose catch-all answers ANY
+        // unmatched path with 200 and index.html. Pointed there, this forwarder
+        // posted every lead, read "ok", logged success — and the lead was gone.
+        // Silently, indefinitely, with a green log line. The real intake replies
+        // with JSON: {ok:true, leadId}. Requiring that is the difference between
+        // a misrouted URL being loud and being invisible.
+        const body = await readIntakeBody(res);
+        if (!body) {
+          console.error(
+            `[empirevu] ${res.status} from ${url} but the body is not an intake response — ` +
+              `the URL is probably wrong (a marketing site or proxy answering 200). Lead NOT confirmed.`,
+          );
+          // Falls through to the retry loop, then to the loud give-up below.
+        } else {
+          console.log(`[empirevu] forwarded ${envelope.formType} (attempt ${attempt}, lead ${body.leadId})`);
+          return body.quoteUrl ? { ok: true, quoteUrl: body.quoteUrl } : { ok: true };
         }
-        return quoteUrl ? { ok: true, quoteUrl } : { ok: true };
+      } else {
+        console.error(`[empirevu] responded ${res.status} (attempt ${attempt})`);
       }
-      console.error(`[empirevu] responded ${res.status} (attempt ${attempt})`);
     } catch (err) {
       console.error(`[empirevu] forward failed (attempt ${attempt}):`, err instanceof Error ? err.message : String(err));
     }
