@@ -97,10 +97,16 @@ describe("forwardToEmpireVu is additive + best-effort", () => {
     expect(spy).not.toHaveBeenCalled();
   });
 
+  const intakeOk = (extra: Record<string, unknown> = {}) =>
+    new Response(JSON.stringify({ ok: true, leadId: "lead_1", ...extra }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+
   it("signs + posts when configured", async () => {
     process.env.EMPIREVU_INTAKE_URL = "https://hub.example/api/intake";
     process.env.EMPIREVU_INTAKE_SECRET = "s";
-    const spy = vi.fn(async () => ({ ok: true, status: 200 }) as Response);
+    const spy = vi.fn(async () => intakeOk());
     globalThis.fetch = spy as never;
     await forwardToEmpireVu(envelope);
     expect(spy).toHaveBeenCalledTimes(1);
@@ -125,20 +131,55 @@ describe("forwardToEmpireVu is additive + best-effort", () => {
   it("returns the quote link when the intake supplies one", async () => {
     process.env.EMPIREVU_INTAKE_URL = "https://hub.example/api/intake";
     process.env.EMPIREVU_INTAKE_SECRET = "s";
-    globalThis.fetch = (async () =>
-      new Response(JSON.stringify({ ok: true, leadId: "lead_1", quoteUrl: "https://quotes.example/q/tok" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      })) as never;
+    globalThis.fetch = (async () => intakeOk({ quoteUrl: "https://quotes.example/q/tok" })) as never;
     await expect(forwardToEmpireVu(envelope, 1)).resolves.toEqual({
       ok: true,
       quoteUrl: "https://quotes.example/q/tok",
     });
   });
 
-  it("a 200 with an unreadable body is a SUCCESS, not a retry", async () => {
-    // The link is optional. Letting a parse problem reach the retry loop would
-    // post the same lead again — a cosmetic fault becoming duplicate leads.
+  it("a 200 of MARKETING HTML is not a delivered lead", async () => {
+    // The production failure this guards. empirevu.com serves an SPA whose
+    // catch-all answers any unmatched path with 200 + index.html. Pointed there,
+    // the forwarder logged success and every lead vanished.
+    process.env.EMPIREVU_INTAKE_URL = "https://empirevu.example/api/intake";
+    process.env.EMPIREVU_INTAKE_SECRET = "s";
+    globalThis.fetch = (async () =>
+      new Response("<!doctype html><html><title>EmpireVu — Early Access</title></html>", {
+        status: 200,
+        headers: { "Content-Type": "text/html" },
+      })) as never;
+    await expect(forwardToEmpireVu(envelope, 1)).resolves.toEqual({ ok: false });
+  });
+
+  it("a 200 with JSON but no leadId is not a delivered lead either", async () => {
+    // A proxy or health endpoint answering {ok:true} would otherwise pass.
+    process.env.EMPIREVU_INTAKE_URL = "https://hub.example/api/intake";
+    process.env.EMPIREVU_INTAKE_SECRET = "s";
+    globalThis.fetch = (async () =>
+      new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })) as never;
+    await expect(forwardToEmpireVu(envelope, 1)).resolves.toEqual({ ok: false });
+  });
+
+  it("retries an unconfirmed 200 rather than accepting it", async () => {
+    process.env.EMPIREVU_INTAKE_URL = "https://hub.example/api/intake";
+    process.env.EMPIREVU_INTAKE_SECRET = "s";
+    const calls = vi.fn();
+    globalThis.fetch = (async () => {
+      calls();
+      return new Response("<html></html>", { status: 200, headers: { "Content-Type": "text/html" } });
+    }) as never;
+    await forwardToEmpireVu(envelope, 3);
+    // Worth retrying: a transient proxy page should not silently drop a lead.
+    expect(calls).toHaveBeenCalledTimes(3);
+  });
+
+  it("reading the body cannot itself cause a re-post", async () => {
+    // A body reader that throws must not escape into the retry loop as an
+    // exception — it is a failed confirmation, handled by the same path.
     process.env.EMPIREVU_INTAKE_URL = "https://hub.example/api/intake";
     process.env.EMPIREVU_INTAKE_SECRET = "s";
     const calls = vi.fn();
@@ -146,7 +187,7 @@ describe("forwardToEmpireVu is additive + best-effort", () => {
       calls();
       return { ok: true, status: 200 } as unknown as Response; // no .json()
     }) as never;
-    await expect(forwardToEmpireVu(envelope, 3)).resolves.toEqual({ ok: true });
+    await expect(forwardToEmpireVu(envelope, 1)).resolves.toEqual({ ok: false });
     expect(calls).toHaveBeenCalledTimes(1);
   });
 });

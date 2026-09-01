@@ -78,7 +78,9 @@ describe("the deposit link is best-effort and never delays the customer", () => 
     process.env.EMPIREVU_INTAKE_URL = "https://hub.example/api/intake";
     process.env.EMPIREVU_INTAKE_SECRET = "s";
     globalThis.fetch = (async () =>
-      new Response(JSON.stringify({ ok: true, quoteUrl: "https://quotes.example/q/tok" }), {
+      // leadId is required: the forwarder treats a 200 without one as "something
+      // answered, but not the intake" — see the marketing-HTML case.
+      new Response(JSON.stringify({ ok: true, leadId: "lead_1", quoteUrl: "https://quotes.example/q/tok" }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       })) as never;
