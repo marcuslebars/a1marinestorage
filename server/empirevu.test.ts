@@ -191,3 +191,77 @@ describe("forwardToEmpireVu is additive + best-effort", () => {
     expect(calls).toHaveBeenCalledTimes(1);
   });
 });
+
+/**
+ * EmpireVu refuses to auto-quote a winterization lead without a known engine
+ * type — "not sure" is a real answer on the form and must not be guessed. This
+ * envelope omitted engineType entirely, so every storage quote arrived as engine
+ * "none" and was declined:
+ *
+ *   [auto-quote] lead … not auto-quoted (unknown_engine_type):
+ *                engine type "none" cannot be priced
+ *
+ * The site had the answer the whole time and was already logging it to
+ * analytics; it just never put it in the envelope.
+ */
+describe("the envelope carries the engine so a lead can be auto-quoted", () => {
+  const base = {
+    id: "q1",
+    receivedAt: "2026-09-01T15:00:00.000Z",
+    contact: { name: "Pat Quinn", email: "pat@example.com", phone: "705-555-0100" },
+    jobberLineItems: [],
+  };
+
+  it("takes the type and count from the priced winterization line", () => {
+    const env = buildStorageQuoteEnvelope({
+      ...base,
+      quote: {
+        hullType: "cruiser",
+        subtotalCents: 201750,
+        bundle: { label: "Winter Ready Plus" },
+        lineItems: [
+          { detail: { lengthFt: 24 } },
+          { detail: { type: "flat_per_engine", engineType: "outboard", engineCount: 1 } },
+        ],
+      },
+    });
+    expect(env.asset).toMatchObject({ lengthFt: 24, engineType: "outboard", engineCount: 1 });
+  });
+
+  it("carries a multi-engine count", () => {
+    const env = buildStorageQuoteEnvelope({
+      ...base,
+      quote: {
+        hullType: null,
+        subtotalCents: 300000,
+        bundle: null,
+        lineItems: [{ detail: { type: "flat_per_engine", engineType: "sterndrive", engineCount: 2 } }],
+      },
+    });
+    expect(env.asset).toMatchObject({ engineType: "sterndrive", engineCount: 2 });
+  });
+
+  it("omits the engine entirely for a quote with no winterization", () => {
+    // Storage-only quotes must serialise exactly as they did before, which is
+    // what keeps the golden fixtures valid.
+    const env = buildStorageQuoteEnvelope({
+      ...base,
+      quote: { hullType: null, subtotalCents: 120000, bundle: null, lineItems: [{ detail: { lengthFt: 22 } }] },
+    });
+    expect(env.asset).not.toHaveProperty("engineType");
+    expect(env.asset).not.toHaveProperty("engineCount");
+  });
+
+  it("reads the engine from the QUOTE, so it cannot disagree with what was priced", () => {
+    const env = buildStorageQuoteEnvelope({
+      ...base,
+      quote: {
+        hullType: null,
+        subtotalCents: 100000,
+        bundle: null,
+        lineItems: [{ detail: { type: "flat_per_engine", engineType: "inboard", engineCount: 1 } }],
+      },
+    });
+    expect(env.asset?.engineType).toBe("inboard");
+  });
+});
