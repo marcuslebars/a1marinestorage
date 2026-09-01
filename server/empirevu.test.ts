@@ -117,6 +117,36 @@ describe("forwardToEmpireVu is additive + best-effort", () => {
     globalThis.fetch = (async () => {
       throw new Error("network down");
     }) as never;
-    await expect(forwardToEmpireVu(envelope, 1)).resolves.toBeUndefined();
+    // Reports failure rather than throwing. The caller uses this to decide
+    // whether it can offer a deposit link; it must never decide by catching.
+    await expect(forwardToEmpireVu(envelope, 1)).resolves.toEqual({ ok: false });
+  });
+
+  it("returns the quote link when the intake supplies one", async () => {
+    process.env.EMPIREVU_INTAKE_URL = "https://hub.example/api/intake";
+    process.env.EMPIREVU_INTAKE_SECRET = "s";
+    globalThis.fetch = (async () =>
+      new Response(JSON.stringify({ ok: true, leadId: "lead_1", quoteUrl: "https://quotes.example/q/tok" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })) as never;
+    await expect(forwardToEmpireVu(envelope, 1)).resolves.toEqual({
+      ok: true,
+      quoteUrl: "https://quotes.example/q/tok",
+    });
+  });
+
+  it("a 200 with an unreadable body is a SUCCESS, not a retry", async () => {
+    // The link is optional. Letting a parse problem reach the retry loop would
+    // post the same lead again — a cosmetic fault becoming duplicate leads.
+    process.env.EMPIREVU_INTAKE_URL = "https://hub.example/api/intake";
+    process.env.EMPIREVU_INTAKE_SECRET = "s";
+    const calls = vi.fn();
+    globalThis.fetch = (async () => {
+      calls();
+      return { ok: true, status: 200 } as unknown as Response; // no .json()
+    }) as never;
+    await expect(forwardToEmpireVu(envelope, 3)).resolves.toEqual({ ok: true });
+    expect(calls).toHaveBeenCalledTimes(1);
   });
 });

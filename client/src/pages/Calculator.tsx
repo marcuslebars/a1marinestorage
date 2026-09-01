@@ -167,6 +167,8 @@ export default function Calculator() {
   const [contact, setContact] = useState({ name: "", email: "", phone: "", boatMakeModelYear: "", marina: "" });
 
   const [status, setStatus] = useState<SubmitStatus>("idle");
+  // A payable quote link, when EmpireVu produced one for this submission.
+  const [depositUrl, setDepositUrl] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [showBreakdown, setShowBreakdown] = useState(true);
 
@@ -313,6 +315,10 @@ export default function Calculator() {
           body: JSON.stringify(payload),
         });
         if (res.ok) {
+          // Present only when EmpireVu auto-quoted this lead. Its absence is
+          // normal and simply means the old copy is shown.
+          const data = (await res.json().catch(() => ({}))) as { depositUrl?: string };
+          if (typeof data.depositUrl === "string" && data.depositUrl) setDepositUrl(data.depositUrl);
           if (quote) {
             // Conversion event — engine-derived totals only, no personal data.
             track("quote_completed", {
@@ -353,12 +359,33 @@ export default function Calculator() {
           <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[oklch(0.6_0.2_27)/10] mx-auto mb-6">
             <CheckCircle2 className="h-10 w-10 text-[oklch(0.6_0.2_27)]" />
           </div>
+          {/* Keyed off whether a deposit is ACTUALLY payable, not off the
+              build-time flag. DEPOSIT_ENABLED was a promise made in advance —
+              it produced "check your email for a secure link" whether or not
+              anything sent one. A real link is the only thing that earns the
+              booked wording. */}
           <h1 className="text-4xl font-black text-white mb-4" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
-            {BOOKING_COPY.successHeading}
+            {depositUrl ? "You're almost booked!" : BOOKING_COPY.successHeading}
           </h1>
           <p className="text-base text-white/65 mb-6">
-            Thanks, <strong className="text-white">{contact.name}</strong>! {BOOKING_COPY.successBody}
+            Thanks, <strong className="text-white">{contact.name}</strong>!{" "}
+            {depositUrl
+              ? `Pay your ${DEPOSIT_PCT}% deposit below to reserve your spot (subject to availability confirmation).`
+              : BOOKING_COPY.successBody}
           </p>
+
+          {/* The deposit button appears ONLY when a payable quote actually
+              exists. Without it the copy above never promises a link — the
+              screen used to say one had been sent whether or not anything sent
+              it, which is the failure this replaces. */}
+          {depositUrl && (
+            <a
+              href={depositUrl}
+              className="mb-6 inline-flex items-center justify-center gap-2 rounded-lg bg-[oklch(0.6_0.2_27)] px-6 py-3.5 text-base font-semibold text-[oklch(0.12_0.018_240)] hover:bg-[oklch(0.53_0.2_27)] btn-brand-glow"
+            >
+              Pay {DEPOSIT_PCT}% Deposit & Reserve My Spot <ArrowRight className="h-4 w-4" />
+            </a>
+          )}
           <div className="marine-card p-5 mb-6 text-left">
             <p className="text-sm font-semibold text-white mb-3">Your Estimate</p>
             {quote.lineItems.map((l, i) => (
@@ -377,10 +404,22 @@ export default function Calculator() {
               <span>Subtotal</span>
               <span className="tabular-nums text-[oklch(0.6_0.2_27)]">{money(quote.subtotalCents)}</span>
             </div>
-            <p className="text-xs text-white/40 mt-2">{BOOKING_COPY.priceNote}</p>
+            <p className="text-xs text-white/40 mt-2">
+              {depositUrl
+                ? `Plus HST. A ${DEPOSIT_PCT}% deposit reserves your spot; the balance is due at drop-off. Reservation subject to availability confirmation.`
+                : BOOKING_COPY.priceNote}
+            </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button asChild className="bg-[oklch(0.6_0.2_27)] text-[oklch(0.12_0.018_240)] font-semibold hover:bg-[oklch(0.53_0.2_27)]">
+            <Button
+              asChild
+              variant={depositUrl ? "outline" : "default"}
+              className={
+                depositUrl
+                  ? "border-white/20 text-white/70 hover:border-white/40 hover:text-white"
+                  : "bg-[oklch(0.6_0.2_27)] text-[oklch(0.12_0.018_240)] font-semibold hover:bg-[oklch(0.53_0.2_27)]"
+              }
+            >
               <Link href="/">Back to Home</Link>
             </Button>
           </div>

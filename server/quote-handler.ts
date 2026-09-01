@@ -82,6 +82,36 @@ function toJobberLineItems(quote: QuoteResult): JobberLineItem[] {
   }));
 }
 
+/**
+ * How long a customer waits for EmpireVu before we give up and show the
+ * quote-request copy instead.
+ *
+ * Short on purpose. This is time added to a request the customer is watching,
+ * spent on something that only IMPROVES the confirmation screen — the lead is
+ * safe either way. Four seconds covers a healthy round trip including the quote
+ * write; beyond that, waiting costs the customer more than the button is worth.
+ */
+const EMPIREVU_WAIT_MS = 4000;
+
+/**
+ * Await a promise, or give up. Never rejects, and never cancels the underlying
+ * work — the forward keeps retrying in the background on its own.
+ */
+async function withDeadline<T>(p: Promise<T>, ms: number): Promise<T | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<null>((resolve) => {
+    timer = setTimeout(() => resolve(null), ms);
+  });
+  try {
+    // A rejection here is already impossible (forwardToEmpireVu never throws),
+    // but catching keeps that from becoming a silent unhandled rejection if it
+    // ever changes.
+    return await Promise.race([p.catch(() => null), timeout]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 const str = (v: unknown): string | undefined => (typeof v === "string" && v ? v : undefined);
 const num = (v: unknown): number | undefined => (typeof v === "number" && Number.isFinite(v) ? v : undefined);
 const bool = (v: unknown): boolean | undefined => (typeof v === "boolean" ? v : undefined);
@@ -260,20 +290,34 @@ export async function handleQuoteSubmission(rawBody: unknown): Promise<HandlerRe
   // Additive dual-send: the SAME quote to EmpireVu's canonical intake, best-effort.
   const meta = (body.meta ?? {}) as Record<string, unknown>;
   const utm = typeof meta.utm === "object" ? (meta.utm as Record<string, string>) : undefined;
-  void forwardToEmpireVu(
-    buildStorageQuoteEnvelope({
-      id,
-      receivedAt,
-      contact,
-      quote,
-      jobberLineItems,
-      utm,
-      logistics: logisticsFromMeta(meta),
-      // Derived from the quoteInput the ENGINE just priced, not from a separate
-      // client field: those items are the selection, and they have already been
-      // validated by calculateQuote above.
-      selection: selectionFromInput(body.quoteInput),
-    }),
+  //
+  // AWAITED, BUT BOUNDED. EmpireVu answers with a payable quote link when it
+  // auto-quotes the lead, and that link is what turns the confirmation screen
+  // from "we've sent you a link" into a button the customer can press. Getting
+  // it means waiting for the round trip.
+  //
+  // The wait is capped hard. The durable record is already written above and the
+  // legacy pipeline has already been fired, so this call is the ONLY thing that
+  // could make a customer stare at a spinner — and a slow or dead EmpireVu must
+  // never do that. On timeout the forward keeps running in the background with
+  // its own retries; we simply stop waiting and fall back to the existing copy.
+  const empireVu = await withDeadline(
+    forwardToEmpireVu(
+      buildStorageQuoteEnvelope({
+        id,
+        receivedAt,
+        contact,
+        quote,
+        jobberLineItems,
+        utm,
+        logistics: logisticsFromMeta(meta),
+        // Derived from the quoteInput the ENGINE just priced, not from a separate
+        // client field: those items are the selection, and they have already been
+        // validated by calculateQuote above.
+        selection: selectionFromInput(body.quoteInput),
+      }),
+    ),
+    EMPIREVU_WAIT_MS,
   );
 
   return {
@@ -282,6 +326,9 @@ export async function handleQuoteSubmission(rawBody: unknown): Promise<HandlerRe
       ok: true,
       quoteId: id,
       subtotalCents: quote.subtotalCents,
+      // Present only when EmpireVu auto-quoted this lead. The client shows a
+      // deposit button when it is here and its existing copy when it is not.
+      depositUrl: empireVu?.quoteUrl,
     },
   };
 }
