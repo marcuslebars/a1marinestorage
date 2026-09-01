@@ -148,7 +148,19 @@ export function buildStorageQuoteEnvelope(input: {
   id: string;
   receivedAt: string;
   contact: { name: string; email: string; phone: string; boatMakeModelYear?: string; marina?: string };
-  quote: { hullType?: string | null; subtotalCents: number; bundle?: { label: string } | null; lineItems: Array<{ detail: { lengthFt?: number | null } }> };
+  quote: {
+    hullType?: string | null;
+    subtotalCents: number;
+    bundle?: { label: string } | null;
+    lineItems: Array<{
+      detail: {
+        lengthFt?: number | null;
+        type?: string;
+        engineType?: string | null;
+        engineCount?: number | null;
+      };
+    }>;
+  };
   jobberLineItems: LeadLineItem[];
   utm?: Record<string, string>;
   logistics?: LeadLogistics;
@@ -159,6 +171,23 @@ export function buildStorageQuoteEnvelope(input: {
   const c = input.contact;
   const q = input.quote;
   const lengthFt = q.lineItems.find((l) => l.detail.lengthFt != null)?.detail.lengthFt ?? undefined;
+
+  /**
+   * The engine, taken from the priced winterization line.
+   *
+   * REQUIRED FOR AUTO-QUOTING. EmpireVu refuses to auto-quote a lead that asks
+   * for winterization without a known engine type — "not sure" is a real answer
+   * on the form and must not be guessed. This envelope omitted it entirely, so
+   * every storage quote arrived as engine "none" and was declined, even though
+   * the site had the answer and was already logging it to analytics.
+   *
+   * Read from the QUOTE rather than the form so it cannot disagree with what was
+   * actually priced: flat_per_engine is the shape winterization takes, and its
+   * detail carries the type and count the engine used.
+   */
+  const engineLine = q.lineItems.find((l) => l.detail.type === "flat_per_engine");
+  const engineType = engineLine?.detail.engineType ?? undefined;
+  const engineCount = engineLine?.detail.engineCount ?? undefined;
   const summary = joinText(
     q.bundle ? `Package: ${q.bundle.label}` : "À la carte",
     `Subtotal (pre-HST): $${(q.subtotalCents / 100).toFixed(2)}`,
@@ -172,7 +201,16 @@ export function buildStorageQuoteEnvelope(input: {
     contact: { name: c.name, email: c.email, phone: c.phone },
     message: summary,
     lineItems: input.jobberLineItems,
-    asset: compact({ makeModel: c.boatMakeModelYear, type: q.hullType ?? undefined, marina: c.marina, lengthFt }),
+    // engineType/engineCount drop out via compact() for a quote with no
+    // winterization line, so a storage-only quote serialises exactly as before.
+    asset: compact({
+      makeModel: c.boatMakeModelYear,
+      type: q.hullType ?? undefined,
+      marina: c.marina,
+      lengthFt,
+      engineType,
+      engineCount,
+    }),
     // logistics/quoteRef dropped by compact() when absent → unchanged output for
     // quotes without them (golden-safe, same trick as the contact envelope's utm).
     meta: compact({
