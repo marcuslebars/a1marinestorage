@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { afterEach, describe, it, expect } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
@@ -58,4 +58,67 @@ describe("storage quote submission handler", () => {
     expect((await handleQuoteSubmission({})).status).toBe(400);
     expect((await handleQuoteSubmission({ quoteInput: { serviceLine: "storage", items: [] }, contact })).status).toBe(400);
   });
+});
+
+/**
+ * The confirmation screen offers a deposit only when EmpireVu actually produced
+ * a payable quote. Everything here is about the guarantee that asking for that
+ * link cannot cost the customer anything: the lead is durably recorded before
+ * the forward runs, and the wait for it is capped.
+ */
+describe("the deposit link is best-effort and never delays the customer", () => {
+  const realFetch = globalThis.fetch;
+  afterEach(() => {
+    globalThis.fetch = realFetch;
+    delete process.env.EMPIREVU_INTAKE_URL;
+    delete process.env.EMPIREVU_INTAKE_SECRET;
+  });
+
+  it("returns the link when the intake supplies one", async () => {
+    process.env.EMPIREVU_INTAKE_URL = "https://hub.example/api/intake";
+    process.env.EMPIREVU_INTAKE_SECRET = "s";
+    globalThis.fetch = (async () =>
+      new Response(JSON.stringify({ ok: true, quoteUrl: "https://quotes.example/q/tok" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })) as never;
+
+    const { handleQuoteSubmission } = await load();
+    const res = await handleQuoteSubmission({ quoteInput: validInput, contact, meta: {} });
+    expect(res.status).toBe(200);
+    expect(res.body.depositUrl).toBe("https://quotes.example/q/tok");
+  });
+
+  it("still succeeds, with no link, when EmpireVu is unreachable", async () => {
+    process.env.EMPIREVU_INTAKE_URL = "https://hub.example/api/intake";
+    process.env.EMPIREVU_INTAKE_SECRET = "s";
+    globalThis.fetch = (async () => {
+      throw new Error("network down");
+    }) as never;
+
+    const { handleQuoteSubmission } = await load();
+    const res = await handleQuoteSubmission({ quoteInput: validInput, contact, meta: {} });
+    // The lead is captured either way; the screen falls back to its old copy.
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+    expect(res.body.depositUrl).toBeUndefined();
+  });
+
+  it("gives up rather than making the customer wait on a hung intake", async () => {
+    process.env.EMPIREVU_INTAKE_URL = "https://hub.example/api/intake";
+    process.env.EMPIREVU_INTAKE_SECRET = "s";
+    // Never resolves. Without a deadline this would hang the submission — the
+    // customer watching a spinner because a background system is unwell.
+    globalThis.fetch = (() => new Promise(() => {})) as never;
+
+    const { handleQuoteSubmission } = await load();
+    const started = Date.now();
+    const res = await handleQuoteSubmission({ quoteInput: validInput, contact, meta: {} });
+    const waited = Date.now() - started;
+
+    expect(res.status).toBe(200);
+    expect(res.body.depositUrl).toBeUndefined();
+    // Capped at 4s; allow headroom for a slow CI box but prove it is bounded.
+    expect(waited).toBeLessThan(8000);
+  }, 15000);
 });

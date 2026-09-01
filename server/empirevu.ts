@@ -195,16 +195,33 @@ export function signEmpireVuBody(rawBody: string, secret: string): string {
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
+ * What the intake told us. `quoteUrl` is present only when EmpireVu auto-quoted
+ * the lead — a minority of them — and is what lets the confirmation screen offer
+ * a deposit instead of promising an email.
+ */
+export interface EmpireVuForwardResult {
+  ok: boolean;
+  quoteUrl?: string;
+}
+
+/**
  * Fan out an envelope to EmpireVu's /api/intake. Never throws. Skips cleanly if
  * unconfigured or disabled — the legacy hub + durable log remain the source of truth.
+ *
+ * Returns the intake's answer so the caller can offer a deposit link. That does
+ * NOT make this call load-bearing: every failure path still returns `ok: false`
+ * and the lead is already durably recorded before this runs.
  */
-export async function forwardToEmpireVu(envelope: LeadEnvelope, attempts = 3): Promise<void> {
-  if (process.env.EMPIREVU_INTAKE_DISABLED === "1") return;
+export async function forwardToEmpireVu(
+  envelope: LeadEnvelope,
+  attempts = 3,
+): Promise<EmpireVuForwardResult> {
+  if (process.env.EMPIREVU_INTAKE_DISABLED === "1") return { ok: false };
   const url = process.env.EMPIREVU_INTAKE_URL;
   const secret = process.env.EMPIREVU_INTAKE_SECRET;
   if (!url || !secret) {
     console.log("[empirevu] EMPIREVU_INTAKE_URL/SECRET not set — skipping (legacy hub + durable log unaffected)");
-    return;
+    return { ok: false };
   }
   const rawBody = JSON.stringify(envelope);
   const headers = { "Content-Type": "application/json", "x-empirevu-signature": signEmpireVuBody(rawBody, secret) };
@@ -214,7 +231,19 @@ export async function forwardToEmpireVu(envelope: LeadEnvelope, attempts = 3): P
       const res = await fetch(url, { method: "POST", headers, body: rawBody });
       if (res.ok) {
         console.log(`[empirevu] forwarded ${envelope.formType} (attempt ${attempt}, ${res.status})`);
-        return;
+        // Reading the body must NEVER affect the outcome: the lead has landed,
+        // and this is only looking for an optional link. Fully isolated, because
+        // a throw escaping here would fall into the retry loop below and post
+        // the SAME lead again — turning a cosmetic parse problem into duplicate
+        // leads. `res.json` is called defensively rather than assumed to exist.
+        let quoteUrl: string | undefined;
+        try {
+          const body = (await res.json()) as { quoteUrl?: unknown } | null;
+          if (typeof body?.quoteUrl === "string" && body.quoteUrl) quoteUrl = body.quoteUrl;
+        } catch {
+          // Non-JSON, empty, or a response object without a body reader.
+        }
+        return quoteUrl ? { ok: true, quoteUrl } : { ok: true };
       }
       console.error(`[empirevu] responded ${res.status} (attempt ${attempt})`);
     } catch (err) {
@@ -223,4 +252,5 @@ export async function forwardToEmpireVu(envelope: LeadEnvelope, attempts = 3): P
     if (attempt < attempts) await sleep(attempt * 750);
   }
   console.error(`[empirevu] gave up after ${attempts} attempts — legacy hub + durable log still hold the lead`);
+  return { ok: false };
 }
