@@ -60,7 +60,7 @@ describe("totals", () => {
 });
 
 describe("model marks what sits outside the bundle", () => {
-  it("flags transport, trailer and add-ons — and nothing else", () => {
+  it("flags transport and add-ons — and nothing else", () => {
     const sel: Selection = {
       mode: "bundle",
       bundleId: "winter_ready_plus",
@@ -72,8 +72,9 @@ describe("model marks what sits outside the bundle", () => {
     const outside = m.lines.filter((l) => l.outsideBundle);
     const inside = m.lines.filter((l) => !l.outsideBundle);
 
-    // Two transport trips + trailer + batteries.
-    expect(outside).toHaveLength(4);
+    // Two transport trips + batteries. The trailer is NOT here: a boat on its
+    // owner's trailer is not a charged service, so it produces no line at all.
+    expect(outside).toHaveLength(3);
     // The bundle's own three services.
     expect(inside).toHaveLength(3);
   });

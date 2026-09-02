@@ -59,6 +59,10 @@ export interface Logistics {
   pickup?: boolean;
   /** Spring delivery & launch — one trip. */
   delivery?: boolean;
+  /**
+   * The customer is leaving their own trailer with us. Captured for the yard, NOT
+   * priced: storing a boat on its owner's trailer is not an extra service.
+   */
   trailerProvided?: boolean;
 }
 
@@ -68,7 +72,6 @@ export interface AddOns {
   /** Months stored past April 30, for one vessel. */
   extendedMonths?: number;
   oilChangeOutboard?: boolean;
-  springWrapRemoval?: boolean;
 }
 
 export interface Selection {
@@ -104,7 +107,7 @@ export function transportServiceId(band: TransportBand): string | null {
  * here; they never invent a price.
  */
 export interface ExtraLineRef {
-  purpose: "ceramic" | "pickup" | "delivery" | "trailer" | "battery" | "extended" | "oil" | "wrap_removal";
+  purpose: "ceramic" | "pickup" | "delivery" | "battery" | "extended" | "oil";
   serviceId: string;
   /** Index into QuoteResult.lineItems. Appended in a deterministic order. */
   index: number;
@@ -157,7 +160,11 @@ function appendExtras(items: QuoteItemInput[], sel: Selection, boat: BoatState):
       if (log.pickup) items.push({ serviceId: svc, quantity: 1 });
       if (log.delivery) items.push({ serviceId: svc, quantity: 1 });
     }
-    if (log.trailerProvided) items.push({ serviceId: "trailer_storage" });
+    // NO trailer_storage line. A boat stored on its owner's own trailer is not
+    // an extra service — the trailer is simply under the boat, and charging for
+    // it would bill a customer for bringing their own equipment. `trailerProvided`
+    // still rides in the lead envelope because the yard needs to know a trailer
+    // is coming; it just is not priced.
   }
 
   const add = sel.addOns;
@@ -172,9 +179,6 @@ function appendExtras(items: QuoteItemInput[], sel: Selection, boat: BoatState):
     // Gated on engine type: the engine has no sterndrive/inboard oil-change service.
     if (add.oilChangeOutboard && boat.engineType === "outboard") {
       items.push({ serviceId: "oil_change_outboard", quantity: boat.engineCount });
-    }
-    if (add.springWrapRemoval) {
-      items.push({ serviceId: "spring_wrap_removal", lengthFt: boat.lengthFt });
     }
   }
 }
@@ -209,7 +213,6 @@ export function describeExtras(sel: Selection, boat: BoatState): ExtraLineRef[] 
       if (log.pickup) push("pickup", svc);
       if (log.delivery) push("delivery", svc);
     }
-    if (log.trailerProvided) push("trailer", "trailer_storage");
   }
 
   const add = sel.addOns;
@@ -217,7 +220,6 @@ export function describeExtras(sel: Selection, boat: BoatState): ExtraLineRef[] 
     if ((add.batteryCount ?? 0) > 0) push("battery", "battery_storage");
     if ((add.extendedMonths ?? 0) > 0) push("extended", "extended_storage");
     if (add.oilChangeOutboard && boat.engineType === "outboard") push("oil", "oil_change_outboard");
-    if (add.springWrapRemoval) push("wrap_removal", "spring_wrap_removal");
   }
 
   return refs;
