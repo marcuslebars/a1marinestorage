@@ -132,14 +132,23 @@ describe("logistics and add-ons sit outside the bundle discount", () => {
 });
 
 describe("trailer provided", () => {
-  it("is selectable without any transport at all", () => {
-    // A customer can tow the boat in but have no trailer to leave it on.
+  it("is NEVER charged for — a boat on its owner's trailer is not an extra service", () => {
+    // The trailer is simply under the boat. Billing for it would charge a
+    // customer for bringing their own equipment. The flag is captured for the
+    // yard, not for the price.
     const r = price({
       ...BASE,
       logistics: { boatLocation: "self_transport", trailerProvided: true },
     })!;
-    expect(r.lineItems.some((l) => l.serviceId === "trailer_storage")).toBe(true);
+    expect(r.lineItems.some((l) => l.serviceId === "trailer_storage")).toBe(false);
     expect(r.lineItems.filter((l) => l.serviceId.startsWith("transport_"))).toHaveLength(0);
+  });
+
+  it("costs the same with a trailer as without one", () => {
+    // The clearest statement of the rule: ticking the box moves no money.
+    const withTrailer = price({ ...BASE, logistics: { boatLocation: "home_trailer", trailerProvided: true } })!;
+    const without = price({ ...BASE, logistics: { boatLocation: "home_trailer", trailerProvided: false } })!;
+    expect(withTrailer.subtotalCents).toBe(without.subtotalCents);
   });
 });
 
@@ -185,19 +194,14 @@ describe("describeExtras indexes the appended lines", () => {
       ...BASE,
       ceramicUpgrade: true,
       logistics: { boatLocation: "home_trailer", transportBand: "regional", pickup: true, delivery: true, trailerProvided: true },
-      addOns: { batteryCount: 2, springWrapRemoval: true },
+      addOns: { batteryCount: 2 },
     };
     const r = price(sel)!;
     const refs = describeExtras(sel, BOAT);
 
-    expect(refs.map((x) => x.purpose)).toEqual([
-      "ceramic",
-      "pickup",
-      "delivery",
-      "trailer",
-      "battery",
-      "wrap_removal",
-    ]);
+    // No "trailer" and no "wrap_removal": the trailer is never charged, and
+    // spring wrap removal is done for every boat rather than sold as an option.
+    expect(refs.map((x) => x.purpose)).toEqual(["ceramic", "pickup", "delivery", "battery"]);
 
     for (const ref of refs) {
       expect(r.lineItems[ref.index], `index ${ref.index} (${ref.purpose})`).toBeTruthy();

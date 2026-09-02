@@ -44,7 +44,6 @@ export interface LogisticsValue {
   batteryCount: number;
   extendedMonths: number;
   oilChangeOutboard: boolean;
-  springWrapRemoval: boolean;
 }
 
 export const EMPTY_LOGISTICS: LogisticsValue = {
@@ -57,7 +56,6 @@ export const EMPTY_LOGISTICS: LogisticsValue = {
   batteryCount: 0,
   extendedMonths: 0,
   oilChangeOutboard: false,
-  springWrapRemoval: false,
 };
 
 /** A band the customer has actually resolved, however they got there. */
@@ -241,11 +239,9 @@ export function LogisticsSection({
     }
   }
 
-  const wrapSvc = STORAGE.services.spring_wrap_removal;
   const batterySvc = STORAGE.services.battery_storage;
   const extendedSvc = STORAGE.services.extended_storage;
   const oilSvc = STORAGE.services.oil_change_outboard;
-  const trailerSvc = STORAGE.services.trailer_storage;
 
   return (
     <div className="space-y-4">
@@ -271,14 +267,27 @@ export function LogisticsSection({
                 key={o.value}
                 onClick={() => onChange({ boatLocation: o.value })}
                 aria-pressed={selected}
-                className={`rounded-xl border p-3 text-left transition-all ${
+                className={`flex items-start gap-3 rounded-xl border p-3 text-left transition-all ${
                   selected
                     ? "border-[oklch(0.6_0.2_27)/50] bg-[oklch(0.6_0.2_27)/8]"
                     : "border-white/10 hover:border-white/20"
                 }`}
               >
-                <p className="text-sm font-semibold text-white">{o.label}</p>
-                <p className="text-xs text-white/45">{o.hint}</p>
+                {/* An explicit mark, because three of these four options ADD a
+                    block below when chosen and the fourth REMOVES one. Without a
+                    mark, picking "I'll bring it myself" looks like nothing
+                    happened — or worse, like the page broke. */}
+                <span
+                  className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${
+                    selected ? "border-[oklch(0.6_0.2_27)]" : "border-white/25"
+                  }`}
+                >
+                  {selected && <span className="h-2 w-2 rounded-full bg-[oklch(0.6_0.2_27)]" />}
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-semibold text-white">{o.label}</span>
+                  <span className="block text-xs text-white/45">{o.hint}</span>
+                </span>
               </button>
             );
           })}
@@ -292,6 +301,18 @@ export function LogisticsSection({
             <p className="text-xs text-white/70">
               Boats in the water need to be hauled out first. That's arranged separately and isn't
               included below — we'll confirm the haul-out with you before your pickup date.
+            </p>
+          </div>
+        )}
+
+        {location === "self_transport" && (
+          // Choosing this UNMOUNTS the transport block. Saying so turns a
+          // disappearance into an answer.
+          <div className="mt-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+            <p className="text-sm font-semibold text-white">No transport needed</p>
+            <p className="mt-0.5 text-xs text-white/50">
+              You'll drop the boat at our yard in Tiny and collect it in spring. We'll confirm a time
+              with you — nothing to add here.
             </p>
           </div>
         )}
@@ -417,9 +438,9 @@ export function LogisticsSection({
           <Check
             checked={value.trailerProvided}
             onChange={() => onChange({ trailerProvided: !value.trailerProvided })}
-            title="Store my trailer too"
-            sub="Your trailer stays in the yard for the season."
-            price={`+${money(trailerSvc.type === "flat" ? trailerSvc.rateCents : 0)}`}
+            title="My boat sits on its own trailer"
+            sub="No charge — we just need to know, so the yard has room for it."
+            price="Included"
           />
         </div>
       </div>
@@ -460,15 +481,6 @@ export function LogisticsSection({
               price={`+${money((oilSvc.type === "per_unit" ? oilSvc.rateCents : 0) * engineCount)}`}
             />
           )}
-          <Check
-            checked={value.springWrapRemoval}
-            onChange={() => onChange({ springWrapRemoval: !value.springWrapRemoval })}
-            title="Spring wrap removal & disposal"
-            sub="We take the shrink wrap off and recycle it."
-            // Tiered by length: the price depends on the boat, so the live quote
-            // panel shows it rather than a single figure here.
-            price={wrapSvc.type === "tiered_by_length" ? "by length" : undefined}
-          />
         </div>
       </div>
     </div>

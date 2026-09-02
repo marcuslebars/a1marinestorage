@@ -238,7 +238,6 @@ export default function Calculator() {
       batteryCount: logisticsValue.batteryCount,
       extendedMonths: logisticsValue.extendedMonths,
       oilChangeOutboard: logisticsValue.oilChangeOutboard,
-      springWrapRemoval: logisticsValue.springWrapRemoval,
     }),
     [logisticsValue],
   );
