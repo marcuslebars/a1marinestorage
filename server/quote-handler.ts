@@ -14,8 +14,17 @@
 // never sees a fake success.
 
 import { randomUUID } from "node:crypto";
-import { calculateQuote, type QuoteInput, type QuoteResult } from "@a1/pricing-engine";
-import { SOURCE_SITE, appendSubmission, logAnalytics, forwardToLeadPipeline } from "./lead-pipeline";
+import {
+  calculateQuote,
+  type QuoteInput,
+  type QuoteResult,
+} from "@a1/pricing-engine";
+import {
+  SOURCE_SITE,
+  appendSubmission,
+  logAnalytics,
+  forwardToLeadPipeline,
+} from "./lead-pipeline";
 import {
   buildStorageQuoteEnvelope,
   compactLogistics,
@@ -52,15 +61,20 @@ interface JobberLineItem {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function validateContact(c: unknown): { ok: true; contact: QuoteContact } | { ok: false; error: string } {
-  if (!c || typeof c !== "object") return { ok: false, error: "Missing contact details." };
+function validateContact(
+  c: unknown
+): { ok: true; contact: QuoteContact } | { ok: false; error: string } {
+  if (!c || typeof c !== "object")
+    return { ok: false, error: "Missing contact details." };
   const contact = c as Record<string, unknown>;
   const name = typeof contact.name === "string" ? contact.name.trim() : "";
   const email = typeof contact.email === "string" ? contact.email.trim() : "";
   const phone = typeof contact.phone === "string" ? contact.phone.trim() : "";
   if (name.length < 2) return { ok: false, error: "A name is required." };
-  if (!EMAIL_RE.test(email)) return { ok: false, error: "A valid email is required." };
-  if (phone.replace(/\D/g, "").length < 7) return { ok: false, error: "A valid phone number is required." };
+  if (!EMAIL_RE.test(email))
+    return { ok: false, error: "A valid email is required." };
+  if (phone.replace(/\D/g, "").length < 7)
+    return { ok: false, error: "A valid phone number is required." };
   return {
     ok: true,
     contact: {
@@ -68,14 +82,17 @@ function validateContact(c: unknown): { ok: true; contact: QuoteContact } | { ok
       email,
       phone,
       boatMakeModelYear:
-        typeof contact.boatMakeModelYear === "string" ? contact.boatMakeModelYear.trim() : undefined,
-      marina: typeof contact.marina === "string" ? contact.marina.trim() : undefined,
+        typeof contact.boatMakeModelYear === "string"
+          ? contact.boatMakeModelYear.trim()
+          : undefined,
+      marina:
+        typeof contact.marina === "string" ? contact.marina.trim() : undefined,
     },
   };
 }
 
 function toJobberLineItems(quote: QuoteResult): JobberLineItem[] {
-  return quote.lineItems.map((l) => ({
+  return quote.lineItems.map(l => ({
     description: l.description,
     quantity: l.quantity,
     unitPriceCents: l.unitPriceCents,
@@ -99,7 +116,7 @@ const EMPIREVU_WAIT_MS = 4000;
  */
 async function withDeadline<T>(p: Promise<T>, ms: number): Promise<T | null> {
   let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<null>((resolve) => {
+  const timeout = new Promise<null>(resolve => {
     timer = setTimeout(() => resolve(null), ms);
   });
   try {
@@ -112,9 +129,12 @@ async function withDeadline<T>(p: Promise<T>, ms: number): Promise<T | null> {
   }
 }
 
-const str = (v: unknown): string | undefined => (typeof v === "string" && v ? v : undefined);
-const num = (v: unknown): number | undefined => (typeof v === "number" && Number.isFinite(v) ? v : undefined);
-const bool = (v: unknown): boolean | undefined => (typeof v === "boolean" ? v : undefined);
+const str = (v: unknown): string | undefined =>
+  typeof v === "string" && v ? v : undefined;
+const num = (v: unknown): number | undefined =>
+  typeof v === "number" && Number.isFinite(v) ? v : undefined;
+const bool = (v: unknown): boolean | undefined =>
+  typeof v === "boolean" ? v : undefined;
 
 // Add-ons are counted, not chosen: 0 batteries and no batteries are the same
 // thing, so they drop out. Transport booleans use `bool` instead, because
@@ -124,7 +144,8 @@ const count = (v: unknown): number | undefined => {
   const n = num(v);
   return n && n > 0 ? n : undefined;
 };
-const chosen = (v: unknown): true | undefined => (v === true ? true : undefined);
+const chosen = (v: unknown): true | undefined =>
+  v === true ? true : undefined;
 
 /**
  * Flatten the calculator's `logistics` + `addOns` into the envelope's block.
@@ -136,8 +157,12 @@ const chosen = (v: unknown): true | undefined => (v === true ? true : undefined)
  * Nothing here affects PRICE. The quote was already computed from `quoteInput`
  * above; this is capture context travelling alongside it.
  */
-function logisticsFromMeta(meta: Record<string, unknown>): LeadLogistics | undefined {
-  const log = (meta.logistics ?? undefined) as Record<string, unknown> | undefined;
+function logisticsFromMeta(
+  meta: Record<string, unknown>
+): LeadLogistics | undefined {
+  const log = (meta.logistics ?? undefined) as
+    | Record<string, unknown>
+    | undefined;
   const add = (meta.addOns ?? undefined) as Record<string, unknown> | undefined;
   if (!log && !add) return undefined;
 
@@ -171,13 +196,15 @@ function logisticsFromMeta(meta: Record<string, unknown>): LeadLogistics | undef
  * disagree with what was quoted: `calculateQuote` has already rejected unknown
  * services by the time this runs.
  */
-function selectionFromInput(input: QuoteInput | undefined): LeadSelection | undefined {
+function selectionFromInput(
+  input: QuoteInput | undefined
+): LeadSelection | undefined {
   const items = input?.items ?? [];
   if (items.length === 0) return undefined;
   return {
     bundleKey: input?.bundleId,
     variant: input?.hullType,
-    services: items.map((i) => ({
+    services: items.map(i => ({
       serviceKey: i.serviceId,
       measure: i.lengthFt,
       // A flat_per_engine service carries its count as engineCount; per_unit
@@ -187,7 +214,9 @@ function selectionFromInput(input: QuoteInput | undefined): LeadSelection | unde
   };
 }
 
-export async function handleQuoteSubmission(rawBody: unknown): Promise<HandlerResult> {
+export async function handleQuoteSubmission(
+  rawBody: unknown
+): Promise<HandlerResult> {
   const body = (rawBody ?? {}) as Partial<QuoteSubmission>;
 
   const contactCheck = validateContact(body.contact);
@@ -196,7 +225,10 @@ export async function handleQuoteSubmission(rawBody: unknown): Promise<HandlerRe
   }
 
   if (!body.quoteInput || body.quoteInput.serviceLine !== "storage") {
-    return { status: 400, body: { ok: false, error: "Missing or invalid quote details." } };
+    return {
+      status: 400,
+      body: { ok: false, error: "Missing or invalid quote details." },
+    };
   }
 
   // Server-authoritative: recompute from the raw inputs. The engine rejects
@@ -205,7 +237,14 @@ export async function handleQuoteSubmission(rawBody: unknown): Promise<HandlerRe
   try {
     quote = calculateQuote(body.quoteInput);
   } catch (err) {
-    return { status: 400, body: { ok: false, error: err instanceof Error ? err.message : "Could not price this quote." } };
+    return {
+      status: 400,
+      body: {
+        ok: false,
+        error:
+          err instanceof Error ? err.message : "Could not price this quote.",
+      },
+    };
   }
 
   const id = randomUUID();
@@ -228,13 +267,22 @@ export async function handleQuoteSubmission(rawBody: unknown): Promise<HandlerRe
   try {
     appendSubmission("quotes", receivedAt, record);
   } catch (err) {
-    console.error("[quote] failed to persist durable record:", err instanceof Error ? err.message : String(err));
-    return { status: 500, body: { ok: false, error: "We couldn't record your request. Please try again." } };
+    console.error(
+      "[quote] failed to persist durable record:",
+      err instanceof Error ? err.message : String(err)
+    );
+    return {
+      status: 500,
+      body: {
+        ok: false,
+        error: "We couldn't record your request. Please try again.",
+      },
+    };
   }
 
   // (2) Lightweight fire-and-forget analytics event (submission, not calculation).
   {
-    const win = quote.lineItems.find((l) => l.detail.type === "flat_per_engine");
+    const win = quote.lineItems.find(l => l.detail.type === "flat_per_engine");
     logAnalytics({
       event: "quote_submitted",
       at: receivedAt,
@@ -242,7 +290,9 @@ export async function handleQuoteSubmission(rawBody: unknown): Promise<HandlerRe
       quoteId: id,
       bundleId: quote.bundle?.id ?? null,
       hullType: quote.hullType,
-      lengthFt: quote.lineItems.find((l) => l.detail.lengthFt != null)?.detail.lengthFt ?? null,
+      lengthFt:
+        quote.lineItems.find(l => l.detail.lengthFt != null)?.detail.lengthFt ??
+        null,
       engineType: win?.detail.engineType ?? null,
       engineCount: win?.detail.engineCount ?? null,
       itemCount: quote.lineItems.length,
@@ -251,7 +301,9 @@ export async function handleQuoteSubmission(rawBody: unknown): Promise<HandlerRe
   }
 
   // (3) Forward to the shared A1 lead pipeline, source-tagged, with retries.
-  const summaryLines = quote.lineItems.map((l) => `${l.description} = ${(l.amountCents / 100).toFixed(2)}`);
+  const summaryLines = quote.lineItems.map(
+    l => `${l.description} = ${(l.amountCents / 100).toFixed(2)}`
+  );
   const forwardPayload: Record<string, unknown> = {
     source: "quote",
     sourceSite: SOURCE_SITE,
@@ -272,13 +324,17 @@ export async function handleQuoteSubmission(rawBody: unknown): Promise<HandlerRe
     subtotalCents: quote.subtotalCents,
     notes: [
       `Source: A1 Marine Storage quote tool`,
-      quote.bundle ? `Package: ${quote.bundle.label} (${quote.bundle.discountPct}% bundle)` : `À la carte`,
+      quote.bundle
+        ? `Package: ${quote.bundle.label} (${quote.bundle.discountPct}% bundle)`
+        : `À la carte`,
       contact.marina ? `Marina/location: ${contact.marina}` : "",
       contact.boatMakeModelYear ? `Boat: ${contact.boatMakeModelYear}` : "",
       "",
       ...summaryLines,
       `À-la-carte: $${(quote.aLaCarteSubtotalCents / 100).toFixed(2)}`,
-      quote.bundleSavingsCents > 0 ? `Bundle savings: $${(quote.bundleSavingsCents / 100).toFixed(2)}` : "",
+      quote.bundleSavingsCents > 0
+        ? `Bundle savings: $${(quote.bundleSavingsCents / 100).toFixed(2)}`
+        : "",
       `Subtotal (pre-HST): $${(quote.subtotalCents / 100).toFixed(2)}`,
     ]
       .filter(Boolean)
@@ -289,7 +345,10 @@ export async function handleQuoteSubmission(rawBody: unknown): Promise<HandlerRe
 
   // Additive dual-send: the SAME quote to EmpireVu's canonical intake, best-effort.
   const meta = (body.meta ?? {}) as Record<string, unknown>;
-  const utm = typeof meta.utm === "object" ? (meta.utm as Record<string, string>) : undefined;
+  const utm =
+    typeof meta.utm === "object"
+      ? (meta.utm as Record<string, string>)
+      : undefined;
   //
   // AWAITED, BUT BOUNDED. EmpireVu answers with a payable quote link when it
   // auto-quotes the lead, and that link is what turns the confirmation screen
@@ -315,9 +374,9 @@ export async function handleQuoteSubmission(rawBody: unknown): Promise<HandlerRe
         // client field: those items are the selection, and they have already been
         // validated by calculateQuote above.
         selection: selectionFromInput(body.quoteInput),
-      }),
+      })
     ),
-    EMPIREVU_WAIT_MS,
+    EMPIREVU_WAIT_MS
   );
 
   return {

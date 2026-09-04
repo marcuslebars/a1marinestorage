@@ -14,7 +14,9 @@ import {
 
 const here = dirname(fileURLToPath(import.meta.url));
 const fixture = (name: string) =>
-  JSON.parse(readFileSync(join(here, "__fixtures__", "lead-envelopes", name), "utf8"));
+  JSON.parse(
+    readFileSync(join(here, "__fixtures__", "lead-envelopes", name), "utf8")
+  );
 
 describe("storage envelope builders match the golden fixtures (drift guard)", () => {
   it("contact -> canonical envelope", () => {
@@ -49,12 +51,28 @@ describe("storage envelope builders match the golden fixtures (drift guard)", ()
         hullType: "pontoon",
         subtotalCents: 141312,
         bundle: { label: "Winter Ready" },
-        lineItems: [{ detail: { lengthFt: 24 } }, { detail: {} }, { detail: {} }],
+        lineItems: [
+          { detail: { lengthFt: 24 } },
+          { detail: {} },
+          { detail: {} },
+        ],
       },
       jobberLineItems: [
-        { description: "Shrink Wrap (24ft)", quantity: 1, unitPriceCents: 41400 },
-        { description: "Pontoon hull surcharge", quantity: 1, unitPriceCents: 5000 },
-        { description: "Winterization — I/O", quantity: 1, unitPriceCents: 27500 },
+        {
+          description: "Shrink Wrap (24ft)",
+          quantity: 1,
+          unitPriceCents: 41400,
+        },
+        {
+          description: "Pontoon hull surcharge",
+          quantity: 1,
+          unitPriceCents: 5000,
+        },
+        {
+          description: "Winterization — I/O",
+          quantity: 1,
+          unitPriceCents: 27500,
+        },
       ],
       utm: { utm_source: "google", utm_campaign: "fall-storage" },
     });
@@ -112,9 +130,9 @@ describe("forwardToEmpireVu is additive + best-effort", () => {
     expect(spy).toHaveBeenCalledTimes(1);
     const [url, opts] = spy.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("https://hub.example/api/intake");
-    expect((opts.headers as Record<string, string>)["x-empirevu-signature"]).toBe(
-      signEmpireVuBody(opts.body as string, "s"),
-    );
+    expect(
+      (opts.headers as Record<string, string>)["x-empirevu-signature"]
+    ).toBe(signEmpireVuBody(opts.body as string, "s"));
   });
 
   it("never throws when the endpoint fails", async () => {
@@ -125,13 +143,16 @@ describe("forwardToEmpireVu is additive + best-effort", () => {
     }) as never;
     // Reports failure rather than throwing. The caller uses this to decide
     // whether it can offer a deposit link; it must never decide by catching.
-    await expect(forwardToEmpireVu(envelope, 1)).resolves.toEqual({ ok: false });
+    await expect(forwardToEmpireVu(envelope, 1)).resolves.toEqual({
+      ok: false,
+    });
   });
 
   it("returns the quote link when the intake supplies one", async () => {
     process.env.EMPIREVU_INTAKE_URL = "https://hub.example/api/intake";
     process.env.EMPIREVU_INTAKE_SECRET = "s";
-    globalThis.fetch = (async () => intakeOk({ quoteUrl: "https://quotes.example/q/tok" })) as never;
+    globalThis.fetch = (async () =>
+      intakeOk({ quoteUrl: "https://quotes.example/q/tok" })) as never;
     await expect(forwardToEmpireVu(envelope, 1)).resolves.toEqual({
       ok: true,
       quoteUrl: "https://quotes.example/q/tok",
@@ -145,11 +166,16 @@ describe("forwardToEmpireVu is additive + best-effort", () => {
     process.env.EMPIREVU_INTAKE_URL = "https://empirevu.example/api/intake";
     process.env.EMPIREVU_INTAKE_SECRET = "s";
     globalThis.fetch = (async () =>
-      new Response("<!doctype html><html><title>EmpireVu — Early Access</title></html>", {
-        status: 200,
-        headers: { "Content-Type": "text/html" },
-      })) as never;
-    await expect(forwardToEmpireVu(envelope, 1)).resolves.toEqual({ ok: false });
+      new Response(
+        "<!doctype html><html><title>EmpireVu — Early Access</title></html>",
+        {
+          status: 200,
+          headers: { "Content-Type": "text/html" },
+        }
+      )) as never;
+    await expect(forwardToEmpireVu(envelope, 1)).resolves.toEqual({
+      ok: false,
+    });
   });
 
   it("a 200 with JSON but no leadId is not a delivered lead either", async () => {
@@ -161,7 +187,9 @@ describe("forwardToEmpireVu is additive + best-effort", () => {
         status: 200,
         headers: { "Content-Type": "application/json" },
       })) as never;
-    await expect(forwardToEmpireVu(envelope, 1)).resolves.toEqual({ ok: false });
+    await expect(forwardToEmpireVu(envelope, 1)).resolves.toEqual({
+      ok: false,
+    });
   });
 
   it("retries an unconfirmed 200 rather than accepting it", async () => {
@@ -170,7 +198,10 @@ describe("forwardToEmpireVu is additive + best-effort", () => {
     const calls = vi.fn();
     globalThis.fetch = (async () => {
       calls();
-      return new Response("<html></html>", { status: 200, headers: { "Content-Type": "text/html" } });
+      return new Response("<html></html>", {
+        status: 200,
+        headers: { "Content-Type": "text/html" },
+      });
     }) as never;
     await forwardToEmpireVu(envelope, 3);
     // Worth retrying: a transient proxy page should not silently drop a lead.
@@ -187,7 +218,9 @@ describe("forwardToEmpireVu is additive + best-effort", () => {
       calls();
       return { ok: true, status: 200 } as unknown as Response; // no .json()
     }) as never;
-    await expect(forwardToEmpireVu(envelope, 1)).resolves.toEqual({ ok: false });
+    await expect(forwardToEmpireVu(envelope, 1)).resolves.toEqual({
+      ok: false,
+    });
     expect(calls).toHaveBeenCalledTimes(1);
   });
 });
@@ -208,7 +241,11 @@ describe("the envelope carries the engine so a lead can be auto-quoted", () => {
   const base = {
     id: "q1",
     receivedAt: "2026-09-01T15:00:00.000Z",
-    contact: { name: "Pat Quinn", email: "pat@example.com", phone: "705-555-0100" },
+    contact: {
+      name: "Pat Quinn",
+      email: "pat@example.com",
+      phone: "705-555-0100",
+    },
     jobberLineItems: [],
   };
 
@@ -221,11 +258,21 @@ describe("the envelope carries the engine so a lead can be auto-quoted", () => {
         bundle: { label: "Winter Ready Plus" },
         lineItems: [
           { detail: { lengthFt: 24 } },
-          { detail: { type: "flat_per_engine", engineType: "outboard", engineCount: 1 } },
+          {
+            detail: {
+              type: "flat_per_engine",
+              engineType: "outboard",
+              engineCount: 1,
+            },
+          },
         ],
       },
     });
-    expect(env.asset).toMatchObject({ lengthFt: 24, engineType: "outboard", engineCount: 1 });
+    expect(env.asset).toMatchObject({
+      lengthFt: 24,
+      engineType: "outboard",
+      engineCount: 1,
+    });
   });
 
   it("carries a multi-engine count", () => {
@@ -235,10 +282,21 @@ describe("the envelope carries the engine so a lead can be auto-quoted", () => {
         hullType: null,
         subtotalCents: 300000,
         bundle: null,
-        lineItems: [{ detail: { type: "flat_per_engine", engineType: "sterndrive", engineCount: 2 } }],
+        lineItems: [
+          {
+            detail: {
+              type: "flat_per_engine",
+              engineType: "sterndrive",
+              engineCount: 2,
+            },
+          },
+        ],
       },
     });
-    expect(env.asset).toMatchObject({ engineType: "sterndrive", engineCount: 2 });
+    expect(env.asset).toMatchObject({
+      engineType: "sterndrive",
+      engineCount: 2,
+    });
   });
 
   it("omits the engine entirely for a quote with no winterization", () => {
@@ -246,7 +304,12 @@ describe("the envelope carries the engine so a lead can be auto-quoted", () => {
     // what keeps the golden fixtures valid.
     const env = buildStorageQuoteEnvelope({
       ...base,
-      quote: { hullType: null, subtotalCents: 120000, bundle: null, lineItems: [{ detail: { lengthFt: 22 } }] },
+      quote: {
+        hullType: null,
+        subtotalCents: 120000,
+        bundle: null,
+        lineItems: [{ detail: { lengthFt: 22 } }],
+      },
     });
     expect(env.asset).not.toHaveProperty("engineType");
     expect(env.asset).not.toHaveProperty("engineCount");
@@ -259,7 +322,15 @@ describe("the envelope carries the engine so a lead can be auto-quoted", () => {
         hullType: null,
         subtotalCents: 100000,
         bundle: null,
-        lineItems: [{ detail: { type: "flat_per_engine", engineType: "inboard", engineCount: 1 } }],
+        lineItems: [
+          {
+            detail: {
+              type: "flat_per_engine",
+              engineType: "inboard",
+              engineCount: 1,
+            },
+          },
+        ],
       },
     });
     expect(env.asset?.engineType).toBe("inboard");

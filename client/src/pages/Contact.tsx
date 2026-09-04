@@ -1,12 +1,26 @@
 // A1 Marine Storage — Contact Page
 // SEO: "contact boat storage Tiny Ontario", "A1 Marine Storage phone"
 import { useState } from "react";
-import { MapPin, Phone, Mail, Clock, Send, CheckCircle2, ExternalLink } from "lucide-react";
+import {
+  MapPin,
+  Phone,
+  Mail,
+  Clock,
+  Send,
+  CheckCircle2,
+  ExternalLink,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { MapView } from "@/components/Map";
 import { BUSINESS } from "@/content/business";
 import { track, trackPhoneClick } from "@/lib/analytics";
@@ -82,14 +96,17 @@ export default function Contact() {
             }
           } else if (res.status >= 400 && res.status < 500) {
             const data = await res.json().catch(() => ({}));
-            setSubmitError(data.error || "Please check your details and try again.");
+            setSubmitError(
+              data.error || "Please check your details and try again."
+            );
             return;
           }
           // 5xx — fall through to retry.
         } catch {
           // Network error — fall through to retry.
         }
-        if (attempt < maxAttempts) await new Promise((resolve) => setTimeout(resolve, attempt * 800));
+        if (attempt < maxAttempts)
+          await new Promise(resolve => setTimeout(resolve, attempt * 800));
       }
       // Every attempt failed — never a fake success.
       setSubmitFallback(true);
@@ -112,7 +129,8 @@ export default function Contact() {
             Message Sent!
           </h1>
           <p className="text-base text-white/65 mb-8">
-            Thanks, <strong className="text-white">{form.name}</strong>! We've received your message and will be in touch within 1–2 business days.
+            Thanks, <strong className="text-white">{form.name}</strong>! We've
+            received your message and will be in touch within 1–2 business days.
           </p>
           <Button
             onClick={() => setSubmitted(false)}
@@ -141,7 +159,8 @@ export default function Contact() {
             Contact A1 Marine Storage
           </h1>
           <p className="mt-5 max-w-xl mx-auto text-base text-white/60">
-            Questions about storage availability, pricing, or booking? We're here to help.
+            Questions about storage availability, pricing, or booking? We're
+            here to help.
           </p>
         </div>
       </section>
@@ -162,12 +181,13 @@ export default function Contact() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
                     <Label className="text-sm font-semibold text-white/80 mb-2 block">
-                      Full Name <span className="text-[oklch(0.6_0.2_27)]">*</span>
+                      Full Name{" "}
+                      <span className="text-[oklch(0.6_0.2_27)]">*</span>
                     </Label>
                     <Input
                       placeholder="John Smith"
                       value={form.name}
-                      onChange={(e) => setForm({ ...form, name: e.target.value })}
+                      onChange={e => setForm({ ...form, name: e.target.value })}
                       required
                       className="bg-white/5 border-white/15 text-white placeholder:text-white/30 focus:border-[oklch(0.6_0.2_27)] h-12"
                     />
@@ -180,7 +200,9 @@ export default function Contact() {
                       type="email"
                       placeholder="john@example.com"
                       value={form.email}
-                      onChange={(e) => setForm({ ...form, email: e.target.value })}
+                      onChange={e =>
+                        setForm({ ...form, email: e.target.value })
+                      }
                       required
                       className="bg-white/5 border-white/15 text-white placeholder:text-white/30 focus:border-[oklch(0.6_0.2_27)] h-12"
                     />
@@ -195,7 +217,9 @@ export default function Contact() {
                       type="tel"
                       placeholder="(705) 555-1234"
                       value={form.phone}
-                      onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                      onChange={e =>
+                        setForm({ ...form, phone: e.target.value })
+                      }
                       required
                       className="bg-white/5 border-white/15 text-white placeholder:text-white/30 focus:border-[oklch(0.6_0.2_27)] h-12"
                     />
@@ -207,7 +231,9 @@ export default function Contact() {
                     <Input
                       placeholder="e.g. 2019 Chaparral 23 H2O"
                       value={form.boatMakeModel}
-                      onChange={(e) => setForm({ ...form, boatMakeModel: e.target.value })}
+                      onChange={e =>
+                        setForm({ ...form, boatMakeModel: e.target.value })
+                      }
                       className="bg-white/5 border-white/15 text-white placeholder:text-white/30 focus:border-[oklch(0.6_0.2_27)] h-12"
                     />
                   </div>
@@ -221,7 +247,9 @@ export default function Contact() {
                       type="number"
                       placeholder="e.g. 24"
                       value={form.boatLength}
-                      onChange={(e) => setForm({ ...form, boatLength: e.target.value })}
+                      onChange={e =>
+                        setForm({ ...form, boatLength: e.target.value })
+                      }
                       className="bg-white/5 border-white/15 text-white placeholder:text-white/30 focus:border-[oklch(0.6_0.2_27)] h-12"
                     />
                   </div>
@@ -231,18 +259,50 @@ export default function Contact() {
                     </Label>
                     <Select
                       value={form.serviceInterest}
-                      onValueChange={(val) => setForm({ ...form, serviceInterest: val })}
+                      onValueChange={val =>
+                        setForm({ ...form, serviceInterest: val })
+                      }
                     >
                       <SelectTrigger className="bg-white/5 border-white/15 text-white h-12 focus:border-[oklch(0.6_0.2_27)]">
                         <SelectValue placeholder="Select a service" />
                       </SelectTrigger>
                       <SelectContent className="bg-[oklch(0.16_0.018_240)] border-white/15">
-                        <SelectItem value="storage-shrinkwrap" className="text-white focus:bg-white/10">Storage + Shrink Wrapping</SelectItem>
-                        <SelectItem value="full-package" className="text-white focus:bg-white/10">Full Winter Package</SelectItem>
-                        <SelectItem value="shrinkwrap-only" className="text-white focus:bg-white/10">Shrink Wrapping Only</SelectItem>
-                        <SelectItem value="winterization" className="text-white focus:bg-white/10">Winterization Only</SelectItem>
-                        <SelectItem value="spring-launch" className="text-white focus:bg-white/10">Spring Launch Prep</SelectItem>
-                        <SelectItem value="other" className="text-white focus:bg-white/10">Other / General Inquiry</SelectItem>
+                        <SelectItem
+                          value="storage-shrinkwrap"
+                          className="text-white focus:bg-white/10"
+                        >
+                          Storage + Shrink Wrapping
+                        </SelectItem>
+                        <SelectItem
+                          value="full-package"
+                          className="text-white focus:bg-white/10"
+                        >
+                          Full Winter Package
+                        </SelectItem>
+                        <SelectItem
+                          value="shrinkwrap-only"
+                          className="text-white focus:bg-white/10"
+                        >
+                          Shrink Wrapping Only
+                        </SelectItem>
+                        <SelectItem
+                          value="winterization"
+                          className="text-white focus:bg-white/10"
+                        >
+                          Winterization Only
+                        </SelectItem>
+                        <SelectItem
+                          value="spring-launch"
+                          className="text-white focus:bg-white/10"
+                        >
+                          Spring Launch Prep
+                        </SelectItem>
+                        <SelectItem
+                          value="other"
+                          className="text-white focus:bg-white/10"
+                        >
+                          Other / General Inquiry
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -254,28 +314,43 @@ export default function Contact() {
                   <Textarea
                     placeholder="Tell us about your boat, preferred storage dates, or any questions you have..."
                     value={form.message}
-                    onChange={(e) => setForm({ ...form, message: e.target.value })}
+                    onChange={e =>
+                      setForm({ ...form, message: e.target.value })
+                    }
                     className="bg-white/5 border-white/15 text-white placeholder:text-white/30 focus:border-[oklch(0.6_0.2_27)] min-h-[120px]"
                   />
                 </div>
                 {submitFallback && (
                   <div className="rounded-xl border border-amber-400/25 bg-amber-500/10 p-4">
-                    <p className="text-sm font-semibold text-amber-100">We couldn&apos;t send your message just now.</p>
+                    <p className="text-sm font-semibold text-amber-100">
+                      We couldn&apos;t send your message just now.
+                    </p>
                     <p className="mt-1 text-sm text-amber-100/80">
-                      Your message hasn&apos;t been sent yet — please reach us directly and we&apos;ll respond right away:
+                      Your message hasn&apos;t been sent yet — please reach us
+                      directly and we&apos;ll respond right away:
                     </p>
                     <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:gap-6">
-                      <a href={BUSINESS.phoneHref} className="inline-flex items-center gap-2 text-base font-semibold text-white hover:text-[oklch(0.6_0.2_27)]">
-                        <Phone className="h-4 w-4 text-[oklch(0.6_0.2_27)]" /> {BUSINESS.phone}
+                      <a
+                        href={BUSINESS.phoneHref}
+                        className="inline-flex items-center gap-2 text-base font-semibold text-white hover:text-[oklch(0.6_0.2_27)]"
+                      >
+                        <Phone className="h-4 w-4 text-[oklch(0.6_0.2_27)]" />{" "}
+                        {BUSINESS.phone}
                       </a>
-                      <a href={BUSINESS.emailHref} className="inline-flex items-center gap-2 text-base font-semibold text-white hover:text-[oklch(0.6_0.2_27)]">
-                        <Mail className="h-4 w-4 text-[oklch(0.6_0.2_27)]" /> {BUSINESS.email}
+                      <a
+                        href={BUSINESS.emailHref}
+                        className="inline-flex items-center gap-2 text-base font-semibold text-white hover:text-[oklch(0.6_0.2_27)]"
+                      >
+                        <Mail className="h-4 w-4 text-[oklch(0.6_0.2_27)]" />{" "}
+                        {BUSINESS.email}
                       </a>
                     </div>
                   </div>
                 )}
                 {submitError && (
-                  <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">{submitError}</div>
+                  <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                    {submitError}
+                  </div>
                 )}
                 <div className="pt-2">
                   <Button
@@ -287,11 +362,20 @@ export default function Contact() {
                     {submitting ? "Sending…" : "Send Message"}
                   </Button>
                   <p className="text-xs text-white/35 text-center mt-3">
-                    We respond within 1–2 business days. For urgent inquiries, please call us directly.
+                    We respond within 1–2 business days. For urgent inquiries,
+                    please call us directly.
                   </p>
                   <p className="mt-2 text-center text-xs text-white/40">
                     By booking, you agree to our{" "}
-                    <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-[oklch(0.6_0.2_27)] hover:underline">Terms of Service</a>.
+                    <a
+                      href="/terms"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[oklch(0.6_0.2_27)] hover:underline"
+                    >
+                      Terms of Service
+                    </a>
+                    .
                   </p>
                 </div>
               </form>
@@ -311,9 +395,12 @@ export default function Contact() {
                   <div className="flex items-start gap-3">
                     <MapPin className="h-5 w-5 text-[oklch(0.6_0.2_27)] mt-0.5 shrink-0" />
                     <div>
-                      <p className="text-sm font-semibold text-white">Address</p>
+                      <p className="text-sm font-semibold text-white">
+                        Address
+                      </p>
                       <p className="text-sm text-white/60 mt-0.5">
-                        639 Concession Road 16 East<br />
+                        639 Concession Road 16 East
+                        <br />
                         Tiny, ON L9M 1R2
                       </p>
                     </div>
@@ -346,7 +433,9 @@ export default function Contact() {
                   <div className="flex items-start gap-3">
                     <Clock className="h-5 w-5 text-[oklch(0.6_0.2_27)] mt-0.5 shrink-0" />
                     <div>
-                      <p className="text-sm font-semibold text-white">Business Hours</p>
+                      <p className="text-sm font-semibold text-white">
+                        Business Hours
+                      </p>
                       <div className="text-sm text-white/60 mt-0.5 space-y-0.5">
                         <p>Monday – Friday: 9:00 AM – 6:00 PM</p>
                         <p>By appointment only</p>
@@ -362,7 +451,8 @@ export default function Contact() {
                   Part of the A1 Marine Family
                 </p>
                 <p className="text-sm text-white/60 mb-3">
-                  Need detailing, gelcoat restoration, or ceramic coating? Visit our sister company.
+                  Need detailing, gelcoat restoration, or ceramic coating? Visit
+                  our sister company.
                 </p>
                 <a
                   href="https://a1marinecare.ca"
