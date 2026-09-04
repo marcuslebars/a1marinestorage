@@ -6,11 +6,9 @@
 // with retries. The customer never sees a fake success.
 
 import { randomUUID } from "node:crypto";
-import {
-  SOURCE_SITE,
-  appendSubmission,
-  forwardToLeadPipeline,
-} from "./lead-pipeline";
+import { SOURCE_SITE, forwardToLeadPipeline } from "./lead-pipeline";
+import { persistLead } from "./persist";
+import { isHoneypotTripped } from "./security/honeypot";
 import { buildStorageContactEnvelope, forwardToEmpireVu } from "./empirevu";
 
 const LEAD_TAG = "a1marinestorage-contact";
@@ -63,6 +61,13 @@ function validate(
 export async function handleContactSubmission(
   rawBody: unknown
 ): Promise<HandlerResult> {
+  // See the note in quote-handler.ts: in the handler, not the route, so dev and
+  // production behave the same and no caller can forget it.
+  if (isHoneypotTripped(rawBody)) {
+    console.log("[contact] honeypot tripped — discarded");
+    return { status: 200, body: { ok: true } };
+  }
+
   const check = validate(rawBody);
   if (!check.ok)
     return { status: 400, body: { ok: false, error: check.error } };
@@ -105,13 +110,27 @@ export async function handleContactSubmission(
   };
 
   // (1) Durable record FIRST — success only after this succeeds.
-  try {
-    appendSubmission("contacts", receivedAt, record);
-  } catch (err) {
-    console.error(
-      "[contact] failed to persist durable record:",
-      err instanceof Error ? err.message : String(err)
-    );
+  //
+  // Postgres, then the JSONL mirror, and a 500 only when BOTH refused. A
+  // contact is a `quotes` row with no priced quote: one table means one place
+  // to look for "everyone who ever asked us for something".
+  const stored = await persistLead(
+    {
+      id,
+      receivedAt,
+      source:
+        formType === "winter-storage-quote"
+          ? "winter-quote"
+          : locality
+            ? "locality"
+            : "contact",
+      contact: { ...contact },
+      meta: { utm, page, locality, formType },
+    },
+    "contacts",
+    record
+  );
+  if (!stored.ok) {
     return {
       status: 500,
       body: {

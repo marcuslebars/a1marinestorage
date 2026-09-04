@@ -1,7 +1,7 @@
 // A1 Marine Storage — Storage Quote Calculator
 // Bundles-first quote & booking flow, powered by the shared @a1/pricing-engine.
 // Style: Contemporary Coastal Modernism — dark harbor, red accents, sticky price panel.
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 import {
   ArrowRight,
@@ -60,7 +60,14 @@ import {
   type Logistics,
   type Selection,
 } from "@/lib/quote-items";
+import {
+  hydrateFromResume,
+  resumeBanner,
+  resumeLandingStep,
+  type ResumePayload,
+} from "@/lib/quote-resume";
 import { DownloadQuoteButton } from "@/components/DownloadQuoteButton";
+import { HoneypotField } from "@/components/HoneypotField";
 import {
   LogisticsSection,
   EMPTY_LOGISTICS,
@@ -240,6 +247,15 @@ export default function Calculator() {
   const [errorMsg, setErrorMsg] = useState("");
   const [showBreakdown, setShowBreakdown] = useState(true);
 
+  // A resumed quote: the reference from the PDF, so the booked quote keeps the
+  // number the customer is looking at, and the banner explaining what happened.
+  const [resumeRef, setResumeRef] = useState<string | undefined>(undefined);
+  const [resumeNotice, setResumeNotice] = useState<string | null>(null);
+
+  // Empty for every real person. Phase 0 shipped the server-side check; without
+  // this field on the form it had nothing to check.
+  const [honeypot, setHoneypot] = useState("");
+
   // Funnel top: fire quote_started once, on the first calculator field change.
   const startedRef = useRef(false);
   function markStarted() {
@@ -247,6 +263,96 @@ export default function Calculator() {
     startedRef.current = true;
     track("quote_started");
   }
+
+  /**
+   * Resume from the link printed on the PDF.
+   *
+   * Runs once, on mount, and only when `?q=` is present, so an ordinary visit
+   * is untouched. Everything here is best-effort: a link that cannot be read
+   * leaves the customer on a normal empty calculator rather than an error page,
+   * because a working form is more use to them than an explanation.
+   */
+  const resumedRef = useRef(false);
+  useEffect(() => {
+    if (resumedRef.current) return;
+    const token = new URLSearchParams(window.location.search).get("q");
+    if (!token) return;
+    resumedRef.current = true;
+
+    let cancelled = false;
+    (async () => {
+      let payload: ResumePayload;
+      try {
+        // no-store on BOTH sides. 410 Gone is cacheable by default, so a
+        // browser that once saw "expired" can keep answering from its own
+        // cache — including for a different token — and the customer is told
+        // their quote is gone by a response the server never sent. The server
+        // sets the header; this makes an already-poisoned cache harmless too.
+        const res = await fetch(
+          `/api/quote/resume?q=${encodeURIComponent(token)}`,
+          {
+            cache: "no-store",
+          }
+        );
+        payload = (await res.json()) as ResumePayload;
+      } catch {
+        return; // Offline or blocked: leave them on a working calculator.
+      }
+      if (cancelled) return;
+
+      const notice = resumeBanner(payload);
+      if (notice) setResumeNotice(notice);
+
+      const state = hydrateFromResume(payload);
+      if (!state) return; // Unreadable link: a working empty calculator, no error page.
+
+      setLengthInput(state.lengthInput);
+      setHullType(state.hullType);
+      setEngineType(state.engineType);
+      setEngineCount(state.engineCount);
+      setMode(state.mode);
+      setBundleId(state.bundleId);
+      setAlacarte(state.alacarte);
+      setCeramicUpgrade(state.ceramicUpgrade);
+      setLogisticsValue(state.logisticsValue);
+      setResolvedBand(state.resolvedBand);
+      setResumeRef(state.ref);
+      setStep(resumeLandingStep(payload));
+      // Resuming is not starting: without this, quote_started would fire on the
+      // first restored keystroke and inflate the top of the funnel.
+      startedRef.current = true;
+      track("quote_resumed");
+
+      // A typed town has to be geocoded again — only the server can do that,
+      // and the stored distance was an estimate we will not present as fact.
+      if (state.needsBandLookup && state.bandLookupPlace) {
+        try {
+          const res = await fetch("/api/transport/band", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ place: state.bandLookupPlace }),
+          });
+          const band = await res.json();
+          if (!cancelled && band?.ok) {
+            setResolvedBand({
+              band: band.band,
+              distanceKm: band.distanceKm,
+              resolution: band.resolution ?? "place_estimate",
+              place: band.place,
+            });
+          }
+        } catch {
+          /* The customer can re-resolve it themselves; the rest is restored. */
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // Mount only: this reads the URL the customer arrived on.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const lengthFt = Number.parseFloat(lengthInput);
   const lengthValid = Number.isFinite(lengthFt) && lengthFt > 0;
@@ -398,7 +504,12 @@ export default function Calculator() {
         // byte-identical to before this existed.
         logistics,
         addOns,
+        // Present only for a resumed quote, so the booked lead keeps the number
+        // printed on the PDF the customer is holding. Undefined otherwise, and
+        // compacted away, so an ordinary submission is unchanged.
+        quoteRef: resumeRef,
       },
+      website: honeypot,
     };
     const maxAttempts = 3;
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -614,6 +725,23 @@ export default function Calculator() {
         <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
           {/* ── Main column ── */}
           <div>
+            {/*
+              Resumed from a PDF link. Says which quote, and says plainly that
+              the prices are today's — a 45-day-old link can outlive its prices,
+              and showing them without saying so would be the quiet kind of lie
+              this codebase does not tell.
+            */}
+            {resumeNotice && (
+              <div
+                className="marine-card p-4 mb-6 flex items-start gap-3"
+                role="status"
+                data-testid="resume-banner"
+              >
+                <Info className="h-5 w-5 shrink-0 mt-0.5 text-[oklch(0.6_0.2_27)]" />
+                <p className="text-sm text-white/80">{resumeNotice}</p>
+              </div>
+            )}
+
             {/* STEP 1 — Boat Details */}
             {step === 1 && (
               <div className="marine-card p-6 md:p-8">
@@ -1019,6 +1147,8 @@ export default function Calculator() {
                 <p className="text-sm text-white/50 mb-6">
                   {BOOKING_COPY.step3Subtitle}
                 </p>
+
+                <HoneypotField value={honeypot} onChange={setHoneypot} />
 
                 {status === "fallback" && (
                   <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4 mb-6 flex gap-3">

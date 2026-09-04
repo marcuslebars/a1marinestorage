@@ -9,6 +9,8 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { handleQuoteSubmission } from "./server/quote-handler";
 import { handleContactSubmission } from "./server/contact-handler";
 import { handleQuotePdf, QuotePdfError } from "./server/quote-pdf-handler";
+import { handleQuoteResume } from "./server/quote-resume-handler";
+import { handlePartialQuoteLead } from "./server/partial-lead-handler";
 import {
   resolveTransportBand,
   TransportBandError,
@@ -253,6 +255,23 @@ function vitePluginLeadApi(): Plugin {
       // also matches "/api/quote/pdf" — and the submission handler ignores the
       // URL, so in dev a PDF request was being handled as a quote submission.
       // The more specific paths must be registered first.
+      // Resume, first and by itself. It is a GET, and `jsonPost` calls next()
+      // for anything that is not a POST — so without its own route this request
+      // would fall past every handler here and be answered by the SPA fallback
+      // with index.html, which is exactly the "link goes nowhere" failure this
+      // phase exists to fix. Dev would have looked fine and been broken.
+      server.middlewares.use("/api/quote/resume", (req, res, next) => {
+        if (req.method !== "GET") return next();
+        const q = new URL(req.url ?? "", "http://localhost").searchParams.get(
+          "q"
+        );
+        const { status, body } = handleQuoteResume(q);
+        res.statusCode = status;
+        res.setHeader("Content-Type", "application/json");
+        // See the note on the Express route: 410 is cacheable by default.
+        res.setHeader("Cache-Control", "no-store");
+        res.end(JSON.stringify(body));
+      });
       server.middlewares.use(
         "/api/transport/band",
         jsonPost(async body => {
@@ -302,6 +321,20 @@ function vitePluginLeadApi(): Plugin {
               email: typeof body.email === "string" ? body.email : undefined,
               origin: `http://${req.headers.host ?? "localhost:5173"}`,
             });
+            // Parity with the Express route: a volunteered email is a lead.
+            // Without this, dev could never exercise the capture path that
+            // Phase 1 exists to fix.
+            if (result.email) {
+              void handlePartialQuoteLead({
+                email: result.email,
+                selection: body.selection,
+                boat: body.boat,
+                quoteRef: result.reference,
+                pdf: result.pdf,
+                resumeUrl: result.resumeUrl,
+              });
+            }
+
             res.setHeader("Content-Type", "application/pdf");
             res.setHeader(
               "Content-Disposition",

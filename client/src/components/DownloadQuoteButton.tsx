@@ -103,7 +103,20 @@ export function DownloadQuoteButton({
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              placeholder="Email it to me too (optional)"
+              /*
+               * SAYS WHAT THE CODE DOES, AND ONLY THAT.
+               *
+               * This read "Email it to me too (optional)" while nothing on the
+               * server sent anything: the address was filed as a lead and the
+               * customer waited for an email that was never coming. Saving the
+               * address is exactly what happens, so that is what it says.
+               *
+               * Flip this back to "Email me a copy too (optional)" in the SAME
+               * change that turns the send on — once the Resend domain is
+               * verified and a real send has been seen in production. The copy
+               * and the behaviour ship together or not at all.
+               */
+              placeholder="Save my email with this quote (optional)"
               className="h-11 border-white/15 bg-white/5 text-white placeholder:text-white/30 focus:border-[oklch(0.6_0.2_27)]"
             />
             <button

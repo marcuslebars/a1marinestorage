@@ -153,9 +153,13 @@ describe("forwardToEmpireVu is additive + best-effort", () => {
     process.env.EMPIREVU_INTAKE_SECRET = "s";
     globalThis.fetch = (async () =>
       intakeOk({ quoteUrl: "https://quotes.example/q/tok" })) as never;
+    // leadId is returned as well as quoteUrl: it is already parsed as the proof
+    // this response came from the real intake, and the caller stores it against
+    // the quote row so the two systems can be reconciled later.
     await expect(forwardToEmpireVu(envelope, 1)).resolves.toEqual({
       ok: true,
       quoteUrl: "https://quotes.example/q/tok",
+      leadId: "lead_1",
     });
   });
 

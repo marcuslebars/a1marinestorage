@@ -30,6 +30,14 @@ export interface LeadEnvelope {
     type?: string;
     marina?: string;
   };
+  // `meta` is the documented extension point: new capture context goes here,
+  // never at the top level, and every field is compacted away when unset so the
+  // golden fixtures stay byte-identical.
+  //
+  // The last four were already being emitted by buildStorageQuoteEnvelope while
+  // this type claimed they did not exist — it typechecked only because compact()
+  // returns a widened object rather than an object literal, which skips excess
+  // property checking. Declared here so the contract matches the wire.
   meta?: {
     site?: string;
     page?: string;
@@ -37,6 +45,12 @@ export interface LeadEnvelope {
     preferredTime?: string;
     utm?: Record<string, string>;
     locality?: string;
+    logistics?: LeadLogistics;
+    selection?: LeadSelection;
+    /** A1MS-Q-XXXXXX, when the lead came from a downloaded quote. */
+    quoteRef?: string;
+    /** Capture route, e.g. `pdf_download`. Absent for an ordinary submission. */
+    source?: string;
   };
 }
 
@@ -211,6 +225,8 @@ export function buildStorageQuoteEnvelope(input: {
   selection?: LeadSelection;
   /** Short human reference (A1MS-Q-XXXXXX) when the quote came from a PDF download. */
   quoteRef?: string;
+  /** Capture route when it was not the ordinary calculator submission, e.g. `pdf_download`. */
+  source?: string;
 }): LeadEnvelope {
   const c = input.contact;
   const q = input.quote;
@@ -268,6 +284,10 @@ export function buildStorageQuoteEnvelope(input: {
         ? compact(input.selection as Record<string, unknown>)
         : undefined,
       quoteRef: input.quoteRef,
+      // How the lead was captured, when it was not the ordinary calculator
+      // submission. Compacted away when unset, so a normal quote's envelope is
+      // byte-identical to what it has always been.
+      source: input.source,
     }) ?? { site: "a1marinestorage.ca" },
   };
 }
@@ -320,6 +340,12 @@ async function readIntakeBody(
 export interface EmpireVuForwardResult {
   ok: boolean;
   quoteUrl?: string;
+  /**
+   * EmpireVu's id for the lead. Already parsed as the proof this response came
+   * from the real intake; surfaced so the caller can store it against the quote
+   * row and the two systems can be reconciled later.
+   */
+  leadId?: string;
 }
 
 /**
@@ -373,8 +399,8 @@ export async function forwardToEmpireVu(
             `[empirevu] forwarded ${envelope.formType} (attempt ${attempt}, lead ${body.leadId})`
           );
           return body.quoteUrl
-            ? { ok: true, quoteUrl: body.quoteUrl }
-            : { ok: true };
+            ? { ok: true, quoteUrl: body.quoteUrl, leadId: body.leadId }
+            : { ok: true, leadId: body.leadId };
         }
       } else {
         console.error(

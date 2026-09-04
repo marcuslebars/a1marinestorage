@@ -3,18 +3,20 @@ import { createServer } from "http";
 import path from "path";
 import { fileURLToPath } from "url";
 import { handleQuoteSubmission } from "./quote-handler";
+import { handlePartialQuoteLead } from "./partial-lead-handler";
 import { handleContactSubmission } from "./contact-handler";
 import { resolveTransportBand, TransportBandError } from "./transport-band";
 import { handleQuotePdf, QuotePdfError } from "./quote-pdf-handler";
-import { buildStorageQuoteInput } from "../client/src/lib/quote-items";
+import { handleQuoteResume } from "./quote-resume-handler";
+import { assertResumeSecret } from "./resume-token";
 import fs from "fs";
 import { getPageMeta, hasPage, injectMeta, renderSitemap } from "../shared/seo";
 import {
   pdfLimiter,
+  resumeLimiter,
   submissionLimiter,
   transportBandLimiter,
 } from "./middleware/rate-limit";
-import { isHoneypotTripped } from "./security/honeypot";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -33,19 +35,16 @@ async function startServer() {
   // came from the proxy and one visitor's burst would rate-limit everyone.
   app.set("trust proxy", 1);
 
+  // Loud at boot rather than silently signing 45-day quote links with a
+  // constant that is published in this repository.
+  assertResumeSecret();
+
   app.use(express.json({ limit: "1mb" }));
 
   // Storage quote submission: server-authoritative pricing, durable log,
   // lead-pipeline forward with retry, graceful failure for the client.
   app.post("/api/quote", submissionLimiter, async (req, res) => {
     try {
-      // A tripped honeypot gets the success it was fishing for and nothing is
-      // recorded. Telling a bot it failed only teaches the author to fix it.
-      if (isHoneypotTripped(req.body)) {
-        console.log("[quote] honeypot tripped — discarded");
-        res.status(200).json({ ok: true });
-        return;
-      }
       const { status, body } = await handleQuoteSubmission(req.body);
       res.status(status).json(body);
     } catch (err) {
@@ -63,11 +62,6 @@ async function startServer() {
   // Contact submission: durable log + lead-pipeline forward + graceful failure.
   app.post("/api/contact", submissionLimiter, async (req, res) => {
     try {
-      if (isHoneypotTripped(req.body)) {
-        console.log("[contact] honeypot tripped — discarded");
-        res.status(200).json({ ok: true });
-        return;
-      }
       const { status, body } = await handleContactSubmission(req.body);
       res.status(status).json(body);
     } catch (err) {
@@ -80,6 +74,19 @@ async function startServer() {
         error: "We couldn't record your message. Please try again.",
       });
     }
+  });
+
+  // Resume a quote from the link printed on the PDF. Stateless: the token is
+  // signed and self-contained, so this verifies and decodes rather than looking
+  // anything up. No prices are returned — the calculator re-prices on arrival.
+  app.get("/api/quote/resume", resumeLimiter, (req, res) => {
+    const { status, body } = handleQuoteResume(req.query?.q);
+    // NEVER CACHED. 410 Gone is cacheable by default, so without this a browser
+    // (or any proxy in between) can keep serving one answer for a link whose
+    // answer changes — and a customer who came back to a quote would be told it
+    // was gone by their own cache. Observed in dev, not theoretical.
+    res.set("Cache-Control", "no-store");
+    res.status(status).json(body);
   });
 
   // Downloadable quote PDF. The client sends its SELECTION and the server
@@ -100,24 +107,28 @@ async function startServer() {
       // lead through the normal durable-first path. BEST-EFFORT on purpose: the
       // download must never be blocked or failed by lead handling. The customer
       // came for their quote.
+      //
+      // This used to call handleQuoteSubmission with `name: ""` and `phone: ""`.
+      // validateContact RETURNS `{ok:false}` rather than throwing, so the
+      // `.catch()` below never fired and every one of these leads was discarded
+      // in silence. handlePartialQuoteLead validates the email alone, which is
+      // the only thing this customer has actually given us.
       if (result.email) {
-        void handleQuoteSubmission({
-          contact: { name: "", email: result.email, phone: "" },
-          quoteInput: buildStorageQuoteInput(
-            req.body?.selection,
-            req.body?.boat
-          ),
-          meta: {
-            site: "a1marinestorage.ca",
-            page: "/calculator",
-            source: "pdf_download",
-            quoteRef: result.reference,
-          },
-        }).catch(err => {
-          console.error(
-            "[quote-pdf] lead capture failed (download unaffected):",
-            err instanceof Error ? err.message : err
-          );
+        void handlePartialQuoteLead({
+          email: result.email,
+          selection: req.body?.selection,
+          boat: req.body?.boat,
+          quoteRef: result.reference,
+          // The same bytes the customer just downloaded, so the attachment and
+          // the download can never be different quotes.
+          pdf: result.pdf,
+          resumeUrl: result.resumeUrl,
+        }).then(r => {
+          if (!r.ok) {
+            console.error(
+              `[quote-pdf] lead capture did not file (${r.reason}) — download unaffected`
+            );
+          }
         });
       }
 

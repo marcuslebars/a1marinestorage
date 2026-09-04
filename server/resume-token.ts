@@ -32,9 +32,28 @@ export class ResumeTokenError extends Error {
 
 function secret(): string {
   // Falls back to a per-process constant in dev so the feature works locally
-  // without setup. In production an unset secret means tokens stop verifying
-  // across restarts, which is why the summary lists it as required.
+  // without setup. In production the fallback is a PUBLISHED string in a public
+  // repo, so anyone could mint a token — see assertResumeSecret().
   return process.env.RESUME_TOKEN_SECRET ?? "a1ms-dev-resume-secret";
+}
+
+/**
+ * Say something at boot when production is running on the dev fallback.
+ *
+ * Not a throw. A missing secret does not break resume links — they verify fine
+ * against the fallback — so refusing to boot over it would take the whole site
+ * down to protect a feature that still works. But the fallback is a constant in
+ * a public repository, which means a tampered token would verify, and the quote
+ * links printed on PDFs stay valid for 45 days. This must be loud.
+ */
+export function assertResumeSecret(): void {
+  if (process.env.NODE_ENV !== "production") return;
+  if (process.env.RESUME_TOKEN_SECRET) return;
+  console.error(
+    "[resume-token] RESUME_TOKEN_SECRET is not set in production — falling back to the " +
+      "public dev constant. Resume tokens are effectively unsigned: anyone can mint one. " +
+      "Set RESUME_TOKEN_SECRET in Railway."
+  );
 }
 
 const b64url = {
@@ -70,6 +89,24 @@ export function encodeResumeToken(
     deflateSync(Buffer.from(JSON.stringify(full), "utf8"))
   );
   return `${body}.${sign(body)}`;
+}
+
+/**
+ * Verify the SIGNATURE and read the payload, ignoring age.
+ *
+ * Expiry and authenticity are different questions. A 46-day-old token is still
+ * proof that we issued it — only its PRICES are stale, and prices are recomputed
+ * from the engine on every path anyway. Separating the two is what lets an
+ * expired link still prefill the customer's boat instead of handing back an
+ * empty form and making them retype it.
+ *
+ * Still throws on a bad signature or an unreadable body: this relaxes the clock,
+ * nothing else.
+ */
+export function decodeResumeTokenIgnoringAge(token: string): ResumeState {
+  // "Now" is the epoch, so every token was issued in the future and none has
+  // aged. Every other check — signature, readability, shape — still runs.
+  return decodeResumeToken(token, 0);
 }
 
 /** Verify and decode. Throws rather than returning a partially-trusted state. */

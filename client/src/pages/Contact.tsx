@@ -26,6 +26,7 @@ import { BUSINESS } from "@/content/business";
 import { track, trackPhoneClick } from "@/lib/analytics";
 import { trackPixelEvent } from "@/lib/meta-pixel";
 import { getUtm } from "@/lib/utm";
+import { HoneypotField } from "@/components/HoneypotField";
 
 interface FormData {
   name: string;
@@ -51,8 +52,22 @@ export default function Contact() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [submitFallback, setSubmitFallback] = useState(false);
+  const [honeypot, setHoneypot] = useState("");
 
-  const canSubmit = form.name && form.email && form.phone;
+  /**
+   * The same bar QuoteRequestForm.tsx has always used.
+   *
+   * This checked only that the three fields were NON-EMPTY, so "a", "x" and "1"
+   * passed the button and were then rejected by the server — the customer got a
+   * generic failure after submitting instead of the field being marked while
+   * they were still in it. Two forms on one site disagreeing about what a valid
+   * phone number is is a bug in itself.
+   */
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim());
+  const canSubmit =
+    form.name.trim().length >= 2 &&
+    emailOk &&
+    form.phone.replace(/\D/g, "").length >= 7;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -71,6 +86,9 @@ export default function Contact() {
       message: form.message,
       utm: getUtm(),
       page: "/contact",
+      // Empty for every real person. Non-empty means a bot filled every input
+      // it could find, and the server answers 200 while recording nothing.
+      website: honeypot,
     };
 
     const maxAttempts = 3;
@@ -178,6 +196,7 @@ export default function Contact() {
                 Send Us a Message
               </h2>
               <form onSubmit={handleSubmit} className="space-y-4">
+                <HoneypotField value={honeypot} onChange={setHoneypot} />
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
                     <Label className="text-sm font-semibold text-white/80 mb-2 block">

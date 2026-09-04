@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { track } from "@/lib/analytics";
 import { trackPixelEvent } from "@/lib/meta-pixel";
 import { getUtm } from "@/lib/utm";
+import { HoneypotField } from "@/components/HoneypotField";
 
 const SERVICE_OPTIONS = [
   "Outdoor Storage",
@@ -51,6 +52,7 @@ export function QuoteRequestForm({
   const [status, setStatus] = useState<"idle" | "submitting" | "error">("idle");
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
+  const [honeypot, setHoneypot] = useState("");
 
   const bind =
     (k: keyof typeof form) =>
@@ -89,6 +91,8 @@ export function QuoteRequestForm({
       page,
       locality,
       formType,
+      // Empty for every real person; non-empty means a bot filled everything.
+      website: honeypot,
     };
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
@@ -149,6 +153,7 @@ export function QuoteRequestForm({
 
   return (
     <form onSubmit={submit} className="marine-card p-6 md:p-8 space-y-5">
+      <HoneypotField value={honeypot} onChange={setHoneypot} />
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <Label htmlFor="qf-name" className="text-white/70">

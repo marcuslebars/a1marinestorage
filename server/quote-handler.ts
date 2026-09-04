@@ -21,10 +21,12 @@ import {
 } from "@a1/pricing-engine";
 import {
   SOURCE_SITE,
-  appendSubmission,
   logAnalytics,
   forwardToLeadPipeline,
 } from "./lead-pipeline";
+import { persistLead } from "./persist";
+import { isHoneypotTripped } from "./security/honeypot";
+import { attachEmpireVuResult } from "./db/quotes";
 import {
   buildStorageQuoteEnvelope,
   compactLogistics,
@@ -219,6 +221,17 @@ export async function handleQuoteSubmission(
 ): Promise<HandlerResult> {
   const body = (rawBody ?? {}) as Partial<QuoteSubmission>;
 
+  // The honeypot lives HERE, not in the route.
+  //
+  // It was in server/index.ts, which the Vite dev middleware does not use — so
+  // dev accepted every bot submission while production rejected them, and any
+  // new caller of this handler would have silently had no protection at all. A
+  // check that a caller can forget is a check that will be forgotten.
+  if (isHoneypotTripped(rawBody)) {
+    console.log("[quote] honeypot tripped — discarded");
+    return { status: 200, body: { ok: true } };
+  }
+
   const contactCheck = validateContact(body.contact);
   if (!contactCheck.ok) {
     return { status: 400, body: { ok: false, error: contactCheck.error } };
@@ -264,13 +277,32 @@ export async function handleQuoteSubmission(
   };
 
   // (1) Durable record FIRST — success is only reported after this succeeds.
-  try {
-    appendSubmission("quotes", receivedAt, record);
-  } catch (err) {
-    console.error(
-      "[quote] failed to persist durable record:",
-      err instanceof Error ? err.message : String(err)
-    );
+  //
+  // Postgres, then the JSONL mirror, and a 500 only when BOTH refused. The
+  // JSONL file lives on Railway's ephemeral filesystem and does not survive a
+  // redeploy, so it can no longer be the record on its own; equally, a
+  // momentarily unreachable database must not turn away a customer whose lead
+  // the mirror is holding safely.
+  const stored = await persistLead(
+    {
+      id,
+      receivedAt,
+      source: "calculator",
+      reference:
+        typeof (body.meta as Record<string, unknown> | undefined)?.quoteRef ===
+        "string"
+          ? ((body.meta as Record<string, unknown>).quoteRef as string)
+          : undefined,
+      contact: { ...contact },
+      quoteInput: body.quoteInput,
+      quote,
+      selection: (body.meta as Record<string, unknown> | undefined)?.selection,
+      meta: (body.meta ?? {}) as Record<string, unknown>,
+    },
+    "quotes",
+    record
+  );
+  if (!stored.ok) {
     return {
       status: 500,
       body: {
@@ -374,10 +406,24 @@ export async function handleQuoteSubmission(
         // client field: those items are the selection, and they have already been
         // validated by calculateQuote above.
         selection: selectionFromInput(body.quoteInput),
+        // A resumed quote carries the reference from the PDF the customer is
+        // holding, so the booked lead keeps the number they can see.
+        quoteRef: typeof meta.quoteRef === "string" ? meta.quoteRef : undefined,
       })
     ),
     EMPIREVU_WAIT_MS
   );
+
+  // Record what came back, so the row knows whether this quote has a payable
+  // link. Best-effort and unawaited: the customer is already being answered,
+  // and Phase 2 reads this column to decide whether to send its own
+  // confirmation email or let EmpireVu's quote email be the confirmation.
+  if (empireVu?.quoteUrl || empireVu?.leadId) {
+    void attachEmpireVuResult(id, {
+      depositUrl: empireVu.quoteUrl,
+      leadId: empireVu.leadId,
+    });
+  }
 
   return {
     status: 200,
