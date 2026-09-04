@@ -16,13 +16,17 @@
 // the engine turns a distance into a band (transportBandForDistanceKm). A km
 // threshold decides what a customer pays, so it stays a pricing rule in the
 // engine — this file must never contain one.
-import { transportBandForDistanceKm, type TransportBand } from "@a1/pricing-engine";
+import {
+  transportBandForDistanceKm,
+  type TransportBand,
+} from "@a1/pricing-engine";
 
 /** 639 Concession Road 16 East, Tiny, ON — the yard. */
 const YARD = { lat: 44.7269, lon: -79.9403 };
 
 const NOMINATIM = "https://nominatim.openstreetmap.org/search";
-const USER_AGENT = "a1marinestorage.ca transport-band lookup (contact@a1marinestorage.ca)";
+const USER_AGENT =
+  "a1marinestorage.ca transport-band lookup (contact@a1marinestorage.ca)";
 
 /**
  * Great-circle distance is shorter than the road. 1.25 is the usual detour
@@ -52,7 +56,7 @@ export interface TransportBandResult {
 export class TransportBandError extends Error {
   constructor(
     message: string,
-    readonly code: "invalid_place" | "not_found" | "provider_unavailable",
+    readonly code: "invalid_place" | "not_found" | "provider_unavailable"
   ) {
     super(message);
     this.name = "TransportBandError";
@@ -78,7 +82,9 @@ const PLACE_MAX = 60;
 
 /** Trim, collapse inner whitespace, and reject what cannot be a place name. */
 export function normalizePlace(raw: string): string | null {
-  const cleaned = String(raw ?? "").trim().replace(/\s+/g, " ");
+  const cleaned = String(raw ?? "")
+    .trim()
+    .replace(/\s+/g, " ");
   if (cleaned.length < PLACE_MIN || cleaned.length > PLACE_MAX) return null;
   if (!PLACE_RE.test(cleaned)) return null;
   return cleaned;
@@ -90,7 +96,12 @@ export function normalizePlace(raw: string): string | null {
  * Canada"). The first two parts are what a person recognises.
  */
 export function shortenPlaceLabel(displayName: string): string {
-  return displayName.split(",").map((p) => p.trim()).filter(Boolean).slice(0, 2).join(", ");
+  return displayName
+    .split(",")
+    .map(p => p.trim())
+    .filter(Boolean)
+    .slice(0, 2)
+    .join(", ");
 }
 
 /**
@@ -106,13 +117,18 @@ export function placeKey(place: string): string {
   return place.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 }
 
-export function haversineKm(a: { lat: number; lon: number }, b: { lat: number; lon: number }): number {
+export function haversineKm(
+  a: { lat: number; lon: number },
+  b: { lat: number; lon: number }
+): number {
   const R = 6371;
   const dLat = ((b.lat - a.lat) * Math.PI) / 180;
   const dLon = ((b.lon - a.lon) * Math.PI) / 180;
   const la1 = (a.lat * Math.PI) / 180;
   const la2 = (b.lat * Math.PI) / 180;
-  const h = Math.sin(dLat / 2) ** 2 + Math.cos(la1) * Math.cos(la2) * Math.sin(dLon / 2) ** 2;
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(la1) * Math.cos(la2) * Math.sin(dLon / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
@@ -134,6 +150,31 @@ export function __clearTransportBandCache(): void {
 type Fetcher = typeof fetch;
 
 /**
+ * One outbound geocode per second, serialised.
+ *
+ * Nominatim's usage policy is a hard limit, not a suggestion — exceeding it gets
+ * a User-Agent blocked, and ours identifies the yard by name. Cached lookups do
+ * not queue (they never leave the process), so the only thing this slows is a
+ * genuine burst of misses, which is exactly the case that would get us banned.
+ */
+let geocodeChain: Promise<unknown> = Promise.resolve();
+const MIN_GAP_MS = 1000;
+let lastCallAt = 0;
+
+function throttle<T>(fn: () => Promise<T>): Promise<T> {
+  const run = geocodeChain.then(async () => {
+    const wait = Math.max(0, lastCallAt + MIN_GAP_MS - Date.now());
+    if (wait > 0) await new Promise(r => setTimeout(r, wait));
+    lastCallAt = Date.now();
+    return fn();
+  });
+  // The chain must survive a rejection, or one failed lookup wedges every
+  // subsequent one behind a permanently rejected promise.
+  geocodeChain = run.catch(() => undefined);
+  return run;
+}
+
+/**
  * Geocode a place name, constrained to Ontario, Canada.
  *
  * The region is appended rather than left to the customer: "Midland" alone can
@@ -141,7 +182,10 @@ type Fetcher = typeof fetch;
  * `beyond` band and an apologetic "we'll quote this by hand" for someone twenty
  * minutes down the road.
  */
-async function geocodePlace(place: string, doFetch: Fetcher): Promise<{ lat: number; lon: number; label: string }> {
+async function geocodePlace(
+  place: string,
+  doFetch: Fetcher
+): Promise<{ lat: number; lon: number; label: string }> {
   const q = `${place}, Ontario, Canada`;
   const url = `${NOMINATIM}?format=json&limit=1&countrycodes=ca&q=${encodeURIComponent(q)}`;
   const controller = new AbortController();
@@ -149,32 +193,47 @@ async function geocodePlace(place: string, doFetch: Fetcher): Promise<{ lat: num
 
   let res: Response;
   try {
-    res = await doFetch(url, {
-      headers: { "User-Agent": USER_AGENT, "Accept-Language": "en" },
-      signal: controller.signal,
-    });
+    res = await throttle(() =>
+      doFetch(url, {
+        headers: { "User-Agent": USER_AGENT, "Accept-Language": "en" },
+        signal: controller.signal,
+      })
+    );
   } catch {
     // Timeout or network. Deliberately not surfaced as "bad postal code" — the
     // customer's input was fine and telling them otherwise would send them
     // hunting for a typo that isn't there.
-    throw new TransportBandError("Geocoding provider unavailable.", "provider_unavailable");
+    throw new TransportBandError(
+      "Geocoding provider unavailable.",
+      "provider_unavailable"
+    );
   } finally {
     clearTimeout(timer);
   }
 
-  if (!res.ok) throw new TransportBandError("Geocoding provider unavailable.", "provider_unavailable");
+  if (!res.ok)
+    throw new TransportBandError(
+      "Geocoding provider unavailable.",
+      "provider_unavailable"
+    );
 
-  const json = (await res.json().catch(() => null)) as
-    | Array<{ lat: string; lon: string; display_name?: string }>
-    | null;
+  const json = (await res.json().catch(() => null)) as Array<{
+    lat: string;
+    lon: string;
+    display_name?: string;
+  }> | null;
   // An empty array now genuinely means "we could not find that town" — unlike
   // the postal query this replaced, which returned empty for every input.
-  if (!json?.length) throw new TransportBandError("We couldn't find that town.", "not_found");
+  if (!json?.length)
+    throw new TransportBandError("We couldn't find that town.", "not_found");
 
   const lat = Number(json[0].lat);
   const lon = Number(json[0].lon);
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-    throw new TransportBandError("Geocoding provider returned no usable location.", "provider_unavailable");
+    throw new TransportBandError(
+      "Geocoding provider returned no usable location.",
+      "provider_unavailable"
+    );
   }
   return { lat, lon, label: shortenPlaceLabel(json[0].display_name ?? place) };
 }
@@ -189,11 +248,14 @@ async function geocodePlace(place: string, doFetch: Fetcher): Promise<{ lat: num
  */
 export async function resolveTransportBand(
   rawPlace: string,
-  doFetch: Fetcher = fetch,
+  doFetch: Fetcher = fetch
 ): Promise<TransportBandResult> {
   const place = normalizePlace(rawPlace);
   if (!place) {
-    throw new TransportBandError("Enter the town or city your boat is in.", "invalid_place");
+    throw new TransportBandError(
+      "Enter the town or city your boat is in.",
+      "invalid_place"
+    );
   }
 
   const key = placeKey(place);

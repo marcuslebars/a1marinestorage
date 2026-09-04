@@ -9,6 +9,12 @@ import { handleQuotePdf, QuotePdfError } from "./quote-pdf-handler";
 import { buildStorageQuoteInput } from "../client/src/lib/quote-items";
 import fs from "fs";
 import { getPageMeta, hasPage, injectMeta, renderSitemap } from "../shared/seo";
+import {
+  pdfLimiter,
+  submissionLimiter,
+  transportBandLimiter,
+} from "./middleware/rate-limit";
+import { isHoneypotTripped } from "./security/honeypot";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,37 +29,66 @@ async function startServer() {
       ? path.resolve(__dirname, "public")
       : path.resolve(__dirname, "..", "dist", "public");
 
+  // Railway terminates TLS upstream, so without this every request looks like it
+  // came from the proxy and one visitor's burst would rate-limit everyone.
+  app.set("trust proxy", 1);
+
   app.use(express.json({ limit: "1mb" }));
 
   // Storage quote submission: server-authoritative pricing, durable log,
   // lead-pipeline forward with retry, graceful failure for the client.
-  app.post("/api/quote", async (req, res) => {
+  app.post("/api/quote", submissionLimiter, async (req, res) => {
     try {
+      // A tripped honeypot gets the success it was fishing for and nothing is
+      // recorded. Telling a bot it failed only teaches the author to fix it.
+      if (isHoneypotTripped(req.body)) {
+        console.log("[quote] honeypot tripped — discarded");
+        res.status(200).json({ ok: true });
+        return;
+      }
       const { status, body } = await handleQuoteSubmission(req.body);
       res.status(status).json(body);
     } catch (err) {
-      console.error("[quote] unhandled error:", err instanceof Error ? err.message : String(err));
-      res.status(500).json({ ok: false, error: "We couldn't record your request. Please try again." });
+      console.error(
+        "[quote] unhandled error:",
+        err instanceof Error ? err.message : String(err)
+      );
+      res.status(500).json({
+        ok: false,
+        error: "We couldn't record your request. Please try again.",
+      });
     }
   });
 
   // Contact submission: durable log + lead-pipeline forward + graceful failure.
-  app.post("/api/contact", async (req, res) => {
+  app.post("/api/contact", submissionLimiter, async (req, res) => {
     try {
+      if (isHoneypotTripped(req.body)) {
+        console.log("[contact] honeypot tripped — discarded");
+        res.status(200).json({ ok: true });
+        return;
+      }
       const { status, body } = await handleContactSubmission(req.body);
       res.status(status).json(body);
     } catch (err) {
-      console.error("[contact] unhandled error:", err instanceof Error ? err.message : String(err));
-      res.status(500).json({ ok: false, error: "We couldn't record your message. Please try again." });
+      console.error(
+        "[contact] unhandled error:",
+        err instanceof Error ? err.message : String(err)
+      );
+      res.status(500).json({
+        ok: false,
+        error: "We couldn't record your message. Please try again.",
+      });
     }
   });
 
   // Downloadable quote PDF. The client sends its SELECTION and the server
   // re-prices through the engine — client totals are never trusted, and the
   // request has nowhere to put a price.
-  app.post("/api/quote/pdf", async (req, res) => {
+  app.post("/api/quote/pdf", pdfLimiter, async (req, res) => {
     try {
-      const proto = (req.headers["x-forwarded-proto"] as string) ?? req.protocol;
+      const proto =
+        (req.headers["x-forwarded-proto"] as string) ?? req.protocol;
       const result = await handleQuotePdf({
         selection: req.body?.selection,
         boat: req.body?.boat,
@@ -68,30 +103,47 @@ async function startServer() {
       if (result.email) {
         void handleQuoteSubmission({
           contact: { name: "", email: result.email, phone: "" },
-          quoteInput: buildStorageQuoteInput(req.body?.selection, req.body?.boat),
+          quoteInput: buildStorageQuoteInput(
+            req.body?.selection,
+            req.body?.boat
+          ),
           meta: {
             site: "a1marinestorage.ca",
             page: "/calculator",
             source: "pdf_download",
             quoteRef: result.reference,
           },
-        }).catch((err) => {
-          console.error("[quote-pdf] lead capture failed (download unaffected):", err instanceof Error ? err.message : err);
+        }).catch(err => {
+          console.error(
+            "[quote-pdf] lead capture failed (download unaffected):",
+            err instanceof Error ? err.message : err
+          );
         });
       }
 
       res.setHeader("Content-Type", "application/pdf");
-      res.setHeader("Content-Disposition", `attachment; filename="${result.filename}"`);
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${result.filename}"`
+      );
       res.setHeader("X-Quote-Reference", result.reference);
       res.send(result.pdf);
     } catch (err) {
       if (err instanceof QuotePdfError) {
         const status = err.code === "invalid_selection" ? 400 : 500;
-        res.status(status).json({ ok: false, code: err.code, error: err.message });
+        res
+          .status(status)
+          .json({ ok: false, code: err.code, error: err.message });
         return;
       }
-      console.error("[quote-pdf] unhandled error:", err instanceof Error ? err.message : String(err));
-      res.status(500).json({ ok: false, error: "We couldn't build your quote PDF. Please try again." });
+      console.error(
+        "[quote-pdf] unhandled error:",
+        err instanceof Error ? err.message : String(err)
+      );
+      res.status(500).json({
+        ok: false,
+        error: "We couldn't build your quote PDF. Please try again.",
+      });
     }
   });
 
@@ -99,7 +151,7 @@ async function startServer() {
   // isn't in the locality list. Server-side because Nominatim requires a real
   // User-Agent and rate limiting, neither enforceable from a browser, and
   // because geocoding from the client would let anyone proxy through the site.
-  app.post("/api/transport/band", async (req, res) => {
+  app.post("/api/transport/band", transportBandLimiter, async (req, res) => {
     // `postalCode` is still read so a browser running a CACHED older bundle gets
     // a clear answer instead of a puzzling failure — it will not resolve, and
     // saying why is better than a bare 404.
@@ -107,20 +159,33 @@ async function startServer() {
       typeof req.body?.place === "string"
         ? req.body.place
         : typeof req.body?.postalCode === "string"
-        ? ""
-        : "";
+          ? ""
+          : "";
     try {
       res.json({ ok: true, ...(await resolveTransportBand(place)) });
     } catch (err) {
       if (err instanceof TransportBandError) {
         // A provider outage is NOT the customer's fault: 503 and a message that
         // sends them to the town list rather than hunting for a typo.
-        const status = err.code === "invalid_place" ? 400 : err.code === "not_found" ? 404 : 503;
-        res.status(status).json({ ok: false, code: err.code, error: err.message });
+        const status =
+          err.code === "invalid_place"
+            ? 400
+            : err.code === "not_found"
+              ? 404
+              : 503;
+        res
+          .status(status)
+          .json({ ok: false, code: err.code, error: err.message });
         return;
       }
-      console.error("[transport] unhandled error:", err instanceof Error ? err.message : String(err));
-      res.status(500).json({ ok: false, error: "We couldn't look that up. Please try again." });
+      console.error(
+        "[transport] unhandled error:",
+        err instanceof Error ? err.message : String(err)
+      );
+      res.status(500).json({
+        ok: false,
+        error: "We couldn't look that up. Please try again.",
+      });
     }
   });
 
@@ -148,16 +213,25 @@ async function startServer() {
   let indexHtmlCache: string | null = null;
   const indexHtml = (): string => {
     if (indexHtmlCache === null) {
-      indexHtmlCache = fs.readFileSync(path.join(staticPath, "index.html"), "utf-8");
+      indexHtmlCache = fs.readFileSync(
+        path.join(staticPath, "index.html"),
+        "utf-8"
+      );
     }
     return indexHtmlCache;
   };
   app.get("*", (req, res) => {
     try {
       const html = injectMeta(indexHtml(), getPageMeta(req.path));
-      res.status(hasPage(req.path) ? 200 : 404).type("html").send(html);
+      res
+        .status(hasPage(req.path) ? 200 : 404)
+        .type("html")
+        .send(html);
     } catch (err) {
-      console.error("[seo] meta injection failed, serving base index.html:", err instanceof Error ? err.message : String(err));
+      console.error(
+        "[seo] meta injection failed, serving base index.html:",
+        err instanceof Error ? err.message : String(err)
+      );
       res.sendFile(path.join(staticPath, "index.html"));
     }
   });
