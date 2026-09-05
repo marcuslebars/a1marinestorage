@@ -8,7 +8,9 @@ import { buildStorageQuoteEnvelope, compactLogistics } from "./empirevu";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const fixture = (name: string) =>
-  JSON.parse(readFileSync(join(here, "__fixtures__", "lead-envelopes", name), "utf8"));
+  JSON.parse(
+    readFileSync(join(here, "__fixtures__", "lead-envelopes", name), "utf8")
+  );
 
 const CONTACT = {
   name: "Pat Quinn",
@@ -37,9 +39,21 @@ describe("logistics envelopes match their fixtures (drift guard)", () => {
         lineItems: [{ detail: { lengthFt: 24 } }, { detail: {} }],
       },
       jobberLineItems: [
-        { description: "Outdoor winter storage — 24ft", quantity: 1, unitPriceCents: 120000 },
-        { description: "Transport — local (fall pickup)", quantity: 1, unitPriceCents: 15000 },
-        { description: "Transport — local (spring delivery)", quantity: 1, unitPriceCents: 15000 },
+        {
+          description: "Outdoor winter storage — 24ft",
+          quantity: 1,
+          unitPriceCents: 120000,
+        },
+        {
+          description: "Transport — local (fall pickup)",
+          quantity: 1,
+          unitPriceCents: 15000,
+        },
+        {
+          description: "Transport — local (spring delivery)",
+          quantity: 1,
+          unitPriceCents: 15000,
+        },
       ],
       logistics: {
         boatLocation: "home_trailer",
@@ -59,10 +73,23 @@ describe("logistics envelopes match their fixtures (drift guard)", () => {
       id: "q-extended",
       receivedAt: "2026-09-02T14:05:00.000Z",
       contact: CONTACT,
-      quote: { hullType: null, subtotalCents: 157500, bundle: null, lineItems: [{ detail: { lengthFt: 22 } }] },
+      quote: {
+        hullType: null,
+        subtotalCents: 157500,
+        bundle: null,
+        lineItems: [{ detail: { lengthFt: 22 } }],
+      },
       jobberLineItems: [
-        { description: "Outdoor winter storage — 22ft", quantity: 1, unitPriceCents: 110000 },
-        { description: "Transport — extended (spring delivery)", quantity: 1, unitPriceCents: 37500 },
+        {
+          description: "Outdoor winter storage — 22ft",
+          quantity: 1,
+          unitPriceCents: 110000,
+        },
+        {
+          description: "Transport — extended (spring delivery)",
+          quantity: 1,
+          unitPriceCents: 37500,
+        },
       ],
       logistics: {
         boatLocation: "marina_ramp",
@@ -74,7 +101,9 @@ describe("logistics envelopes match their fixtures (drift guard)", () => {
         delivery: true,
       },
     });
-    expect(env).toEqual(fixture("storage-quote-transport-extended-delivery-only.json"));
+    expect(env).toEqual(
+      fixture("storage-quote-transport-extended-delivery-only.json")
+    );
   });
 
   it("trailer provided with no transport at all", () => {
@@ -82,12 +111,29 @@ describe("logistics envelopes match their fixtures (drift guard)", () => {
       id: "q-trailer",
       receivedAt: "2026-09-02T14:10:00.000Z",
       contact: CONTACT,
-      quote: { hullType: null, subtotalCents: 140000, bundle: null, lineItems: [{ detail: { lengthFt: 24 } }] },
+      quote: {
+        hullType: null,
+        subtotalCents: 140000,
+        bundle: null,
+        lineItems: [{ detail: { lengthFt: 24 } }],
+      },
       jobberLineItems: [
-        { description: "Outdoor winter storage — 24ft", quantity: 1, unitPriceCents: 120000 },
-        { description: "Trailer storage (season)", quantity: 1, unitPriceCents: 20000 },
+        {
+          description: "Outdoor winter storage — 24ft",
+          quantity: 1,
+          unitPriceCents: 120000,
+        },
+        {
+          description: "Trailer storage (season)",
+          quantity: 1,
+          unitPriceCents: 20000,
+        },
       ],
-      logistics: { boatLocation: "self_transport", trailerProvided: true, batteryCount: 2 },
+      logistics: {
+        boatLocation: "self_transport",
+        trailerProvided: true,
+        batteryCount: 2,
+      },
     });
     expect(env).toEqual(fixture("storage-quote-trailer-no-transport.json"));
   });
@@ -97,9 +143,18 @@ describe("logistics envelopes match their fixtures (drift guard)", () => {
       id: "q-beyond",
       receivedAt: "2026-09-02T14:15:00.000Z",
       contact: CONTACT,
-      quote: { hullType: null, subtotalCents: 120000, bundle: null, lineItems: [{ detail: { lengthFt: 24 } }] },
+      quote: {
+        hullType: null,
+        subtotalCents: 120000,
+        bundle: null,
+        lineItems: [{ detail: { lengthFt: 24 } }],
+      },
       jobberLineItems: [
-        { description: "Outdoor winter storage — 24ft", quantity: 1, unitPriceCents: 120000 },
+        {
+          description: "Outdoor winter storage — 24ft",
+          quantity: 1,
+          unitPriceCents: 120000,
+        },
       ],
       logistics: {
         boatLocation: "lift_or_water",
@@ -116,8 +171,12 @@ describe("logistics envelopes match their fixtures (drift guard)", () => {
 
     // The band rides along so the follow-up knows to price it by hand, but no
     // transport line is billed — quoting one would invent a rate.
-    expect(env.lineItems?.some((l) => /transport/i.test(l.description))).toBe(false);
-    expect((env.meta as Record<string, never>).logistics).toMatchObject({ transportBand: "beyond" });
+    expect(env.lineItems?.some(l => /transport/i.test(l.description))).toBe(
+      false
+    );
+    expect((env.meta as Record<string, never>).logistics).toMatchObject({
+      transportBand: "beyond",
+    });
   });
 });
 
@@ -144,8 +203,16 @@ describe("absent logistics changes nothing", () => {
     },
     jobberLineItems: [
       { description: "Shrink Wrap (24ft)", quantity: 1, unitPriceCents: 41400 },
-      { description: "Pontoon hull surcharge", quantity: 1, unitPriceCents: 5000 },
-      { description: "Winterization — I/O", quantity: 1, unitPriceCents: 27500 },
+      {
+        description: "Pontoon hull surcharge",
+        quantity: 1,
+        unitPriceCents: 5000,
+      },
+      {
+        description: "Winterization — I/O",
+        quantity: 1,
+        unitPriceCents: 27500,
+      },
     ],
     utm: { utm_source: "google", utm_campaign: "fall-storage" },
   };
@@ -153,13 +220,17 @@ describe("absent logistics changes nothing", () => {
   it("omitting logistics is byte-identical to the pre-existing golden fixture", () => {
     const env = buildStorageQuoteEnvelope(baseInput);
     expect(env).toEqual(fixture("storage-quote.json"));
-    expect(JSON.stringify(env)).toBe(JSON.stringify(fixture("storage-quote.json")));
+    expect(JSON.stringify(env)).toBe(
+      JSON.stringify(fixture("storage-quote.json"))
+    );
   });
 
   it("passing an empty logistics object also drops the key entirely", () => {
     const env = buildStorageQuoteEnvelope({ ...baseInput, logistics: {} });
     expect((env.meta as Record<string, unknown>).logistics).toBeUndefined();
-    expect(JSON.stringify(env)).toBe(JSON.stringify(fixture("storage-quote.json")));
+    expect(JSON.stringify(env)).toBe(
+      JSON.stringify(fixture("storage-quote.json"))
+    );
   });
 });
 
@@ -167,7 +238,9 @@ describe("compactLogistics", () => {
   it("drops undefined but KEEPS false", () => {
     // pickup:false is a real choice — the customer tows it in, we deliver in
     // spring. Dropping it would read as "no transport".
-    expect(compactLogistics({ pickup: false, delivery: true, town: undefined })).toEqual({
+    expect(
+      compactLogistics({ pickup: false, delivery: true, town: undefined })
+    ).toEqual({
       pickup: false,
       delivery: true,
     });
@@ -188,5 +261,73 @@ describe("compactLogistics", () => {
   it("keeps a zero count rather than mistaking it for unset", () => {
     // 0 batteries is not the same as "didn't answer", and compact() keeps 0.
     expect(compactLogistics({ batteryCount: 0 })).toEqual({ batteryCount: 0 });
+  });
+});
+
+/**
+ * preferredDate / preferredTime have been declared on LeadEnvelope.meta since
+ * schemaVersion 1 and were NEVER populated — the calculator had nowhere to ask
+ * the question. Phase 3b adds the "When?" section, so they now carry real
+ * values, and this fixture is the deliberate record of that.
+ *
+ * The five existing fixtures are untouched: both fields compact away when the
+ * customer skips the question, so a quote without dates serialises exactly as
+ * it always has.
+ */
+describe("the when fields, now that something fills them", () => {
+  it("carries the drop-off Monday and the launch window", () => {
+    const env = buildStorageQuoteEnvelope({
+      id: "q-when",
+      receivedAt: "2026-09-02T14:10:00.000Z",
+      contact: { ...CONTACT, phone: "+17055550142" },
+      quote: {
+        hullType: null,
+        subtotalCents: 237500,
+        bundle: { label: "Winter Ready Plus" },
+        lineItems: [{ detail: { lengthFt: 24 } }, { detail: {} }],
+      },
+      jobberLineItems: [
+        {
+          description: "Outdoor winter storage — 24ft",
+          quantity: 1,
+          unitPriceCents: 120000,
+        },
+        {
+          description: "Transport — local (fall pickup)",
+          quantity: 1,
+          unitPriceCents: 15000,
+        },
+      ],
+      logistics: {
+        boatLocation: "home_trailer",
+        town: "midland",
+        transportBand: "local",
+        distanceKm: 18,
+        bandResolution: "locality",
+        pickup: true,
+        delivery: false,
+      },
+      preferredDate: "2026-09-21",
+      preferredTime: "early_may",
+    });
+    expect(env).toEqual(fixture("storage-quote-when.json"));
+  });
+
+  it("drops both when the customer skipped the question", () => {
+    const env = buildStorageQuoteEnvelope({
+      id: "q-no-when",
+      receivedAt: "2026-09-02T14:10:00.000Z",
+      contact: CONTACT,
+      quote: {
+        hullType: null,
+        subtotalCents: 237500,
+        bundle: { label: "Winter Ready Plus" },
+        lineItems: [{ detail: { lengthFt: 24 } }],
+      },
+      jobberLineItems: [],
+    });
+    const meta = env.meta as Record<string, unknown>;
+    expect("preferredDate" in meta).toBe(false);
+    expect("preferredTime" in meta).toBe(false);
   });
 });
