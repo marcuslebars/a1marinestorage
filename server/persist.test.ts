@@ -150,3 +150,53 @@ describe("the honeypot is enforced by the HANDLER, not the route", () => {
     expect(linesFor("contacts")).toHaveLength(1);
   });
 });
+
+describe("contacts are normalised before anything stores them", () => {
+  // The golden fixtures call buildStorageQuoteEnvelope directly, so they pin
+  // the BUILDER's output and say nothing about what the handler feeds it. This
+  // is the part that was actually wrong: a phone typed as "(705) 555-1234" was
+  // stored verbatim and was then unsendable by SMS, because sms-twilio.ts only
+  // sends to +1 followed by ten digits.
+  it("stores a quote contact in E.164, lowercased, whitespace collapsed", async () => {
+    const res = await handleQuoteSubmission({
+      ...QUOTE_BODY,
+      contact: {
+        name: "  Dana   Reeve ",
+        email: "  Dana@Example.COM ",
+        phone: "(705) 555-0134",
+      },
+    });
+    expect(res.status).toBe(200);
+
+    const row = linesFor("quotes")[0] as { contact: Record<string, string> };
+    expect(row.contact.name).toBe("Dana Reeve");
+    expect(row.contact.email).toBe("dana@example.com");
+    expect(row.contact.phone).toBe("+17055550134");
+    // The exact shape the SMS channel will accept.
+    expect(row.contact.phone).toMatch(/^\+1[2-9]\d{9}$/);
+  });
+
+  it("does the same for a contact submission, so one person is one person", async () => {
+    await handleContactSubmission({
+      name: "Dana  Reeve",
+      email: "DANA@example.com",
+      phone: "705.555.0134",
+    });
+    const row = linesFor("contacts")[0] as { contact: Record<string, string> };
+    expect(row.contact.email).toBe("dana@example.com");
+    expect(row.contact.phone).toBe("+17055550134");
+  });
+
+  it("still accepts — and keeps — a number it could not parse", async () => {
+    // Unparseable is not the same as unusable: a human can dial it. Dropping
+    // the lead over formatting would be worse than storing it as typed.
+    const res = await handleContactSubmission({
+      name: "Dana Reeve",
+      email: "dana@example.com",
+      phone: "705 555 0134 ext 22",
+    });
+    expect(res.status).toBe(200);
+    const row = linesFor("contacts")[0] as { contact: Record<string, string> };
+    expect(row.contact.phone).toContain("705");
+  });
+});

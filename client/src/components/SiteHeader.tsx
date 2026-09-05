@@ -10,7 +10,7 @@ const navLinks = [
   { href: "/", label: "Home" },
   { href: "/services", label: "Services" },
   { href: "/pricing", label: "Pricing" },
-  { href: "/calculator", label: "Get a Quote" },
+  { href: "/calculator", label: "Get My Quote" },
   { href: "/facility", label: "Facility" },
   { href: "/contact", label: "Contact" },
 ];
@@ -52,17 +52,18 @@ export function SiteHeader() {
 
         {/* Desktop Nav */}
         <nav className="hidden items-center gap-6 md:flex">
-          {navLinks.map((item) => {
-            const isActive = item.href === "/" ? location === "/" : location.startsWith(item.href);
+          {navLinks.map(item => {
+            const isActive =
+              item.href === "/"
+                ? location === "/"
+                : location.startsWith(item.href);
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
                   "text-sm font-medium transition-colors duration-200 hover:text-[oklch(0.6_0.2_27)]",
-                  isActive
-                    ? "text-[oklch(0.6_0.2_27)]"
-                    : "text-white/70"
+                  isActive ? "text-[oklch(0.6_0.2_27)]" : "text-white/70"
                 )}
               >
                 {item.label}
@@ -78,7 +79,7 @@ export function SiteHeader() {
             asChild
             className="bg-[oklch(0.6_0.2_27)] text-[oklch(0.12_0.018_240)] font-semibold hover:bg-[oklch(0.53_0.2_27)] btn-brand-glow active:scale-[0.97] transition-all duration-150"
           >
-            <Link href="/calculator">Get Storage Quote</Link>
+            <Link href="/calculator">Get My Quote</Link>
           </Button>
         </div>
 
@@ -87,7 +88,7 @@ export function SiteHeader() {
           type="button"
           className="inline-flex md:hidden text-white/80 hover:text-white transition-colors"
           aria-label="Toggle menu"
-          onClick={() => setOpen((prev) => !prev)}
+          onClick={() => setOpen(prev => !prev)}
         >
           {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
@@ -97,8 +98,11 @@ export function SiteHeader() {
       {open && (
         <div className="border-t border-white/10 bg-[oklch(0.12_0.018_240)]/98 backdrop-blur-xl md:hidden">
           <nav className="container flex flex-col gap-1 py-4 max-w-7xl mx-auto">
-            {navLinks.map((item) => {
-              const isActive = item.href === "/" ? location === "/" : location.startsWith(item.href);
+            {navLinks.map(item => {
+              const isActive =
+                item.href === "/"
+                  ? location === "/"
+                  : location.startsWith(item.href);
               return (
                 <Link
                   key={item.href}
@@ -119,7 +123,7 @@ export function SiteHeader() {
                 asChild
                 className="w-full bg-[oklch(0.6_0.2_27)] text-[oklch(0.12_0.018_240)] font-semibold hover:bg-[oklch(0.53_0.2_27)]"
               >
-                <Link href="/calculator">Get Storage Quote</Link>
+                <Link href="/calculator">Get My Quote</Link>
               </Button>
             </div>
           </nav>

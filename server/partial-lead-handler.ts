@@ -33,6 +33,7 @@ import { SOURCE_SITE, forwardToLeadPipeline } from "./lead-pipeline";
 import { notify } from "./notify/notify";
 import { renderPdfCopyEmail } from "./notify/templates/pdf-copy";
 import { persistLead } from "./persist";
+import { normalizeEmail } from "./normalize";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -75,7 +76,9 @@ export async function handlePartialQuoteLead(
   input: PartialQuoteLead
 ): Promise<PartialLeadResult> {
   try {
-    const email = String(input.email ?? "").trim();
+    // Lowercased like everywhere else, so the same person downloading a quote
+    // and later submitting one is one row's worth of person, not two.
+    const email = normalizeEmail(input.email);
     if (!EMAIL_RE.test(email)) {
       // Not an error worth alarming about: the field is optional, and someone
       // typing half an address is the expected case.
