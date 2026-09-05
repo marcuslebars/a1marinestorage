@@ -12,7 +12,15 @@
  * Server-side only. @react-pdf/renderer is heavy and has no business in the
  * client bundle; the browser gets a download, not a rendering engine.
  */
-import { Document, Image, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
+import {
+  Document,
+  Image,
+  Page,
+  StyleSheet,
+  Text,
+  View,
+  renderToBuffer,
+} from "@react-pdf/renderer";
 import React from "react";
 
 import { engineLabel, money, type QuoteModel } from "../shared/quote-model";
@@ -44,13 +52,21 @@ const styles = StyleSheet.create({
     fontFamily: "Helvetica",
     color: "#111111",
   },
-  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
   logo: { height: 34, width: 120, objectFit: "contain" },
   wordmark: { fontSize: 15, fontFamily: "Helvetica-Bold" },
   headerRight: { textAlign: "right" },
   docTitle: { fontSize: 17, fontFamily: "Helvetica-Bold", marginTop: 18 },
   muted: { color: "#666666" },
-  rule: { borderBottomWidth: 1, borderBottomColor: "#E4E4E4", marginVertical: 12 },
+  rule: {
+    borderBottomWidth: 1,
+    borderBottomColor: "#E4E4E4",
+    marginVertical: 12,
+  },
 
   sectionTitle: {
     fontSize: 8,
@@ -77,13 +93,26 @@ const styles = StyleSheet.create({
   lineDesc: { fontSize: 8, color: "#666666", marginTop: 1.5 },
   lineAmount: { width: 78, textAlign: "right" },
 
-  totalRow: { flexDirection: "row", justifyContent: "flex-end", paddingVertical: 2.5 },
+  totalRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    paddingVertical: 2.5,
+  },
   totalLabel: { width: 150, textAlign: "right", paddingRight: 12 },
   totalValue: { width: 78, textAlign: "right" },
   bold: { fontFamily: "Helvetica-Bold" },
 
-  depositBox: { marginTop: 12, padding: 12, backgroundColor: "#F7F7F7", borderRadius: 4 },
-  depositRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  depositBox: {
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: "#F7F7F7",
+    borderRadius: 4,
+  },
+  depositRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
 
   notice: {
     marginTop: 10,
@@ -118,19 +147,37 @@ function Fact({ label, value }: { label: string; value: string }) {
   );
 }
 
-function LineRow({ label, description, amount }: { label: string; description?: string; amount: string }) {
+function LineRow({
+  label,
+  description,
+  amount,
+}: {
+  label: string;
+  description?: string;
+  amount: string;
+}) {
   return (
     <View style={styles.lineRow} wrap={false}>
       <View style={styles.lineMain}>
         <Text style={styles.lineLabel}>{label}</Text>
-        {description && description !== label ? <Text style={styles.lineDesc}>{description}</Text> : null}
+        {description && description !== label ? (
+          <Text style={styles.lineDesc}>{description}</Text>
+        ) : null}
       </View>
       <Text style={styles.lineAmount}>{amount}</Text>
     </View>
   );
 }
 
-function TotalRow({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
+function TotalRow({
+  label,
+  value,
+  bold,
+}: {
+  label: string;
+  value: string;
+  bold?: boolean;
+}) {
   const s = bold ? [styles.bold] : [];
   return (
     <View style={styles.totalRow}>
@@ -141,40 +188,66 @@ function TotalRow({ label, value, bold }: { label: string; value: string; bold?:
 }
 
 const longDate = (iso: string) =>
-  new Date(iso).toLocaleDateString("en-CA", { year: "numeric", month: "long", day: "numeric" });
+  new Date(iso).toLocaleDateString("en-CA", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 
-export function QuoteDocument({ model, brand }: { model: QuoteModel; brand: PdfBrand }) {
-  const bundled = model.lines.filter((l) => !l.outsideBundle);
-  const extras = model.lines.filter((l) => l.outsideBundle);
+export function QuoteDocument({
+  model,
+  brand,
+}: {
+  model: QuoteModel;
+  brand: PdfBrand;
+}) {
+  const bundled = model.lines.filter(l => !l.outsideBundle);
+  const extras = model.lines.filter(l => l.outsideBundle);
   const log = model.logistics;
   const depositPct = Math.round(model.depositRateBps / 100);
   const taxPct = Math.round(model.taxRateBps / 100);
 
   return (
-    <Document title={`Winter Storage Quote ${model.reference}`} author={brand.businessName}>
+    <Document
+      title={`Winter Storage Quote ${model.reference}`}
+      author={brand.businessName}
+    >
       <Page size="LETTER" style={styles.page}>
         <View style={styles.headerRow} fixed>
           {brand.logo ? (
             <Image style={styles.logo} src={brand.logo} />
           ) : (
-            <Text style={[styles.wordmark, { color: brand.primaryColor }]}>{brand.businessName}</Text>
+            <Text style={[styles.wordmark, { color: brand.primaryColor }]}>
+              {brand.businessName}
+            </Text>
           )}
           <View style={styles.headerRight}>
             <Text style={styles.muted}>Quote reference</Text>
             <Text style={styles.bold}>{model.reference}</Text>
-            <Text style={[styles.muted, { marginTop: 3 }]}>{longDate(model.issuedAt)}</Text>
+            <Text style={[styles.muted, { marginTop: 3 }]}>
+              {longDate(model.issuedAt)}
+            </Text>
           </View>
         </View>
 
-        <Text style={[styles.docTitle, { color: brand.darkColor }]}>Winter Storage Quote</Text>
+        <Text style={[styles.docTitle, { color: brand.darkColor }]}>
+          Winter Storage Quote
+        </Text>
         <View style={styles.rule} />
 
         <Text style={styles.sectionTitle}>Your boat</Text>
         <View style={styles.factGrid}>
           <Fact label="Length" value={`${model.boat.lengthFt} ft`} />
-          <Fact label="Engine" value={engineLabel(model.boat.engineType, model.boat.engineCount)} />
-          {model.boat.hullType ? <Fact label="Hull" value={model.boat.hullType} /> : null}
-          {model.packageLabel ? <Fact label="Package" value={model.packageLabel} /> : null}
+          <Fact
+            label="Engine"
+            value={engineLabel(model.boat.engineType, model.boat.engineCount)}
+          />
+          {model.boat.hullType ? (
+            <Fact label="Hull" value={model.boat.hullType} />
+          ) : null}
+          {model.packageLabel ? (
+            <Fact label="Package" value={model.packageLabel} />
+          ) : null}
         </View>
 
         <View style={styles.rule} />
@@ -183,12 +256,19 @@ export function QuoteDocument({ model, brand }: { model: QuoteModel; brand: PdfB
           {model.packageLabel ? `${model.packageLabel} package` : "Services"}
         </Text>
         {bundled.map((l, i) => (
-          <LineRow key={`b${i}`} label={l.label} description={l.description} amount={money(l.amountCents)} />
+          <LineRow
+            key={`b${i}`}
+            label={l.label}
+            description={l.description}
+            amount={money(l.amountCents)}
+          />
         ))}
 
         {model.bundleSavingsCents > 0 ? (
           <View style={styles.totalRow}>
-            <Text style={[styles.totalLabel, { color: brand.primaryColor }]}>Package saving</Text>
+            <Text style={[styles.totalLabel, { color: brand.primaryColor }]}>
+              Package saving
+            </Text>
             <Text style={[styles.totalValue, { color: brand.primaryColor }]}>
               −{money(model.bundleSavingsCents)}
             </Text>
@@ -197,7 +277,9 @@ export function QuoteDocument({ model, brand }: { model: QuoteModel; brand: PdfB
 
         {extras.length > 0 ? (
           <View style={{ marginTop: 14 }}>
-            <Text style={styles.sectionTitle}>Transport, trailer &amp; add-ons</Text>
+            <Text style={styles.sectionTitle}>
+              Transport, trailer &amp; add-ons
+            </Text>
             {/* Stated plainly, the same way the on-screen panel does: these sit
                 outside the package discount, and a customer should not have to
                 infer that from the arithmetic. */}
@@ -205,42 +287,82 @@ export function QuoteDocument({ model, brand }: { model: QuoteModel; brand: PdfB
               Not included in the package discount.
             </Text>
             {extras.map((l, i) => (
-              <LineRow key={`x${i}`} label={l.label} description={l.description} amount={money(l.amountCents)} />
+              <LineRow
+                key={`x${i}`}
+                label={l.label}
+                description={l.description}
+                amount={money(l.amountCents)}
+              />
             ))}
           </View>
         ) : null}
 
         {log ? (
           <View style={{ marginTop: 14 }} wrap={false}>
-            <Text style={styles.sectionTitle}>Getting your boat to us — and back</Text>
+            <Text style={styles.sectionTitle}>
+              Getting your boat to us — and back
+            </Text>
             <View style={styles.factGrid}>
               <Fact label="Boat is" value={log.locationLabel} />
-              {log.townLabel ? <Fact label="From" value={log.townLabel} /> : null}
+              {log.townLabel ? (
+                <Fact label="From" value={log.townLabel} />
+              ) : null}
               {log.bandLabel ? (
                 <Fact
                   label="Transport band"
-                  value={log.bandRange ? `${log.bandLabel} · ${log.bandRange}` : log.bandLabel}
+                  value={
+                    log.bandRange
+                      ? `${log.bandLabel} · ${log.bandRange}`
+                      : log.bandLabel
+                  }
                 />
               ) : null}
               {log.distanceKm != null ? (
-                <Fact label="Distance" value={`${log.distanceKm} km${log.estimated ? " (est.)" : ""}`} />
+                <Fact
+                  label="Distance"
+                  value={`${log.distanceKm} km${log.estimated ? " (est.)" : ""}`}
+                />
               ) : null}
             </View>
             <Text style={[styles.muted, { fontSize: 8 }]}>
-              Distance measured one-way from our yard. Final band confirmed at booking.
+              Distance measured one-way from our yard. Final band confirmed at
+              booking.
             </Text>
 
             {log.customTransportQuote ? (
               <Text style={styles.notice}>
-                You&apos;re beyond our furthest standard band, so transport isn&apos;t priced here — we&apos;ll
-                confirm a custom rate with your quote.
+                You&apos;re beyond our furthest standard band, so transport
+                isn&apos;t priced here — we&apos;ll confirm a custom rate with
+                your quote.
               </Text>
             ) : null}
             {log.inWaterNotice ? (
               <Text style={styles.notice}>
-                In-water pickups need a haul-out plan — we&apos;ll confirm logistics with your quote.
+                In-water pickups need a haul-out plan — we&apos;ll confirm
+                logistics with your quote.
               </Text>
             ) : null}
+          </View>
+        ) : null}
+
+        {/* The dates the customer asked for. Shown as REQUESTED, not booked —
+            nothing is held until we confirm, and a PDF that reads like a
+            confirmed slot would be the exact promise this codebase avoids. */}
+        {model.preferredDropoff || model.preferredLaunch ? (
+          <View style={{ marginTop: 14 }} wrap={false}>
+            <Text style={styles.sectionTitle}>Dates you asked for</Text>
+            <View style={styles.factGrid}>
+              {model.preferredDropoff ? (
+                <Fact label="Fall drop-off" value={model.preferredDropoff} />
+              ) : null}
+              {model.preferredLaunch ? (
+                <Fact label="Spring launch" value={model.preferredLaunch} />
+              ) : null}
+            </View>
+            <Text style={[styles.muted, { fontSize: 8 }]}>
+              Requested, not reserved — we&apos;ll confirm availability when we
+              get back to you.
+            </Text>
           </View>
         ) : null}
 
@@ -252,8 +374,12 @@ export function QuoteDocument({ model, brand }: { model: QuoteModel; brand: PdfB
 
         <View style={styles.depositBox} wrap={false}>
           <View style={styles.depositRow}>
-            <Text style={styles.bold}>{depositPct}% deposit reserves your spot</Text>
-            <Text style={[styles.bold, { fontSize: 14, color: brand.primaryColor }]}>
+            <Text style={styles.bold}>
+              {depositPct}% deposit reserves your spot
+            </Text>
+            <Text
+              style={[styles.bold, { fontSize: 14, color: brand.primaryColor }]}
+            >
               {money(model.depositCents)}
             </Text>
           </View>
@@ -265,11 +391,21 @@ export function QuoteDocument({ model, brand }: { model: QuoteModel; brand: PdfB
         <View style={{ marginTop: 14 }} wrap={false}>
           <Text style={styles.sectionTitle}>Good to know</Text>
           <Text style={{ fontSize: 8.5, color: "#444444", lineHeight: 1.5 }}>
-            Estimate valid 30 days; final pricing confirmed after an on-site check. Prices in CAD and
-            include HST where shown.
+            Estimate valid 30 days; final pricing confirmed after an on-site
+            check. Prices in CAD and include HST where shown.
           </Text>
-          <Text style={{ fontSize: 8.5, color: "#444444", lineHeight: 1.5, marginTop: 6 }}>
-            To book: {model.resumeUrl ? `continue online at ${model.resumeUrl}, or call ` : "call "}
+          <Text
+            style={{
+              fontSize: 8.5,
+              color: "#444444",
+              lineHeight: 1.5,
+              marginTop: 6,
+            }}
+          >
+            To book:{" "}
+            {model.resumeUrl
+              ? `continue online at ${model.resumeUrl}, or call `
+              : "call "}
             {brand.phone}.
           </Text>
         </View>
@@ -280,7 +416,9 @@ export function QuoteDocument({ model, brand }: { model: QuoteModel; brand: PdfB
           </Text>
           <Text
             render={({ pageNumber, totalPages }) =>
-              totalPages > 1 ? `${brand.website} · ${pageNumber}/${totalPages}` : brand.website
+              totalPages > 1
+                ? `${brand.website} · ${pageNumber}/${totalPages}`
+                : brand.website
             }
           />
         </View>
@@ -290,6 +428,9 @@ export function QuoteDocument({ model, brand }: { model: QuoteModel; brand: PdfB
 }
 
 /** Render the quote to a PDF buffer. Pure: same model in, same bytes out. */
-export function renderQuotePdf(model: QuoteModel, brand: PdfBrand): Promise<Buffer> {
+export function renderQuotePdf(
+  model: QuoteModel,
+  brand: PdfBrand
+): Promise<Buffer> {
   return renderToBuffer(<QuoteDocument model={model} brand={brand} />);
 }

@@ -5,8 +5,21 @@
 // updates this page automatically and it can never contradict the calculator.
 // SEO: "boat storage pricing Ontario", "shrink wrapping cost per foot", "boat winterization price Georgian Bay"
 import { Link } from "wouter";
-import { ArrowRight, Info, Shield, Snowflake, Wrench, Anchor, Sun, Sparkles, BatteryCharging, Truck, Scissors } from "lucide-react";
+import {
+  ArrowRight,
+  Info,
+  Shield,
+  Snowflake,
+  Wrench,
+  Anchor,
+  Sun,
+  Sparkles,
+  BatteryCharging,
+  Truck,
+  Scissors,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SpotsLeft } from "@/components/SpotsLeft";
 import { track } from "@/lib/analytics";
 import {
   RATES,
@@ -36,13 +49,15 @@ function RateTable({ columns, rows }: { columns: string[]; rows: string[][] }) {
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
+          {rows.map(row => (
             <tr key={row[0]} className="border-b border-white/5 last:border-0">
               {row.map((cell, j) => (
                 <td
                   key={j}
                   className={`px-4 py-3 text-sm ${
-                    j === 0 ? "font-medium text-white/80" : "text-right tabular-nums text-white"
+                    j === 0
+                      ? "font-medium text-white/80"
+                      : "text-right tabular-nums text-white"
                   }`}
                 >
                   {cell}
@@ -56,14 +71,23 @@ function RateTable({ columns, rows }: { columns: string[]; rows: string[][] }) {
   );
 }
 
-function QuoteCTA({ position, label = "Get My Instant Quote" }: { position: "hero" | "bottom"; label?: string }) {
+function QuoteCTA({
+  position,
+  label = "Get My Instant Quote",
+}: {
+  position: "hero" | "bottom";
+  label?: string;
+}) {
   return (
     <Button
       asChild
       size="lg"
       className="h-14 px-10 text-base font-semibold bg-[oklch(0.6_0.2_27)] text-[oklch(0.12_0.018_240)] hover:bg-[oklch(0.53_0.2_27)] btn-brand-glow active:scale-[0.97] transition-all duration-150"
     >
-      <Link href="/calculator" onClick={() => track("quote_cta_click", { position })}>
+      <Link
+        href="/calculator"
+        onClick={() => track("quote_cta_click", { position })}
+      >
         {label}
         <ArrowRight className="ml-2 h-5 w-5" />
       </Link>
@@ -86,7 +110,10 @@ function SectionHeading({
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[oklch(0.6_0.2_27)/10]">
           <Icon className="h-5 w-5 text-[oklch(0.6_0.2_27)]" />
         </div>
-        <h2 className="text-3xl font-black text-white md:text-4xl" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+        <h2
+          className="text-3xl font-black text-white md:text-4xl"
+          style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
+        >
           {title}
         </h2>
       </div>
@@ -98,13 +125,31 @@ function SectionHeading({
 }
 
 export default function Pricing() {
-  const outdoorRows = perFootBrackets("outdoor_storage").map((b) => [b.length, b.rate]);
-  const shrinkRows = perFootBrackets("shrink_wrap").map((b) => [b.length, b.rate]);
-  const winterRows = WINTERIZATION.map((w) => [w.label, w.price, `+${w.additional}`]);
+  const outdoorRows = perFootBrackets("outdoor_storage").map(b => [
+    b.length,
+    b.rate,
+  ]);
+  const shrinkRows = perFootBrackets("shrink_wrap").map(b => [
+    b.length,
+    b.rate,
+  ]);
+  const winterRows = WINTERIZATION.map(w => [
+    w.label,
+    w.price,
+    `+${w.additional}`,
+  ]);
   const bundleRows: string[][] = [
     ["Winter Ready", "Storage + Shrink Wrap", `${BUNDLE_PCT.winterReady}%`],
-    ["Winter Ready Plus", "Storage + Shrink Wrap + Winterization", `${BUNDLE_PCT.winterReadyPlus}%`],
-    ["Full Care", "Storage + Wrap + Winterization + Fall Detail + Spring Commissioning", `${BUNDLE_PCT.fullCare}%`],
+    [
+      "Winter Ready Plus",
+      "Storage + Shrink Wrap + Winterization",
+      `${BUNDLE_PCT.winterReadyPlus}%`,
+    ],
+    [
+      "Full Care",
+      "Storage + Wrap + Winterization + Fall Detail + Spring Commissioning",
+      `${BUNDLE_PCT.fullCare}%`,
+    ],
   ];
   const ex = workedExample();
 
@@ -162,19 +207,30 @@ export default function Pricing() {
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.6_0.2_27)] mb-4">
             Transparent Pricing
           </p>
-          <h1 className="text-5xl font-black text-white md:text-6xl" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
-            Straightforward storage pricing.<br />No surprises in spring.
+          <h1
+            className="text-5xl font-black text-white md:text-6xl"
+            style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
+          >
+            Straightforward storage pricing.
+            <br />
+            No surprises in spring.
           </h1>
           <p className="mt-6 max-w-2xl mx-auto text-base text-white/60 md:text-lg">
-            Every price below is the real number — calculated per foot, the same math our instant quote tool uses. Build your
-            exact quote in under a minute, or read on for the full breakdown.
+            Every price below is the real number — calculated per foot, the same
+            math our instant quote tool uses. Build your exact quote in under a
+            minute, or read on for the full breakdown.
           </p>
-          <div className="mt-8 flex justify-center">
+          <div className="mt-6 flex justify-center">
+            <SpotsLeft />
+          </div>
+          <div className="mt-4 flex justify-center">
             <QuoteCTA position="hero" />
           </div>
           <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2">
             <Info className="h-4 w-4 text-[oklch(0.6_0.2_27)]" />
-            <p className="text-sm text-white/60">All prices in CAD. HST applies.</p>
+            <p className="text-sm text-white/60">
+              All prices in CAD. HST applies.
+            </p>
           </div>
         </div>
       </section>
@@ -182,14 +238,24 @@ export default function Pricing() {
       {/* Outdoor Winter Storage */}
       <section className="section-space">
         <div className="container max-w-4xl mx-auto">
-          <SectionHeading icon={Shield} title="Outdoor Winter Storage" rate={`${RATES.outdoorPerFoot}/ft`} />
+          <SectionHeading
+            icon={Shield}
+            title="Outdoor Winter Storage"
+            rate={`${RATES.outdoorPerFoot}/ft`}
+          />
           <p className="text-base text-white/65 leading-relaxed mb-6 max-w-2xl">
-            Secure seasonal storage at our Tiny, ON yard, October through April — minutes from Georgian Bay. Your boat is
-            professionally positioned on its trailer or stand with planned spring access, monitored throughout the winter.
+            Secure seasonal storage at our Tiny, ON yard, October through April
+            — minutes from Georgian Bay. Your boat is professionally positioned
+            on its trailer or stand with planned spring access, monitored
+            throughout the winter.
           </p>
-          <RateTable columns={["Boat length", "Season rate"]} rows={outdoorRows} />
+          <RateTable
+            columns={["Boat length", "Season rate"]}
+            rows={outdoorRows}
+          />
           <p className="mt-3 text-sm text-white/45">
-            Minimum {RATES.outdoorMin}. Boats over 32 ft priced individually — use the quote tool or call.
+            Minimum {RATES.outdoorMin}. Boats over 32 ft priced individually —
+            use the quote tool or call.
           </p>
         </div>
       </section>
@@ -197,29 +263,47 @@ export default function Pricing() {
       {/* Shrink Wrapping */}
       <section className="section-space bg-black border-t border-white/10">
         <div className="container max-w-4xl mx-auto">
-          <SectionHeading icon={Snowflake} title="Shrink Wrapping" rate={`${RATES.shrinkPerFoot}/ft`} />
+          <SectionHeading
+            icon={Snowflake}
+            title="Shrink Wrapping"
+            rate={`${RATES.shrinkPerFoot}/ft`}
+          />
           <p className="text-base text-white/65 leading-relaxed mb-6 max-w-2xl">
-            Professional-grade shrink wrap with a full support frame, taut welded seams, and proper venting to prevent moisture
-            and mildew. Protects your gelcoat, upholstery, and electronics from snow load, ice, and UV.
+            Professional-grade shrink wrap with a full support frame, taut
+            welded seams, and proper venting to prevent moisture and mildew.
+            Protects your gelcoat, upholstery, and electronics from snow load,
+            ice, and UV.
           </p>
           <RateTable columns={["Boat length", "Rate"]} rows={shrinkRows} />
           <p className="mt-3 text-sm text-white/45">
-            Minimum {RATES.shrinkMin}. Pontoon +{RATES.pontoonSurcharge}/ft, tritoon +{RATES.tritoonSurcharge}/ft for additional
-            framing and material.
+            Minimum {RATES.shrinkMin}. Pontoon +{RATES.pontoonSurcharge}/ft,
+            tritoon +{RATES.tritoonSurcharge}/ft for additional framing and
+            material.
           </p>
-          <p className="mt-1 text-sm text-white/45">Spring removal available — see Spring Wrap Removal below.</p>
+          <p className="mt-1 text-sm text-white/45">
+            Spring removal available — see Spring Wrap Removal below.
+          </p>
         </div>
       </section>
 
       {/* Winterization */}
       <section className="section-space">
         <div className="container max-w-4xl mx-auto">
-          <SectionHeading icon={Wrench} title="Winterization" rate="flat rate by engine type" />
+          <SectionHeading
+            icon={Wrench}
+            title="Winterization"
+            rate="flat rate by engine type"
+          />
           <p className="text-base text-white/65 leading-relaxed mb-6 max-w-2xl">
-            Complete freeze protection: engine fogged, fuel stabilized, cooling systems drained and protected with marine
-            antifreeze, batteries prepped for storage. Done right in fall means started easy in spring.
+            Complete freeze protection: engine fogged, fuel stabilized, cooling
+            systems drained and protected with marine antifreeze, batteries
+            prepped for storage. Done right in fall means started easy in
+            spring.
           </p>
-          <RateTable columns={["Engine type", "Price", "Each additional engine"]} rows={winterRows} />
+          <RateTable
+            columns={["Engine type", "Price", "Each additional engine"]}
+            rows={winterRows}
+          />
         </div>
       </section>
 
@@ -227,20 +311,31 @@ export default function Pricing() {
       <section className="section-space bg-black border-t border-white/10">
         <div className="container max-w-6xl mx-auto">
           <div className="grid gap-5 md:grid-cols-3">
-            {addons.map((a) => {
+            {addons.map(a => {
               const Icon = a.icon;
               return (
-                <div key={a.title} id={a.id} className="marine-card p-6 flex flex-col scroll-mt-24">
+                <div
+                  key={a.title}
+                  id={a.id}
+                  className="marine-card p-6 flex flex-col scroll-mt-24"
+                >
                   <div className="flex items-center gap-3 mb-3">
                     <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[oklch(0.6_0.2_27)/10]">
                       <Icon className="h-5 w-5 text-[oklch(0.6_0.2_27)]" />
                     </div>
-                    <span className="text-xl font-black text-[oklch(0.6_0.2_27)] tabular-nums" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+                    <span
+                      className="text-xl font-black text-[oklch(0.6_0.2_27)] tabular-nums"
+                      style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
+                    >
                       {a.rate}
                     </span>
                   </div>
-                  <h3 className="text-lg font-bold text-white mb-2">{a.title}</h3>
-                  <p className="text-sm text-white/60 leading-relaxed">{a.body}</p>
+                  <h3 className="text-lg font-bold text-white mb-2">
+                    {a.title}
+                  </h3>
+                  <p className="text-sm text-white/60 leading-relaxed">
+                    {a.body}
+                  </p>
                 </div>
               );
             })}
@@ -252,29 +347,48 @@ export default function Pricing() {
       <section className="section-space border-t border-white/10">
         <div className="container max-w-4xl mx-auto">
           <div className="text-center mb-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.6_0.2_27)] mb-3">Bundle &amp; Save</p>
-            <h2 className="text-4xl font-black text-white md:text-5xl" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.6_0.2_27)] mb-3">
+              Bundle &amp; Save
+            </p>
+            <h2
+              className="text-4xl font-black text-white md:text-5xl"
+              style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
+            >
               Winter Ready Packages
             </h2>
             <p className="mt-4 text-base text-white/60 max-w-xl mx-auto">
               Book your winter services together and save on the whole package.
             </p>
           </div>
-          <RateTable columns={["Package", "Includes", "Savings"]} rows={bundleRows} />
+          <RateTable
+            columns={["Package", "Includes", "Savings"]}
+            rows={bundleRows}
+          />
 
           {/* Worked example — produced by the engine's quote function */}
           <div className="marine-card mt-6 p-5 flex items-start gap-3">
             <Info className="h-4 w-4 text-[oklch(0.6_0.2_27)] mt-0.5 shrink-0" />
             <p className="text-sm text-white/70 leading-relaxed">
-              <span className="font-semibold text-white">Example:</span> a {ex.lengthFt} ft sterndrive with storage, wrap, and
-              winterization is <span className="font-semibold text-white tabular-nums">{ex.aLaCarte}</span> à la carte —{" "}
-              <span className="font-semibold text-[oklch(0.6_0.2_27)] tabular-nums">{ex.bundled}</span> with Winter Ready Plus.
+              <span className="font-semibold text-white">Example:</span> a{" "}
+              {ex.lengthFt} ft sterndrive with storage, wrap, and winterization
+              is{" "}
+              <span className="font-semibold text-white tabular-nums">
+                {ex.aLaCarte}
+              </span>{" "}
+              à la carte —{" "}
+              <span className="font-semibold text-[oklch(0.6_0.2_27)] tabular-nums">
+                {ex.bundled}
+              </span>{" "}
+              with Winter Ready Plus.
             </p>
           </div>
 
           <p className="mt-6 text-base text-white/65 leading-relaxed max-w-2xl mx-auto text-center">
-            <span className="font-semibold text-white">Full Care is the whole year, handled:</span> your boat leaves the water in
-            fall and returns in spring detailed, protected, and running — one booking, one discount, zero hassle.
+            <span className="font-semibold text-white">
+              Full Care is the whole year, handled:
+            </span>{" "}
+            your boat leaves the water in fall and returns in spring detailed,
+            protected, and running — one booking, one discount, zero hassle.
           </p>
         </div>
       </section>
@@ -283,16 +397,20 @@ export default function Pricing() {
       <section className="py-12 bg-black border-t border-white/10">
         <div className="container max-w-4xl mx-auto">
           <div className="marine-card p-6 md:p-8">
-            <h3 className="text-sm font-semibold uppercase tracking-[0.15em] text-white/70 mb-4">The fine print</h3>
+            <h3 className="text-sm font-semibold uppercase tracking-[0.15em] text-white/70 mb-4">
+              The fine print
+            </h3>
             <ul className="space-y-3 text-sm text-white/60">
               {[
                 "All prices in CAD. HST applies.",
                 "Per-foot rates use overall boat length including swim platform and bow pulpit.",
                 "Storage season runs October–April; early drop-off and late pickup by arrangement.",
                 "Full payment at booking secures your slot — yard capacity is limited and fills before freeze-up.",
-              ].map((line) => (
+              ].map(line => (
                 <li key={line} className="flex items-start gap-2.5">
-                  <span className="text-[oklch(0.6_0.2_27)] font-bold shrink-0">•</span>
+                  <span className="text-[oklch(0.6_0.2_27)] font-bold shrink-0">
+                    •
+                  </span>
                   {line}
                 </li>
               ))}
@@ -304,11 +422,15 @@ export default function Pricing() {
       {/* Repeat CTA */}
       <section className="section-space border-t border-white/10">
         <div className="container max-w-7xl mx-auto text-center">
-          <h2 className="text-4xl font-black text-white md:text-5xl mb-4" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+          <h2
+            className="text-4xl font-black text-white md:text-5xl mb-4"
+            style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
+          >
             Build your exact quote
           </h2>
           <p className="text-base text-white/55 max-w-xl mx-auto mb-8">
-            Pick your boat, choose your services, and see your real price instantly — the same per-foot math shown above.
+            Pick your boat, choose your services, and see your real price
+            instantly — the same per-foot math shown above.
           </p>
           <div className="flex justify-center">
             <QuoteCTA position="bottom" />

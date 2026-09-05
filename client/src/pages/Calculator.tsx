@@ -69,6 +69,8 @@ import {
   type ResumePayload,
 } from "@/lib/quote-resume";
 import { DownloadQuoteButton } from "@/components/DownloadQuoteButton";
+import { WhenSection, type LaunchTarget } from "@/components/WhenSection";
+import { SpotsLeft } from "@/components/SpotsLeft";
 import { HoneypotField } from "@/components/HoneypotField";
 import {
   LogisticsSection,
@@ -275,6 +277,11 @@ export default function Calculator() {
   // number the customer is looking at, and the banner explaining what happened.
   const [resumeRef, setResumeRef] = useState<string | undefined>(undefined);
   const [resumeNotice, setResumeNotice] = useState<string | null>(null);
+
+  // When. Both optional; null means "we'll agree a date when we confirm",
+  // which is what happens anyway.
+  const [preferredWeek, setPreferredWeek] = useState<string | null>(null);
+  const [launchTarget, setLaunchTarget] = useState<LaunchTarget | null>(null);
 
   // Empty for every real person. Phase 0 shipped the server-side check; without
   // this field on the form it had nothing to check.
@@ -595,6 +602,12 @@ export default function Calculator() {
         // printed on the PDF the customer is holding. Undefined otherwise, and
         // compacted away, so an ordinary submission is unchanged.
         quoteRef: resumeRef,
+        // LeadEnvelope.meta has carried preferredDate/preferredTime since
+        // schemaVersion 1 and nothing has ever filled them. Undefined when the
+        // customer skipped, and compacted away, so a quote without dates
+        // serialises exactly as before.
+        preferredDate: preferredWeek ?? undefined,
+        preferredTime: launchTarget ?? undefined,
         // The assembled Selection, so the server can label the confirmation
         // email's rows with the same describeExtras the screen used. Its parts
         // were already here; sending them assembled is what stops the email and
@@ -771,6 +784,8 @@ export default function Calculator() {
             Enter your boat, pick a winter package, and see your price instantly
             — right down to the per-foot rate.
           </p>
+          {/* Renders nothing unless the capacity table has real, small numbers. */}
+          <SpotsLeft className="mt-3" />
         </div>
       </section>
 
@@ -1212,6 +1227,33 @@ export default function Calculator() {
                   />
                 )}
 
+                {/* After transport, because "when" only makes sense once the
+                    customer knows whether we are collecting the boat. */}
+                {mode && (
+                  <WhenSection
+                    weekStart={preferredWeek}
+                    launchTarget={launchTarget}
+                    onChange={patch => {
+                      if (patch.weekStart !== undefined) {
+                        setPreferredWeek(patch.weekStart);
+                        if (patch.weekStart) {
+                          track("dropoff_week_selected");
+                        }
+                      }
+                      if (patch.launchTarget !== undefined) {
+                        setLaunchTarget(patch.launchTarget);
+                        if (patch.launchTarget) {
+                          // The VALUE is a fixed enum, not free text — safe to
+                          // send, and the only thing worth knowing here.
+                          track("launch_target_selected", {
+                            target: patch.launchTarget,
+                          });
+                        }
+                      }
+                    }}
+                  />
+                )}
+
                 <div className="flex justify-between">
                   <Button
                     onClick={() => setStep(1)}
@@ -1366,6 +1408,8 @@ export default function Calculator() {
                       selection={selection}
                       boat={boat}
                       defaultEmail={contact.email}
+                      preferredDate={preferredWeek}
+                      preferredTime={launchTarget}
                     />
                   </div>
                 )}

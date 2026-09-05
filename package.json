@@ -11,6 +11,7 @@
     "check": "tsc --noEmit",
     "db:migrate": "tsx server/db/migrate.ts",
     "jobs:run": "tsx server/jobs/run.ts",
+    "capacity:seed": "tsx scripts/seed-capacity.mjs",
     "notify:smoke": "tsx scripts/notify-smoke.mjs",
     "check:geocoder": "tsx scripts/check-geocoder.mjs",
     "format": "prettier --write ."

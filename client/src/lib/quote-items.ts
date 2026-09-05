@@ -128,6 +128,31 @@ export function transportServiceId(band: TransportBand): string | null {
  * here; they never invent a price.
  */
 /**
+ * Spring launch windows the yard actually schedules.
+ *
+ * Here rather than in WhenSection.tsx because the SERVER validates against this
+ * list before putting a value on the envelope, and importing a React component
+ * into the server bundle to read one array would be absurd.
+ */
+export const LAUNCH_TARGET_VALUES = [
+  "early_april",
+  "late_april",
+  "early_may",
+  "late_may",
+  "flexible",
+] as const;
+
+export type LaunchTarget = (typeof LAUNCH_TARGET_VALUES)[number];
+
+/** Narrow an untrusted value to a launch target. */
+export function isLaunchTarget(v: unknown): v is LaunchTarget {
+  return (
+    typeof v === "string" &&
+    (LAUNCH_TARGET_VALUES as readonly string[]).includes(v)
+  );
+}
+
+/**
  * The customer-facing label for an appended line, disambiguated by purpose.
  *
  * TWO TRANSPORT TRIPS SHARE ONE SERVICE KEY, so the engine returns two lines

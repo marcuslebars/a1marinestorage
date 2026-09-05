@@ -24,6 +24,9 @@ export interface QuoteConfirmationInput {
   quote: QuoteResult;
   extras: ExtraLineRef[];
   resumeUrl?: string;
+  /** Already-worded dates, from shared/when-labels, so they match the PDF. */
+  preferredDropoff?: string | null;
+  preferredLaunch?: string | null;
   /** Present only when EmpireVu auto-quoted; changes what happens next. */
   depositUrl?: string;
   depositPct?: number;
@@ -46,6 +49,13 @@ export function renderQuoteConfirmationEmail(
 
   const heading = `We've got your storage quote, ${firstName(input.name)}`;
 
+  // REQUESTED, not reserved. Saying "your drop-off is the week of…" would
+  // promise a slot nothing has held.
+  const dates = [
+    input.preferredDropoff ? `Fall drop-off: ${input.preferredDropoff}` : "",
+    input.preferredLaunch ? `Spring launch: ${input.preferredLaunch}` : "",
+  ].filter(Boolean);
+
   const intro = [
     input.reference
       ? `Here's what you put together. Your reference is ${input.reference} — quote it when you call and we'll pull up exactly this.`
@@ -56,6 +66,12 @@ export function renderQuoteConfirmationEmail(
   // customer can act now; without one, a person gets in touch, and saying so is
   // better than implying something is already reserved.
   const pct = input.depositPct ?? 25;
+  const datesNote = dates.length
+    ? [
+        `You asked for — ${dates.join(", ")}. We'll confirm availability; nothing is held yet.`,
+      ]
+    : [];
+
   const outro = depositUrl
     ? [
         `You can reserve your spot now with a ${pct}% deposit. The balance is due at drop-off.`,
@@ -86,7 +102,11 @@ export function renderQuoteConfirmationEmail(
         savingsCents: quote.bundleSavingsCents,
       }),
       cta,
-      outro: [...outro, `The yard: ${address} · ${BUSINESS.phone}`],
+      outro: [
+        ...datesNote,
+        ...outro,
+        `The yard: ${address} · ${BUSINESS.phone}`,
+      ],
     }),
     text: renderText({
       heading,
@@ -102,6 +122,8 @@ export function renderQuoteConfirmationEmail(
           : []),
         `Subtotal (pre-HST): ${money(quote.subtotalCents)}`,
         "",
+        ...datesNote,
+        ...(datesNote.length ? [""] : []),
         ...outro,
       ],
       cta,

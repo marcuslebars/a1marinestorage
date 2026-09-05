@@ -22,11 +22,16 @@ export function DownloadQuoteButton({
   selection,
   boat,
   defaultEmail = "",
+  preferredDate,
+  preferredTime,
 }: {
   selection: Selection;
   boat: BoatState;
   /** Prefilled from the contact step when they have already typed one. */
   defaultEmail?: string;
+  /** The dates chosen in Step 2, so the PDF shows what the screen shows. */
+  preferredDate?: string | null;
+  preferredTime?: string | null;
 }) {
   const [email, setEmail] = useState(defaultEmail);
   const [busy, setBusy] = useState(false);
@@ -46,6 +51,8 @@ export function DownloadQuoteButton({
           selection,
           boat,
           email: EMAIL_RE.test(email.trim()) ? email.trim() : undefined,
+          preferredDate: preferredDate ?? undefined,
+          preferredTime: preferredTime ?? undefined,
         }),
       });
 

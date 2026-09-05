@@ -26,6 +26,8 @@ import {
 } from "./lead-pipeline";
 import { persistLead } from "./persist";
 import { normalizeContact } from "./normalize";
+import { isMondayIso } from "./capacity";
+import { launchLabel, weekLabel } from "../shared/when-labels";
 import { evaluateEligibility } from "./eligibility";
 import { notify } from "./notify/notify";
 import { renderOwnerAlertEmail } from "./notify/templates/owner-alert";
@@ -36,6 +38,7 @@ import {
 import { encodeResumeToken, resumeUrlFor } from "./resume-token";
 import {
   describeExtras,
+  isLaunchTarget,
   type BoatState,
   type Selection,
 } from "../client/src/lib/quote-items";
@@ -427,6 +430,16 @@ export async function handleQuoteSubmission(
         // A resumed quote carries the reference from the PDF the customer is
         // holding, so the booked lead keeps the number they can see.
         quoteRef: typeof meta.quoteRef === "string" ? meta.quoteRef : undefined,
+        // VALIDATED, not trusted. A hand-crafted body could otherwise put any
+        // string in front of the yard as a booked week; isMondayIso rejects
+        // anything that is not a real Monday, which is the only shape a week
+        // has in the capacity table.
+        preferredDate: isMondayIso(meta.preferredDate)
+          ? meta.preferredDate
+          : undefined,
+        preferredTime: isLaunchTarget(meta.preferredTime)
+          ? meta.preferredTime
+          : undefined,
       })
     ),
     EMPIREVU_WAIT_MS
@@ -565,6 +578,12 @@ async function sendQuoteNotifications(input: {
         reference: input.reference,
         quote,
         extras,
+        preferredDropoff: isMondayIso(meta.preferredDate)
+          ? weekLabel(meta.preferredDate)
+          : null,
+        preferredLaunch: launchLabel(
+          typeof meta.preferredTime === "string" ? meta.preferredTime : null
+        ),
         resumeUrl: resumeUrlForQuote(selection, boatMeta, input.reference),
       });
       void notify(id, "quote_confirmation", "email", {
