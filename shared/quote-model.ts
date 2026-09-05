@@ -13,6 +13,7 @@
 // imports React, Express, or anything site-specific.
 import type { QuoteResult } from "@a1/pricing-engine";
 
+import { extraLabel } from "../client/src/lib/quote-items";
 import type {
   BoatLocation,
   ExtraLineRef,
@@ -172,9 +173,13 @@ export function buildQuoteModel(input: {
   depositRateBps?: number;
 }): QuoteModel {
   const extraIndices = new Set(input.extras.map(e => e.index));
+  // Which appended line is which. Two transport trips share a service key, so
+  // without this the PDF printed two identical rows and the customer could not
+  // tell the fall pickup from the spring delivery.
+  const purposeByIndex = new Map(input.extras.map(e => [e.index, e.purpose]));
 
   const lines: QuoteModelLine[] = input.quote.lineItems.map((l, i) => ({
-    label: l.label,
+    label: extraLabel(l.label, purposeByIndex.get(i)),
     description: l.description,
     amountCents: l.amountCents,
     outsideBundle: extraIndices.has(i),

@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/select";
 import { BUSINESS } from "@/content/business";
 import { getUtm } from "@/lib/utm";
-import { track, trackPhoneClick } from "@/lib/analytics";
+import { track, trackAdsConversion, trackPhoneClick } from "@/lib/analytics";
 import { trackPixelEvent } from "@/lib/meta-pixel";
 import {
   calculateQuote,
@@ -51,6 +51,7 @@ import {
   buildStorageQuoteInput,
   bundleServiceIds,
   describeExtras,
+  extraLabel,
   itemForService,
   supportsTransport,
   winterizationId,
@@ -209,6 +210,28 @@ function safeQuote(input: QuoteInput): QuoteResult | null {
   }
 }
 
+/**
+ * Which add-on a logistics patch turned ON.
+ *
+ * Only the turning-on is interesting — a customer unticking a battery is not a
+ * funnel event, and firing on every patch would count each keystroke in the
+ * town box. Names only: no counts that could identify anyone, no free text.
+ */
+function trackAddOns(patch: Partial<LogisticsValue>): void {
+  if (patch.pickup === true) track("addon_selected", { addon: "pickup" });
+  if (patch.delivery === true) track("addon_selected", { addon: "delivery" });
+  if (patch.trailerProvided === true)
+    track("addon_selected", { addon: "trailer" });
+  if (patch.oilChangeOutboard === true)
+    track("addon_selected", { addon: "oil_change" });
+  if (typeof patch.batteryCount === "number" && patch.batteryCount > 0) {
+    track("addon_selected", { addon: "battery" });
+  }
+  if (typeof patch.extendedMonths === "number" && patch.extendedMonths > 0) {
+    track("addon_selected", { addon: "extended_storage" });
+  }
+}
+
 const money = (cents: number) => formatCents(cents);
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -354,6 +377,40 @@ export default function Calculator() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /**
+   * Funnel steps, from ONE place.
+   *
+   * There are five setStep call sites and there will be more; instrumenting
+   * each of them is how an event quietly stops firing for one path. This reacts
+   * to the step itself, so a new way of getting to step 3 is counted for free.
+   */
+  const seenSteps = useRef<Set<number>>(new Set());
+  useEffect(() => {
+    track("quote_step_viewed", { step });
+    // Once per session: the point is how many people REACH the contact step,
+    // not how often they bounce back to it.
+    if (step === 3 && !seenSteps.current.has(3)) track("contact_step_reached");
+    seenSteps.current.add(step);
+  }, [step]);
+
+  /**
+   * Transport resolution, however it was arrived at — picking a listed town,
+   * the server geocoding a typed one, or a resumed quote re-deriving it. All
+   * three are the same fact for the funnel, and only the resolved value knows
+   * it happened.
+   */
+  const lastBand = useRef<string | null>(null);
+  useEffect(() => {
+    if (!resolvedBand) return;
+    const key = `${resolvedBand.band}:${resolvedBand.resolution}`;
+    if (lastBand.current === key) return;
+    lastBand.current = key;
+    track("transport_resolved", {
+      band: resolvedBand.band,
+      resolution: resolvedBand.resolution,
+    });
+  }, [resolvedBand]);
+
   const lengthFt = Number.parseFloat(lengthInput);
   const lengthValid = Number.isFinite(lengthFt) && lengthFt > 0;
   const boat: BoatState = {
@@ -467,6 +524,9 @@ export default function Calculator() {
     contact.phone.replace(/\D/g, "").length >= 7;
 
   function toggleAlacarte(id: string) {
+    markStarted();
+    // Service keys only — never free text, never anything about the person.
+    track("package_selected", { mode: "alacarte", bundle_id: id });
     setMode("alacarte");
     setBundleId(null);
     setAlacarte(prev => {
@@ -481,6 +541,8 @@ export default function Calculator() {
   }
 
   function selectBundle(id: string) {
+    markStarted();
+    track("package_selected", { mode: "bundle", bundle_id: id });
     setMode("bundle");
     setBundleId(id);
     setAlacarte(new Set());
@@ -508,6 +570,11 @@ export default function Calculator() {
         // printed on the PDF the customer is holding. Undefined otherwise, and
         // compacted away, so an ordinary submission is unchanged.
         quoteRef: resumeRef,
+        // The assembled Selection, so the server can label the confirmation
+        // email's rows with the same describeExtras the screen used. Its parts
+        // were already here; sending them assembled is what stops the email and
+        // the screen disagreeing about which trip is which.
+        selection,
       },
       website: honeypot,
     };
@@ -534,6 +601,9 @@ export default function Calculator() {
               services: quote.lineItems.map(l => l.serviceId).join(","),
               boat_length: lengthFt,
             });
+            // Google Ads counts the same completion its own way. No-op unless
+            // VITE_GOOGLE_ADS_ID is set.
+            trackAdsConversion(quote.subtotalCents);
           }
           // Meta Pixel Lead conversion (value/currency when known; never PII).
           trackPixelEvent(
@@ -1106,9 +1176,10 @@ export default function Calculator() {
                 {mode && (
                   <LogisticsSection
                     value={logisticsValue}
-                    onChange={patch =>
-                      setLogisticsValue(v => ({ ...v, ...patch }))
-                    }
+                    onChange={patch => {
+                      trackAddOns(patch);
+                      setLogisticsValue(v => ({ ...v, ...patch }));
+                    }}
                     engineType={engineType}
                     engineCount={engineCount}
                     resolvedBand={resolvedBand}
@@ -1421,12 +1492,6 @@ export default function Calculator() {
  * which is the fall pickup and which is the spring delivery. The engine's own
  * label is kept as the base so the price and its wording still come from there.
  */
-function extraLabel(label: string, purpose?: ExtraLineRef["purpose"]): string {
-  if (purpose === "pickup") return `${label} (fall pickup)`;
-  if (purpose === "delivery") return `${label} (spring delivery)`;
-  return label;
-}
-
 function lineDetail(l: QuoteResult["lineItems"][number]): string {
   const d = l.detail;
   if (d.type === "per_foot") {

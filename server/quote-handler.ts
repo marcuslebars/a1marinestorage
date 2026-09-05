@@ -25,6 +25,19 @@ import {
   forwardToLeadPipeline,
 } from "./lead-pipeline";
 import { persistLead } from "./persist";
+import { evaluateEligibility } from "./eligibility";
+import { notify } from "./notify/notify";
+import { renderOwnerAlertEmail } from "./notify/templates/owner-alert";
+import {
+  renderQuoteConfirmationEmail,
+  renderQuoteConfirmationSms,
+} from "./notify/templates/quote-confirmation";
+import { encodeResumeToken, resumeUrlFor } from "./resume-token";
+import {
+  describeExtras,
+  type BoatState,
+  type Selection,
+} from "../client/src/lib/quote-items";
 import { isHoneypotTripped } from "./security/honeypot";
 import { attachEmpireVuResult } from "./db/quotes";
 import {
@@ -425,6 +438,20 @@ export async function handleQuoteSubmission(
     });
   }
 
+  // (4) Tell somebody. UNAWAITED — the customer has been answered and nothing
+  //     below may add a millisecond to their wait or a way for their submission
+  //     to fail. notify() never throws and claims its idempotency key before
+  //     sending, so a retried handler cannot double-send.
+  void sendQuoteNotifications({
+    id,
+    contact,
+    quote,
+    quoteInput: body.quoteInput,
+    meta,
+    depositUrl: empireVu?.quoteUrl,
+    reference: typeof meta.quoteRef === "string" ? meta.quoteRef : undefined,
+  });
+
   return {
     status: 200,
     body: {
@@ -436,4 +463,142 @@ export async function handleQuoteSubmission(
       depositUrl: empireVu?.quoteUrl,
     },
   };
+}
+
+/**
+ * Everything we say about a submitted quote: customer email, customer SMS,
+ * owner alert.
+ *
+ * NEVER THROWS, never awaited by the handler. A notification problem must not
+ * become a failed submission — the quote is already recorded, which is the part
+ * that actually matters.
+ *
+ * THE EMAIL IS CONDITIONAL. When EmpireVu returned a payable link it also sent
+ * its own quote email, and that one IS the confirmation. Sending ours as well
+ * would put two emails about one quote in the customer's inbox, arriving
+ * seconds apart, disagreeing about what to do next. The SMS still goes either
+ * way (EmpireVu sends none), and the owner alert always goes — a lead the yard
+ * never hears about is the failure this whole phase exists to prevent.
+ */
+async function sendQuoteNotifications(input: {
+  id: string;
+  contact: QuoteContact;
+  quote: QuoteResult;
+  quoteInput: QuoteInput;
+  meta: Record<string, unknown>;
+  depositUrl?: string;
+  reference?: string;
+}): Promise<void> {
+  try {
+    const { id, contact, quote, meta, depositUrl } = input;
+    const selection = (meta.selection ?? undefined) as Selection | undefined;
+    const boatMeta = (meta.boat ?? undefined) as BoatState | undefined;
+    const log = (meta.logistics ?? undefined) as
+      | Record<string, unknown>
+      | undefined;
+    const addOns = (meta.addOns ?? undefined) as
+      | Record<string, unknown>
+      | undefined;
+
+    // Which appended line is which. describeExtras is the same function the
+    // calculator uses, so the email cannot label a row differently from the
+    // screen the customer just read.
+    const extras =
+      selection && boatMeta ? describeExtras(selection, boatMeta) : [];
+
+    const lengthFt =
+      quote.lineItems.find(l => l.detail.lengthFt != null)?.detail.lengthFt ??
+      null;
+
+    const eligibility = evaluateEligibility({
+      hullType: quote.hullType,
+      lengthFt,
+      boatLocation:
+        typeof log?.boatLocation === "string" ? log.boatLocation : null,
+      transportBand:
+        typeof log?.transportBand === "string" ? log.transportBand : null,
+      extendedMonths:
+        typeof addOns?.extendedMonths === "number"
+          ? addOns.extendedMonths
+          : null,
+    });
+
+    // ── Owner alert. Always, whatever happened upstream.
+    {
+      const to = process.env.OWNER_ALERT_EMAIL || process.env.MAIL_BCC_OWNER;
+      if (to) {
+        const mail = renderOwnerAlertEmail({
+          reference: input.reference,
+          contact,
+          quote,
+          extras,
+          eligibility,
+          boat: boatMeta,
+          logistics: log,
+          depositUrl,
+          source: typeof meta.source === "string" ? meta.source : "calculator",
+        });
+        void notify(id, "owner_alert", "email", {
+          to,
+          subject: mail.subject,
+          text: mail.text,
+          html: mail.html,
+          // Replies go to the CUSTOMER, so the yard can just hit reply.
+          replyTo: contact.email,
+        });
+      } else {
+        console.log(
+          "[notify] no OWNER_ALERT_EMAIL/MAIL_BCC_OWNER — owner alert skipped"
+        );
+      }
+    }
+
+    // ── Customer email, only when EmpireVu did not already send one.
+    if (!depositUrl) {
+      const mail = renderQuoteConfirmationEmail({
+        name: contact.name,
+        reference: input.reference,
+        quote,
+        extras,
+        resumeUrl: resumeUrlForQuote(selection, boatMeta, input.reference),
+      });
+      void notify(id, "quote_confirmation", "email", {
+        to: contact.email,
+        subject: mail.subject,
+        text: mail.text,
+        html: mail.html,
+      });
+    } else {
+      console.log(
+        `[notify] quote_confirmation email skipped for ${id} — EmpireVu sent its own quote email`
+      );
+    }
+
+    // ── Customer SMS, either way.
+    void notify(id, "quote_confirmation", "sms", {
+      to: contact.phone,
+      text: renderQuoteConfirmationSms({
+        reference: input.reference,
+        lengthFt,
+        hullType: quote.hullType,
+        depositUrl,
+      }),
+    });
+  } catch (err) {
+    console.error(
+      "[notify] quote notifications failed (submission unaffected):",
+      err instanceof Error ? err.message : String(err)
+    );
+  }
+}
+
+/** The "change something" link, when we have enough to rebuild the quote. */
+function resumeUrlForQuote(
+  selection: Selection | undefined,
+  boat: BoatState | undefined,
+  ref?: string
+): string | undefined {
+  if (!selection || !boat) return undefined;
+  const origin = process.env.PUBLIC_BASE_URL || "https://a1marinestorage.ca";
+  return resumeUrlFor(encodeResumeToken({ selection, boat, ref }), origin);
 }

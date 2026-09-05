@@ -127,6 +127,28 @@ export function transportServiceId(band: TransportBand): string | null {
  * indistinguishable in the engine's output. The UI and the PDF label rows from
  * here; they never invent a price.
  */
+/**
+ * The customer-facing label for an appended line, disambiguated by purpose.
+ *
+ * TWO TRANSPORT TRIPS SHARE ONE SERVICE KEY, so the engine returns two lines
+ * with the identical description and (usually) the identical price. On screen
+ * this has always been resolved; the PDF printed `l.label` raw and showed the
+ * customer two indistinguishable charges with no way to tell the fall pickup
+ * from the spring delivery.
+ *
+ * It lives here, beside ExtraLineRef, because the screen, the PDF and the
+ * confirmation email must all say the same thing about the same row — and a
+ * copy of this function in each of them is three chances to drift.
+ */
+export function extraLabel(
+  label: string,
+  purpose?: ExtraLineRef["purpose"]
+): string {
+  if (purpose === "pickup") return `${label} (fall pickup)`;
+  if (purpose === "delivery") return `${label} (spring delivery)`;
+  return label;
+}
+
 export interface ExtraLineRef {
   purpose: "ceramic" | "pickup" | "delivery" | "battery" | "extended" | "oil";
   serviceId: string;

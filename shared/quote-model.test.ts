@@ -218,3 +218,77 @@ describe("model is a pure function of the selection", () => {
     expect(m.subtotalCents).toBe(lineSum - m.bundleSavingsCents);
   });
 });
+
+describe("two transport trips are told apart", () => {
+  // THE BUG THIS PINS. A fall pickup and a spring delivery share one service
+  // key, so the engine returns two lines with the same description and the same
+  // price. The calculator screen has always disambiguated them; buildQuoteModel
+  // printed `l.label` raw, so the PDF showed the customer two identical charges
+  // with no way to tell which was which. The confirmation email would have
+  // inherited the same defect.
+  const boat = {
+    lengthFt: 24,
+    hullType: "bowrider",
+    engineType: "outboard" as const,
+    engineCount: 1,
+  };
+
+  function modelWithBothTrips() {
+    const quote = {
+      lineItems: [
+        {
+          label: "Outdoor winter storage",
+          description: "season",
+          amountCents: 100000,
+          detail: {},
+        },
+        {
+          label: "Transport — local",
+          description: "one way",
+          amountCents: 25000,
+          detail: {},
+        },
+        {
+          label: "Transport — local",
+          description: "one way",
+          amountCents: 25000,
+          detail: {},
+        },
+      ],
+      subtotalCents: 150000,
+      bundleSavingsCents: 0,
+      bundle: null,
+    } as never;
+    return buildQuoteModel({
+      reference: "A1MS-Q-TEST01",
+      issuedAt: new Date().toISOString(),
+      quote,
+      extras: [
+        { purpose: "pickup", serviceId: "transport_local", index: 1 },
+        { purpose: "delivery", serviceId: "transport_local", index: 2 },
+      ],
+      boat: {
+        lengthFt: boat.lengthFt,
+        hullType: boat.hullType,
+        engineType: boat.engineType,
+        engineCount: boat.engineCount,
+      },
+      logistics: null,
+    });
+  }
+
+  it("labels the pickup and the delivery differently", () => {
+    const labels = modelWithBothTrips().lines.map(l => l.label);
+    expect(labels).toContain("Transport — local (fall pickup)");
+    expect(labels).toContain("Transport — local (spring delivery)");
+  });
+
+  it("leaves an ordinary line's label alone", () => {
+    expect(modelWithBothTrips().lines[0].label).toBe("Outdoor winter storage");
+  });
+
+  it("produces no two identical labels — the failure a customer would actually notice", () => {
+    const labels = modelWithBothTrips().lines.map(l => l.label);
+    expect(new Set(labels).size).toBe(labels.length);
+  });
+});
