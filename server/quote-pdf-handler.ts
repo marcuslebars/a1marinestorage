@@ -8,19 +8,30 @@ import { randomBytes } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 
-import { calculateQuote, transportBandInfo, type TransportBand } from "@a1/pricing-engine";
+import {
+  calculateQuote,
+  transportBandInfo,
+  type TransportBand,
+} from "@a1/pricing-engine";
 
 import {
   buildStorageQuoteInput,
   describeExtras,
+  isLaunchTarget,
   needsHaulOutNotice,
   type BoatState,
   type Selection,
 } from "../client/src/lib/quote-items";
-import { BOAT_LOCATION_LABEL, buildQuoteModel, generateQuoteReference } from "../shared/quote-model";
+import {
+  BOAT_LOCATION_LABEL,
+  buildQuoteModel,
+  generateQuoteReference,
+} from "../shared/quote-model";
 import { localityBySlug } from "../shared/localities";
 import { renderQuotePdf, type PdfBrand } from "./quote-pdf";
 import { encodeResumeToken, resumeUrlFor } from "./resume-token";
+import { isMondayIso } from "./capacity";
+import { launchLabel, weekLabel } from "../shared/when-labels";
 
 export interface QuotePdfRequest {
   selection: Selection;
@@ -29,6 +40,10 @@ export interface QuotePdfRequest {
   email?: string;
   /** Absolute origin for the resume link, e.g. https://a1marinestorage.ca */
   origin?: string;
+  /** ISO Monday of the requested fall drop-off week, when the customer chose one. */
+  preferredDate?: string;
+  /** Spring launch window key, e.g. `early_may`. */
+  preferredTime?: string;
 }
 
 export interface QuotePdfResult {
@@ -43,7 +58,7 @@ export interface QuotePdfResult {
 export class QuotePdfError extends Error {
   constructor(
     message: string,
-    readonly code: "invalid_selection" | "render_failed",
+    readonly code: "invalid_selection" | "render_failed"
   ) {
     super(message);
     this.name = "QuotePdfError";
@@ -69,7 +84,10 @@ let cachedLogo: { data: Buffer; format: "png" } | undefined;
  */
 function logo(): { data: Buffer; format: "png" } | undefined {
   if (cachedLogo) return cachedLogo;
-  for (const rel of ["client/public/a1-marine-storage-logo.png", "dist/public/a1-marine-storage-logo.png"]) {
+  for (const rel of [
+    "client/public/a1-marine-storage-logo.png",
+    "dist/public/a1-marine-storage-logo.png",
+  ]) {
     const p = path.resolve(process.cwd(), rel);
     if (fs.existsSync(p)) {
       cachedLogo = { data: fs.readFileSync(p), format: "png" };
@@ -116,7 +134,9 @@ function logisticsForModel(sel: Selection) {
     estimated: log.bandResolution === "place_estimate",
     // A slug resolves to a proper name; a typed town has no slug to resolve, so
     // it prints as the customer wrote it rather than vanishing from the PDF.
-    townLabel: town?.name ?? (log.bandResolution === "place_estimate" ? log.townSlug ?? null : null),
+    townLabel:
+      town?.name ??
+      (log.bandResolution === "place_estimate" ? (log.townSlug ?? null) : null),
     pickup: log.pickup === true,
     delivery: log.delivery === true,
     trailerProvided: log.trailerProvided === true,
@@ -127,10 +147,15 @@ function logisticsForModel(sel: Selection) {
   };
 }
 
-export async function handleQuotePdf(req: QuotePdfRequest): Promise<QuotePdfResult> {
+export async function handleQuotePdf(
+  req: QuotePdfRequest
+): Promise<QuotePdfResult> {
   const input = buildStorageQuoteInput(req.selection, req.boat);
   if (!input) {
-    throw new QuotePdfError("Choose a package or at least one service first.", "invalid_selection");
+    throw new QuotePdfError(
+      "Choose a package or at least one service first.",
+      "invalid_selection"
+    );
   }
 
   // The engine, server-side. The request carries no prices and none are read.
@@ -138,7 +163,11 @@ export async function handleQuotePdf(req: QuotePdfRequest): Promise<QuotePdfResu
   const reference = generateQuoteReference(randomBytes(6));
 
   const origin = req.origin ?? "https://a1marinestorage.ca";
-  const token = encodeResumeToken({ selection: req.selection, boat: req.boat, ref: reference });
+  const token = encodeResumeToken({
+    selection: req.selection,
+    boat: req.boat,
+    ref: reference,
+  });
   const resumeUrl = resumeUrlFor(token, origin);
 
   const model = buildQuoteModel({
@@ -153,6 +182,14 @@ export async function handleQuotePdf(req: QuotePdfRequest): Promise<QuotePdfResu
       engineCount: req.boat.engineCount,
     },
     logistics: logisticsForModel(req.selection),
+    // Formatted HERE, once, so the PDF and the email cannot word the same
+    // date differently.
+    preferredDropoff: isMondayIso(req.preferredDate)
+      ? weekLabel(req.preferredDate)
+      : null,
+    preferredLaunch: isLaunchTarget(req.preferredTime)
+      ? launchLabel(req.preferredTime)
+      : null,
     resumeUrl,
   });
 
@@ -162,7 +199,7 @@ export async function handleQuotePdf(req: QuotePdfRequest): Promise<QuotePdfResu
   } catch (err) {
     throw new QuotePdfError(
       `Could not render the quote PDF: ${err instanceof Error ? err.message : String(err)}`,
-      "render_failed",
+      "render_failed"
     );
   }
 

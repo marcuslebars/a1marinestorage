@@ -71,6 +71,15 @@ export interface QuoteModel {
   depositRateBps: number;
   depositCents: number;
   logistics?: QuoteModelLogistics | null;
+  /**
+   * The dates the customer asked for, already rendered for display.
+   *
+   * Strings rather than raw values because the PDF, the email and the screen
+   * must word them identically, and the formatting rules ("Week of Mon 21
+   * Sept", "Early May") belong with the question, not with each renderer.
+   */
+  preferredDropoff?: string | null;
+  preferredLaunch?: string | null;
   /** Where the customer can pick the quote back up. */
   resumeUrl?: string | null;
 }
@@ -168,6 +177,8 @@ export function buildQuoteModel(input: {
   boat: QuoteModel["boat"];
   packageLabel?: string | null;
   logistics?: QuoteModelLogistics | null;
+  preferredDropoff?: string | null;
+  preferredLaunch?: string | null;
   resumeUrl?: string | null;
   taxRateBps?: number;
   depositRateBps?: number;
@@ -200,6 +211,8 @@ export function buildQuoteModel(input: {
     bundleSavingsCents: input.quote.bundleSavingsCents,
     ...totals,
     logistics: input.logistics ?? null,
+    preferredDropoff: input.preferredDropoff ?? null,
+    preferredLaunch: input.preferredLaunch ?? null,
     resumeUrl: input.resumeUrl ?? null,
   };
 }

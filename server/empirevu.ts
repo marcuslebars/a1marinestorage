@@ -227,6 +227,10 @@ export function buildStorageQuoteEnvelope(input: {
   quoteRef?: string;
   /** Capture route when it was not the ordinary calculator submission, e.g. `pdf_download`. */
   source?: string;
+  /** ISO Monday of the requested fall drop-off week. */
+  preferredDate?: string;
+  /** Spring launch window, e.g. `early_april`. */
+  preferredTime?: string;
 }): LeadEnvelope {
   const c = input.contact;
   const q = input.quote;
@@ -284,6 +288,11 @@ export function buildStorageQuoteEnvelope(input: {
         ? compact(input.selection as Record<string, unknown>)
         : undefined,
       quoteRef: input.quoteRef,
+      // Declared on the envelope since schemaVersion 1 and never populated
+      // until now. Compacted away when the customer skipped the question, so a
+      // quote without dates is byte-identical to what it has always been.
+      preferredDate: input.preferredDate,
+      preferredTime: input.preferredTime,
       // How the lead was captured, when it was not the ordinary calculator
       // submission. Compacted away when unset, so a normal quote's envelope is
       // byte-identical to what it has always been.

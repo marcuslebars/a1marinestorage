@@ -8,6 +8,7 @@ import { handleContactSubmission } from "./contact-handler";
 import { resolveTransportBand, TransportBandError } from "./transport-band";
 import { handleQuotePdf, QuotePdfError } from "./quote-pdf-handler";
 import { handleQuoteResume } from "./quote-resume-handler";
+import { getCapacity } from "./capacity";
 import { assertResumeSecret } from "./resume-token";
 import fs from "fs";
 import { getPageMeta, hasPage, injectMeta, renderSitemap } from "../shared/seo";
@@ -89,6 +90,16 @@ async function startServer() {
     res.status(status).json(body);
   });
 
+  // Yard capacity. Read-only, cached 60s in the module, and DELIBERATELY
+  // honest about not knowing: an unseeded table answers with nulls and an
+  // empty week list, and the UI shows nothing rather than inventing a number.
+  app.get("/api/capacity", async (_req, res) => {
+    // Short public cache: this drives a counter on marketing pages and a week
+    // picker, neither of which needs second-level freshness.
+    res.set("Cache-Control", "public, max-age=60");
+    res.json({ ok: true, ...(await getCapacity()) });
+  });
+
   // Downloadable quote PDF. The client sends its SELECTION and the server
   // re-prices through the engine — client totals are never trusted, and the
   // request has nowhere to put a price.
@@ -101,6 +112,14 @@ async function startServer() {
         boat: req.body?.boat,
         email: typeof req.body?.email === "string" ? req.body.email : undefined,
         origin: `${proto}://${req.get("host")}`,
+        preferredDate:
+          typeof req.body?.preferredDate === "string"
+            ? req.body.preferredDate
+            : undefined,
+        preferredTime:
+          typeof req.body?.preferredTime === "string"
+            ? req.body.preferredTime
+            : undefined,
       });
 
       // Downloading a quote is high intent, so a volunteered email is filed as a

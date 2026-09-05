@@ -10,6 +10,7 @@ import { handleQuoteSubmission } from "./server/quote-handler";
 import { handleContactSubmission } from "./server/contact-handler";
 import { handleQuotePdf, QuotePdfError } from "./server/quote-pdf-handler";
 import { handleQuoteResume } from "./server/quote-resume-handler";
+import { getCapacity } from "./server/capacity";
 import { handlePartialQuoteLead } from "./server/partial-lead-handler";
 import {
   resolveTransportBand,
@@ -255,6 +256,13 @@ function vitePluginLeadApi(): Plugin {
       // also matches "/api/quote/pdf" — and the submission handler ignores the
       // URL, so in dev a PDF request was being handled as a quote submission.
       // The more specific paths must be registered first.
+      server.middlewares.use("/api/capacity", async (req, res, next) => {
+        if (req.method !== "GET") return next();
+        res.statusCode = 200;
+        res.setHeader("Content-Type", "application/json");
+        res.end(JSON.stringify({ ok: true, ...(await getCapacity()) }));
+      });
+
       // Resume, first and by itself. It is a GET, and `jsonPost` calls next()
       // for anything that is not a POST — so without its own route this request
       // would fall past every handler here and be answered by the SPA fallback
@@ -320,6 +328,14 @@ function vitePluginLeadApi(): Plugin {
               boat: body.boat,
               email: typeof body.email === "string" ? body.email : undefined,
               origin: `http://${req.headers.host ?? "localhost:5173"}`,
+              preferredDate:
+                typeof body.preferredDate === "string"
+                  ? body.preferredDate
+                  : undefined,
+              preferredTime:
+                typeof body.preferredTime === "string"
+                  ? body.preferredTime
+                  : undefined,
             });
             // Parity with the Express route: a volunteered email is a lead.
             // Without this, dev could never exercise the capture path that
