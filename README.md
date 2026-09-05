@@ -28,6 +28,7 @@ corepack pnpm start             # run the built server
 | `MAIL_FROM`                                                | Envelope From for customer email                                                                                   | `A1 Marine Storage <bookings@a1marinestorage.ca>` |
 | `MAIL_REPLY_TO`                                            | Where a customer's reply goes                                                                                      | `contact@a1marinestorage.ca`                      |
 | `MAIL_BCC_OWNER`                                           | Blind copy of every customer email to the yard                                                                     | _(unset)_                                         |
+| `OWNER_ALERT_EMAIL`                                        | Internal per-lead alert ("needs a call" vs auto-quoted)                                                            | _(falls back to `MAIL_BCC_OWNER`)_                |
 | `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` / `TWILIO_FROM` | SMS. All three or none; Canadian numbers only                                                                      | _(unset — SMS off)_                               |
 | `TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET`                  | Cloudflare Turnstile. Unset = verification skipped entirely                                                        | _(unset — off)_                                   |
 

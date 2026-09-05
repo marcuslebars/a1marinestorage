@@ -11,9 +11,19 @@ import {
   roundHalfUpDiv,
   totalsFromSubtotal,
 } from "./quote-model";
-import { buildStorageQuoteInput, describeExtras, type BoatState, type Selection } from "../client/src/lib/quote-items";
+import {
+  buildStorageQuoteInput,
+  describeExtras,
+  type BoatState,
+  type Selection,
+} from "../client/src/lib/quote-items";
 
-const BOAT: BoatState = { lengthFt: 24, hullType: "", engineType: "outboard", engineCount: 1 };
+const BOAT: BoatState = {
+  lengthFt: 24,
+  hullType: "",
+  engineType: "outboard",
+  engineCount: 1,
+};
 
 const modelFor = (sel: Selection, boat: BoatState = BOAT) => {
   const input = buildStorageQuoteInput(sel, boat)!;
@@ -22,7 +32,11 @@ const modelFor = (sel: Selection, boat: BoatState = BOAT) => {
     issuedAt: "2026-09-02T12:00:00.000Z",
     quote: calculateQuote(input),
     extras: describeExtras(sel, boat),
-    boat: { lengthFt: boat.lengthFt, engineType: boat.engineType, engineCount: boat.engineCount },
+    boat: {
+      lengthFt: boat.lengthFt,
+      engineType: boat.engineType,
+      engineCount: boat.engineCount,
+    },
   });
 };
 
@@ -64,13 +78,19 @@ describe("model marks what sits outside the bundle", () => {
     const sel: Selection = {
       mode: "bundle",
       bundleId: "winter_ready_plus",
-      logistics: { boatLocation: "home_trailer", transportBand: "local", pickup: true, delivery: true, trailerProvided: true },
+      logistics: {
+        boatLocation: "home_trailer",
+        transportBand: "local",
+        pickup: true,
+        delivery: true,
+        trailerProvided: true,
+      },
       addOns: { batteryCount: 2 },
     };
     const m = modelFor(sel);
 
-    const outside = m.lines.filter((l) => l.outsideBundle);
-    const inside = m.lines.filter((l) => !l.outsideBundle);
+    const outside = m.lines.filter(l => l.outsideBundle);
+    const inside = m.lines.filter(l => !l.outsideBundle);
 
     // Two transport trips + batteries. The trailer is NOT here: a boat on its
     // owner's trailer is not a charged service, so it produces no line at all.
@@ -84,7 +104,12 @@ describe("model marks what sits outside the bundle", () => {
     const withExtras = modelFor({
       mode: "bundle",
       bundleId: "winter_ready_plus",
-      logistics: { boatLocation: "home_trailer", transportBand: "extended", pickup: true, delivery: true },
+      logistics: {
+        boatLocation: "home_trailer",
+        transportBand: "extended",
+        pickup: true,
+        delivery: true,
+      },
     });
     expect(withExtras.bundleSavingsCents).toBe(bundled.bundleSavingsCents);
     expect(withExtras.subtotalCents).toBeGreaterThan(bundled.subtotalCents);
@@ -92,12 +117,17 @@ describe("model marks what sits outside the bundle", () => {
 
   it("marks nothing as outside when only a bundle is chosen", () => {
     const m = modelFor({ mode: "bundle", bundleId: "winter_ready" });
-    expect(m.lines.every((l) => !l.outsideBundle)).toBe(true);
+    expect(m.lines.every(l => !l.outsideBundle)).toBe(true);
   });
 
   it("carries the package label for the header", () => {
-    expect(modelFor({ mode: "bundle", bundleId: "full_care" }).packageLabel).toBe("Full Care");
-    expect(modelFor({ mode: "alacarte", alacarteIds: ["outdoor_storage"] }).packageLabel).toBeNull();
+    expect(
+      modelFor({ mode: "bundle", bundleId: "full_care" }).packageLabel
+    ).toBe("Full Care");
+    expect(
+      modelFor({ mode: "alacarte", alacarteIds: ["outdoor_storage"] })
+        .packageLabel
+    ).toBeNull();
   });
 });
 
@@ -110,7 +140,9 @@ describe("quote reference", () => {
   it("omits characters that get misread when read aloud", () => {
     // No I, O, 0 or 1 — these are quoted over the phone.
     const refs = Array.from({ length: 40 }, (_, i) =>
-      generateQuoteReference(new Uint8Array([i, i + 7, i + 13, i + 19, i + 23, i + 29])),
+      generateQuoteReference(
+        new Uint8Array([i, i + 7, i + 13, i + 19, i + 23, i + 29])
+      )
     );
     for (const r of refs) {
       expect(r.slice(7)).not.toMatch(/[IO01]/);
@@ -148,7 +180,13 @@ describe("model is a pure function of the selection", () => {
       mode: "bundle",
       bundleId: "full_care",
       ceramicUpgrade: true,
-      logistics: { boatLocation: "marina_ramp", transportBand: "regional", pickup: true, delivery: false, trailerProvided: true },
+      logistics: {
+        boatLocation: "marina_ramp",
+        transportBand: "regional",
+        pickup: true,
+        delivery: false,
+        trailerProvided: true,
+      },
       addOns: { batteryCount: 3, extendedMonths: 2, oilChangeOutboard: true },
     };
     const a = modelFor(sel);
@@ -158,18 +196,99 @@ describe("model is a pure function of the selection", () => {
     expect(a.taxCents).toBe(b.taxCents);
     expect(a.totalCents).toBe(b.totalCents);
     expect(a.depositCents).toBe(b.depositCents);
-    expect(a.lines.map((l) => l.amountCents)).toEqual(b.lines.map((l) => l.amountCents));
+    expect(a.lines.map(l => l.amountCents)).toEqual(
+      b.lines.map(l => l.amountCents)
+    );
   });
 
   it("the subtotal is the sum of the lines, less the bundle saving", () => {
     const sel: Selection = {
       mode: "bundle",
       bundleId: "winter_ready_plus",
-      logistics: { boatLocation: "home_trailer", transportBand: "local", pickup: true, delivery: true },
+      logistics: {
+        boatLocation: "home_trailer",
+        transportBand: "local",
+        pickup: true,
+        delivery: true,
+      },
       addOns: { batteryCount: 1 },
     };
     const m = modelFor(sel);
     const lineSum = m.lines.reduce((s, l) => s + l.amountCents, 0);
     expect(m.subtotalCents).toBe(lineSum - m.bundleSavingsCents);
+  });
+});
+
+describe("two transport trips are told apart", () => {
+  // THE BUG THIS PINS. A fall pickup and a spring delivery share one service
+  // key, so the engine returns two lines with the same description and the same
+  // price. The calculator screen has always disambiguated them; buildQuoteModel
+  // printed `l.label` raw, so the PDF showed the customer two identical charges
+  // with no way to tell which was which. The confirmation email would have
+  // inherited the same defect.
+  const boat = {
+    lengthFt: 24,
+    hullType: "bowrider",
+    engineType: "outboard" as const,
+    engineCount: 1,
+  };
+
+  function modelWithBothTrips() {
+    const quote = {
+      lineItems: [
+        {
+          label: "Outdoor winter storage",
+          description: "season",
+          amountCents: 100000,
+          detail: {},
+        },
+        {
+          label: "Transport — local",
+          description: "one way",
+          amountCents: 25000,
+          detail: {},
+        },
+        {
+          label: "Transport — local",
+          description: "one way",
+          amountCents: 25000,
+          detail: {},
+        },
+      ],
+      subtotalCents: 150000,
+      bundleSavingsCents: 0,
+      bundle: null,
+    } as never;
+    return buildQuoteModel({
+      reference: "A1MS-Q-TEST01",
+      issuedAt: new Date().toISOString(),
+      quote,
+      extras: [
+        { purpose: "pickup", serviceId: "transport_local", index: 1 },
+        { purpose: "delivery", serviceId: "transport_local", index: 2 },
+      ],
+      boat: {
+        lengthFt: boat.lengthFt,
+        hullType: boat.hullType,
+        engineType: boat.engineType,
+        engineCount: boat.engineCount,
+      },
+      logistics: null,
+    });
+  }
+
+  it("labels the pickup and the delivery differently", () => {
+    const labels = modelWithBothTrips().lines.map(l => l.label);
+    expect(labels).toContain("Transport — local (fall pickup)");
+    expect(labels).toContain("Transport — local (spring delivery)");
+  });
+
+  it("leaves an ordinary line's label alone", () => {
+    expect(modelWithBothTrips().lines[0].label).toBe("Outdoor winter storage");
+  });
+
+  it("produces no two identical labels — the failure a customer would actually notice", () => {
+    const labels = modelWithBothTrips().lines.map(l => l.label);
+    expect(new Set(labels).size).toBe(labels.length);
   });
 });

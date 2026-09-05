@@ -80,6 +80,29 @@ export function trackPageView(path: string): void {
   });
 }
 
+/**
+ * A completed quote, as Google Ads counts it.
+ *
+ * Separate from the GA4 `quote_completed` event on purpose: Ads needs a
+ * `conversion` with a send_to label to attribute spend, and firing it from the
+ * same call site would tangle two systems with different requirements.
+ *
+ * No-op when VITE_GOOGLE_ADS_ID is unset, which is every dev build and any
+ * deploy that is not running ads — so this costs nothing when it is not wanted.
+ *
+ * The VALUE is the engine's subtotal, passed in by the caller. Nothing here
+ * recomputes a price, and no customer detail is included: Ads gets an amount
+ * and a currency, which is all it needs to bid.
+ */
+export function trackAdsConversion(valueCents: number): void {
+  if (!enabled || !window.gtag || !ADS_ID) return;
+  window.gtag("event", "conversion", {
+    send_to: ADS_ID,
+    value: Math.round(valueCents) / 100,
+    currency: "CAD",
+  });
+}
+
 /** Shared handler for any `tel:` link click. `location` = the component it lives in. */
 export function trackPhoneClick(location: string): void {
   track("phone_click", { location });

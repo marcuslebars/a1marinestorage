@@ -8,6 +8,8 @@
 import { randomUUID } from "node:crypto";
 import { SOURCE_SITE, forwardToLeadPipeline } from "./lead-pipeline";
 import { persistLead } from "./persist";
+import { notify } from "./notify/notify";
+import { renderContactConfirmationEmail } from "./notify/templates/contact-confirmation";
 import { isHoneypotTripped } from "./security/honeypot";
 import { buildStorageContactEnvelope, forwardToEmpireVu } from "./empirevu";
 
@@ -186,6 +188,46 @@ export async function handleContactSubmission(
       locality,
     })
   );
+
+  // (4) Say something back. Unawaited and never throwing — the message is
+  //     already recorded, and a mail problem must not turn a delivered message
+  //     into an error on the customer's screen.
+  {
+    const mail = renderContactConfirmationEmail({
+      name: contact.name,
+      message: contact.message,
+      serviceInterest: contact.serviceInterest,
+    });
+    void notify(id, "contact_confirmation", "email", {
+      to: contact.email,
+      subject: mail.subject,
+      text: mail.text,
+      html: mail.html,
+    });
+
+    // The yard's copy. Plain, because a contact form has no quote to render.
+    const owner = process.env.OWNER_ALERT_EMAIL || process.env.MAIL_BCC_OWNER;
+    if (owner) {
+      void notify(id, "owner_alert", "email", {
+        to: owner,
+        subject: `[contact] ${contact.name} — ${contact.serviceInterest ?? "general enquiry"}`,
+        text: [
+          `${contact.name} · ${contact.phone} · ${contact.email}`,
+          contact.boatMakeModel ? `Boat: ${contact.boatMakeModel}` : "",
+          contact.boatLength ? `Length: ${contact.boatLength} ft` : "",
+          contact.serviceInterest ? `Interest: ${contact.serviceInterest}` : "",
+          page ? `Page: ${page}` : "",
+          locality ? `Locality: ${locality}` : "",
+          "",
+          contact.message ?? "(no message)",
+        ]
+          .filter(Boolean)
+          .join("\n"),
+        // Reply goes straight to the customer.
+        replyTo: contact.email,
+      });
+    }
+  }
 
   return { status: 200, body: { ok: true, id, submittedAt: receivedAt } };
 }
