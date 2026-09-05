@@ -106,17 +106,18 @@ export function DownloadQuoteButton({
               /*
                * SAYS WHAT THE CODE DOES, AND ONLY THAT.
                *
-               * This read "Email it to me too (optional)" while nothing on the
-               * server sent anything: the address was filed as a lead and the
-               * customer waited for an email that was never coming. Saving the
-               * address is exactly what happens, so that is what it says.
+               * This promised an email for months while nothing on the server
+               * sent one: the address was filed as a lead and the customer
+               * waited for something that was never coming. P1 changed it to
+               * "Save my email with this quote", which was the truth at the
+               * time — the send existed but had never been proven.
                *
-               * Flip this back to "Email me a copy too (optional)" in the SAME
-               * change that turns the send on — once the Resend domain is
-               * verified and a real send has been seen in production. The copy
-               * and the behaviour ship together or not at all.
+               * It now says "email" again because an email now actually
+               * arrives: the Resend domain is verified and a real send was
+               * confirmed in production before this line changed. If the send
+               * is ever turned off, this changes back in the same commit.
                */
-              placeholder="Save my email with this quote (optional)"
+              placeholder="Email me a copy too (optional)"
               className="h-11 border-white/15 bg-white/5 text-white placeholder:text-white/30 focus:border-[oklch(0.6_0.2_27)]"
             />
             <button
