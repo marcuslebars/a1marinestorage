@@ -11,8 +11,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { track } from "@/lib/analytics";
 import { trackPixelEvent } from "@/lib/meta-pixel";
 import { getUtm } from "@/lib/utm";
+import { HoneypotField } from "@/components/HoneypotField";
 
-const SERVICE_OPTIONS = ["Outdoor Storage", "Shrink Wrapping", "Winterization", "Spring Commissioning"];
+const SERVICE_OPTIONS = [
+  "Outdoor Storage",
+  "Shrink Wrapping",
+  "Winterization",
+  "Spring Commissioning",
+];
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 interface QuoteRequestFormProps {
@@ -27,29 +33,52 @@ interface QuoteRequestFormProps {
   submitLabel?: string;
 }
 
-export function QuoteRequestForm({ page, serviceContext, locality, formType, submitLabel = "Request My Quote" }: QuoteRequestFormProps) {
-  const [form, setForm] = useState({ name: "", phone: "", email: "", boatLength: "", boatType: "", message: "" });
+export function QuoteRequestForm({
+  page,
+  serviceContext,
+  locality,
+  formType,
+  submitLabel = "Request My Quote",
+}: QuoteRequestFormProps) {
+  const [form, setForm] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    boatLength: "",
+    boatType: "",
+    message: "",
+  });
   const [services, setServices] = useState<string[]>([]);
   const [status, setStatus] = useState<"idle" | "submitting" | "error">("idle");
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
+  const [honeypot, setHoneypot] = useState("");
 
-  const bind = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-    setForm((f) => ({ ...f, [k]: e.target.value }));
+  const bind =
+    (k: keyof typeof form) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      setForm(f => ({ ...f, [k]: e.target.value }));
 
   const toggleService = (s: string) =>
-    setServices((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
+    setServices(prev =>
+      prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]
+    );
 
   const emailOk = EMAIL_RE.test(form.email.trim());
   const canSubmit =
-    form.name.trim().length >= 2 && emailOk && form.phone.replace(/\D/g, "").length >= 7 && status !== "submitting";
+    form.name.trim().length >= 2 &&
+    emailOk &&
+    form.phone.replace(/\D/g, "").length >= 7 &&
+    status !== "submitting";
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSubmit) return;
     setStatus("submitting");
     setError("");
-    const serviceInterest = [serviceContext, services.join(", ")].filter(Boolean).join(" — ");
+    const serviceInterest = [serviceContext, services.join(", ")]
+      .filter(Boolean)
+      .join(" — ");
     const payload = {
       name: form.name,
       email: form.email,
@@ -62,6 +91,8 @@ export function QuoteRequestForm({ page, serviceContext, locality, formType, sub
       page,
       locality,
       formType,
+      // Empty for every real person; non-empty means a bot filled everything.
+      website: honeypot,
     };
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
@@ -71,7 +102,9 @@ export function QuoteRequestForm({ page, serviceContext, locality, formType, sub
           body: JSON.stringify(payload),
         });
         if (res.ok) {
-          const data = (await res.json().catch(() => ({ ok: true }))) as { ok?: boolean };
+          const data = (await res.json().catch(() => ({ ok: true }))) as {
+            ok?: boolean;
+          };
           if (data.ok) {
             track("request_form_submit", {
               service: serviceInterest || undefined,
@@ -82,7 +115,9 @@ export function QuoteRequestForm({ page, serviceContext, locality, formType, sub
             return;
           }
         } else if (res.status >= 400 && res.status < 500) {
-          const data = (await res.json().catch(() => ({}))) as { error?: string };
+          const data = (await res.json().catch(() => ({}))) as {
+            error?: string;
+          };
           setError(data.error ?? "Please check your details and try again.");
           setStatus("error");
           return;
@@ -90,7 +125,7 @@ export function QuoteRequestForm({ page, serviceContext, locality, formType, sub
       } catch {
         /* network — retry */
       }
-      if (attempt < 3) await new Promise((r) => setTimeout(r, attempt * 600));
+      if (attempt < 3) await new Promise(r => setTimeout(r, attempt * 600));
     }
     setError("We couldn't submit that just now. Please call us or try again.");
     setStatus("error");
@@ -102,11 +137,15 @@ export function QuoteRequestForm({ page, serviceContext, locality, formType, sub
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[oklch(0.6_0.2_27)/10] mx-auto mb-4">
           <CheckCircle2 className="h-8 w-8 text-[oklch(0.6_0.2_27)]" />
         </div>
-        <h3 className="text-2xl font-black text-white" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+        <h3
+          className="text-2xl font-black text-white"
+          style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
+        >
           Request received!
         </h3>
         <p className="mt-2 text-base text-white/65">
-          Thanks — we'll be in touch within 1–2 business days with your quote and availability.
+          Thanks — we'll be in touch within 1–2 business days with your quote
+          and availability.
         </p>
       </div>
     );
@@ -114,34 +153,81 @@ export function QuoteRequestForm({ page, serviceContext, locality, formType, sub
 
   return (
     <form onSubmit={submit} className="marine-card p-6 md:p-8 space-y-5">
+      <HoneypotField value={honeypot} onChange={setHoneypot} />
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <Label htmlFor="qf-name" className="text-white/70">Name *</Label>
-          <Input id="qf-name" value={form.name} onChange={bind("name")} required className="mt-1.5" placeholder="Your name" />
+          <Label htmlFor="qf-name" className="text-white/70">
+            Name *
+          </Label>
+          <Input
+            id="qf-name"
+            value={form.name}
+            onChange={bind("name")}
+            required
+            className="mt-1.5"
+            placeholder="Your name"
+          />
         </div>
         <div>
-          <Label htmlFor="qf-phone" className="text-white/70">Phone *</Label>
-          <Input id="qf-phone" type="tel" value={form.phone} onChange={bind("phone")} required className="mt-1.5" placeholder="(249) 000-0000" />
+          <Label htmlFor="qf-phone" className="text-white/70">
+            Phone *
+          </Label>
+          <Input
+            id="qf-phone"
+            type="tel"
+            value={form.phone}
+            onChange={bind("phone")}
+            required
+            className="mt-1.5"
+            placeholder="(249) 000-0000"
+          />
         </div>
       </div>
       <div>
-        <Label htmlFor="qf-email" className="text-white/70">Email *</Label>
-        <Input id="qf-email" type="email" value={form.email} onChange={bind("email")} required className="mt-1.5" placeholder="you@email.com" />
+        <Label htmlFor="qf-email" className="text-white/70">
+          Email *
+        </Label>
+        <Input
+          id="qf-email"
+          type="email"
+          value={form.email}
+          onChange={bind("email")}
+          required
+          className="mt-1.5"
+          placeholder="you@email.com"
+        />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <Label htmlFor="qf-length" className="text-white/70">Boat length (ft)</Label>
-          <Input id="qf-length" inputMode="numeric" value={form.boatLength} onChange={bind("boatLength")} className="mt-1.5" placeholder="e.g. 24" />
+          <Label htmlFor="qf-length" className="text-white/70">
+            Boat length (ft)
+          </Label>
+          <Input
+            id="qf-length"
+            inputMode="numeric"
+            value={form.boatLength}
+            onChange={bind("boatLength")}
+            className="mt-1.5"
+            placeholder="e.g. 24"
+          />
         </div>
         <div>
-          <Label htmlFor="qf-type" className="text-white/70">Boat make / model</Label>
-          <Input id="qf-type" value={form.boatType} onChange={bind("boatType")} className="mt-1.5" placeholder="e.g. Sea Ray 240" />
+          <Label htmlFor="qf-type" className="text-white/70">
+            Boat make / model
+          </Label>
+          <Input
+            id="qf-type"
+            value={form.boatType}
+            onChange={bind("boatType")}
+            className="mt-1.5"
+            placeholder="e.g. Sea Ray 240"
+          />
         </div>
       </div>
       <div>
         <Label className="text-white/70">Services you're interested in</Label>
         <div className="mt-2 flex flex-wrap gap-2">
-          {SERVICE_OPTIONS.map((s) => {
+          {SERVICE_OPTIONS.map(s => {
             const on = services.includes(s);
             return (
               <button
@@ -161,8 +247,17 @@ export function QuoteRequestForm({ page, serviceContext, locality, formType, sub
         </div>
       </div>
       <div>
-        <Label htmlFor="qf-msg" className="text-white/70">Anything else? (optional)</Label>
-        <Textarea id="qf-msg" value={form.message} onChange={bind("message")} className="mt-1.5" rows={3} placeholder="Drop-off timing, twin engines, trailer storage…" />
+        <Label htmlFor="qf-msg" className="text-white/70">
+          Anything else? (optional)
+        </Label>
+        <Textarea
+          id="qf-msg"
+          value={form.message}
+          onChange={bind("message")}
+          className="mt-1.5"
+          rows={3}
+          placeholder="Drop-off timing, twin engines, trailer storage…"
+        />
       </div>
       {error && <p className="text-sm text-red-400">{error}</p>}
       <Button
@@ -179,7 +274,9 @@ export function QuoteRequestForm({ page, serviceContext, locality, formType, sub
           submitLabel
         )}
       </Button>
-      <p className="text-center text-xs text-white/40">No obligation. We respond within 1–2 business days.</p>
+      <p className="text-center text-xs text-white/40">
+        No obligation. We respond within 1–2 business days.
+      </p>
     </form>
   );
 }

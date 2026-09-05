@@ -24,8 +24,34 @@ export interface LeadEnvelope {
   contact: { name?: string; email?: string; phone?: string };
   message?: string;
   lineItems?: LeadLineItem[];
-  asset?: { makeModel?: string; lengthFt?: number; type?: string; marina?: string };
-  meta?: { site?: string; page?: string; preferredDate?: string; preferredTime?: string; utm?: Record<string, string>; locality?: string };
+  asset?: {
+    makeModel?: string;
+    lengthFt?: number;
+    type?: string;
+    marina?: string;
+  };
+  // `meta` is the documented extension point: new capture context goes here,
+  // never at the top level, and every field is compacted away when unset so the
+  // golden fixtures stay byte-identical.
+  //
+  // The last four were already being emitted by buildStorageQuoteEnvelope while
+  // this type claimed they did not exist — it typechecked only because compact()
+  // returns a widened object rather than an object literal, which skips excess
+  // property checking. Declared here so the contract matches the wire.
+  meta?: {
+    site?: string;
+    page?: string;
+    preferredDate?: string;
+    preferredTime?: string;
+    utm?: Record<string, string>;
+    locality?: string;
+    logistics?: LeadLogistics;
+    selection?: LeadSelection;
+    /** A1MS-Q-XXXXXX, when the lead came from a downloaded quote. */
+    quoteRef?: string;
+    /** Capture route, e.g. `pdf_download`. Absent for an ordinary submission. */
+    source?: string;
+  };
 }
 
 // ── Builders (spoke-specific mapping → canonical envelope) ───────────────────
@@ -45,7 +71,9 @@ function compact<T extends Record<string, unknown>>(obj: T): T | undefined {
 }
 
 function joinText(...parts: Array<string | undefined>): string | undefined {
-  const text = parts.filter((p): p is string => Boolean(p && p.trim())).join("\n\n");
+  const text = parts
+    .filter((p): p is string => Boolean(p && p.trim()))
+    .join("\n\n");
   return text || undefined;
 }
 
@@ -98,7 +126,9 @@ export interface LeadLogistics {
  * make a delivery-only quote look like it had no transport at all. Only
  * undefined/null/"" are dropped, so an untouched section vanishes completely.
  */
-export function compactLogistics(log?: LeadLogistics): LeadLogistics | undefined {
+export function compactLogistics(
+  log?: LeadLogistics
+): LeadLogistics | undefined {
   if (!log) return undefined;
   return compact(log as Record<string, unknown>) as LeadLogistics | undefined;
 }
@@ -106,7 +136,15 @@ export function compactLogistics(log?: LeadLogistics): LeadLogistics | undefined
 export function buildStorageContactEnvelope(input: {
   id: string;
   receivedAt: string;
-  contact: { name: string; email: string; phone: string; boatMakeModel?: string; boatLength?: string; serviceInterest?: string; message?: string };
+  contact: {
+    name: string;
+    email: string;
+    phone: string;
+    boatMakeModel?: string;
+    boatLength?: string;
+    serviceInterest?: string;
+    message?: string;
+  };
   utm?: Record<string, string>;
   page?: string;
   formType?: LeadEnvelope["formType"];
@@ -115,15 +153,29 @@ export function buildStorageContactEnvelope(input: {
   const c = input.contact;
   return {
     schemaVersion: 1,
-    source: input.formType === "winter-storage-quote" ? "a1marinestorage-winter-quote" : "a1marinestorage-contact",
+    source:
+      input.formType === "winter-storage-quote"
+        ? "a1marinestorage-winter-quote"
+        : "a1marinestorage-contact",
     sourceSite: SOURCE_SITE,
     formType: input.formType ?? "contact",
     receivedAt: input.receivedAt,
     contact: { name: c.name, email: c.email, phone: c.phone },
-    message: joinText(c.serviceInterest ? `Service interest: ${c.serviceInterest}` : undefined, c.message),
-    asset: compact({ makeModel: c.boatMakeModel, lengthFt: parseFeet(c.boatLength) }),
+    message: joinText(
+      c.serviceInterest ? `Service interest: ${c.serviceInterest}` : undefined,
+      c.message
+    ),
+    asset: compact({
+      makeModel: c.boatMakeModel,
+      lengthFt: parseFeet(c.boatLength),
+    }),
     // utm/locality dropped by compact() when absent → unchanged output for plain contact leads (golden-safe).
-    meta: compact({ site: "a1marinestorage.ca", page: input.page ?? "/contact", utm: input.utm, locality: input.locality }) ?? {
+    meta: compact({
+      site: "a1marinestorage.ca",
+      page: input.page ?? "/contact",
+      utm: input.utm,
+      locality: input.locality,
+    }) ?? {
       site: "a1marinestorage.ca",
     },
   };
@@ -147,7 +199,13 @@ export interface LeadSelection {
 export function buildStorageQuoteEnvelope(input: {
   id: string;
   receivedAt: string;
-  contact: { name: string; email: string; phone: string; boatMakeModelYear?: string; marina?: string };
+  contact: {
+    name: string;
+    email: string;
+    phone: string;
+    boatMakeModelYear?: string;
+    marina?: string;
+  };
   quote: {
     hullType?: string | null;
     subtotalCents: number;
@@ -167,10 +225,14 @@ export function buildStorageQuoteEnvelope(input: {
   selection?: LeadSelection;
   /** Short human reference (A1MS-Q-XXXXXX) when the quote came from a PDF download. */
   quoteRef?: string;
+  /** Capture route when it was not the ordinary calculator submission, e.g. `pdf_download`. */
+  source?: string;
 }): LeadEnvelope {
   const c = input.contact;
   const q = input.quote;
-  const lengthFt = q.lineItems.find((l) => l.detail.lengthFt != null)?.detail.lengthFt ?? undefined;
+  const lengthFt =
+    q.lineItems.find(l => l.detail.lengthFt != null)?.detail.lengthFt ??
+    undefined;
 
   /**
    * The engine, taken from the priced winterization line.
@@ -185,12 +247,12 @@ export function buildStorageQuoteEnvelope(input: {
    * actually priced: flat_per_engine is the shape winterization takes, and its
    * detail carries the type and count the engine used.
    */
-  const engineLine = q.lineItems.find((l) => l.detail.type === "flat_per_engine");
+  const engineLine = q.lineItems.find(l => l.detail.type === "flat_per_engine");
   const engineType = engineLine?.detail.engineType ?? undefined;
   const engineCount = engineLine?.detail.engineCount ?? undefined;
   const summary = joinText(
     q.bundle ? `Package: ${q.bundle.label}` : "À la carte",
-    `Subtotal (pre-HST): $${(q.subtotalCents / 100).toFixed(2)}`,
+    `Subtotal (pre-HST): $${(q.subtotalCents / 100).toFixed(2)}`
   );
   return {
     schemaVersion: 1,
@@ -218,8 +280,14 @@ export function buildStorageQuoteEnvelope(input: {
       page: "/calculator",
       utm: input.utm,
       logistics: compactLogistics(input.logistics),
-      selection: input.selection ? compact(input.selection as Record<string, unknown>) : undefined,
+      selection: input.selection
+        ? compact(input.selection as Record<string, unknown>)
+        : undefined,
       quoteRef: input.quoteRef,
+      // How the lead was captured, when it was not the ordinary calculator
+      // submission. Compacted away when unset, so a normal quote's envelope is
+      // byte-identical to what it has always been.
+      source: input.source,
     }) ?? { site: "a1marinestorage.ca" },
   };
 }
@@ -230,7 +298,7 @@ export function signEmpireVuBody(rawBody: string, secret: string): string {
   return `sha256=${createHmac("sha256", secret).update(rawBody, "utf8").digest("hex")}`;
 }
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
  * Read a response only if it is recognisably the intake's.
@@ -242,12 +310,23 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
  * Deliberately total: it never throws, because a throw here would land in the
  * retry loop and re-post the SAME lead.
  */
-async function readIntakeBody(res: Response): Promise<{ leadId: string; quoteUrl?: string } | null> {
+async function readIntakeBody(
+  res: Response
+): Promise<{ leadId: string; quoteUrl?: string } | null> {
   try {
-    const body = (await res.json()) as { ok?: unknown; leadId?: unknown; quoteUrl?: unknown } | null;
+    const body = (await res.json()) as {
+      ok?: unknown;
+      leadId?: unknown;
+      quoteUrl?: unknown;
+    } | null;
     if (!body || typeof body.leadId !== "string" || !body.leadId) return null;
-    const quoteUrl = typeof body.quoteUrl === "string" && body.quoteUrl ? body.quoteUrl : undefined;
-    return quoteUrl ? { leadId: body.leadId, quoteUrl } : { leadId: body.leadId };
+    const quoteUrl =
+      typeof body.quoteUrl === "string" && body.quoteUrl
+        ? body.quoteUrl
+        : undefined;
+    return quoteUrl
+      ? { leadId: body.leadId, quoteUrl }
+      : { leadId: body.leadId };
   } catch {
     return null;
   }
@@ -261,6 +340,12 @@ async function readIntakeBody(res: Response): Promise<{ leadId: string; quoteUrl
 export interface EmpireVuForwardResult {
   ok: boolean;
   quoteUrl?: string;
+  /**
+   * EmpireVu's id for the lead. Already parsed as the proof this response came
+   * from the real intake; surfaced so the caller can store it against the quote
+   * row and the two systems can be reconciled later.
+   */
+  leadId?: string;
 }
 
 /**
@@ -273,17 +358,22 @@ export interface EmpireVuForwardResult {
  */
 export async function forwardToEmpireVu(
   envelope: LeadEnvelope,
-  attempts = 3,
+  attempts = 3
 ): Promise<EmpireVuForwardResult> {
   if (process.env.EMPIREVU_INTAKE_DISABLED === "1") return { ok: false };
   const url = process.env.EMPIREVU_INTAKE_URL;
   const secret = process.env.EMPIREVU_INTAKE_SECRET;
   if (!url || !secret) {
-    console.log("[empirevu] EMPIREVU_INTAKE_URL/SECRET not set — skipping (legacy hub + durable log unaffected)");
+    console.log(
+      "[empirevu] EMPIREVU_INTAKE_URL/SECRET not set — skipping (legacy hub + durable log unaffected)"
+    );
     return { ok: false };
   }
   const rawBody = JSON.stringify(envelope);
-  const headers = { "Content-Type": "application/json", "x-empirevu-signature": signEmpireVuBody(rawBody, secret) };
+  const headers = {
+    "Content-Type": "application/json",
+    "x-empirevu-signature": signEmpireVuBody(rawBody, secret),
+  };
 
   for (let attempt = 1; attempt <= attempts; attempt++) {
     try {
@@ -301,21 +391,32 @@ export async function forwardToEmpireVu(
         if (!body) {
           console.error(
             `[empirevu] ${res.status} from ${url} but the body is not an intake response — ` +
-              `the URL is probably wrong (a marketing site or proxy answering 200). Lead NOT confirmed.`,
+              `the URL is probably wrong (a marketing site or proxy answering 200). Lead NOT confirmed.`
           );
           // Falls through to the retry loop, then to the loud give-up below.
         } else {
-          console.log(`[empirevu] forwarded ${envelope.formType} (attempt ${attempt}, lead ${body.leadId})`);
-          return body.quoteUrl ? { ok: true, quoteUrl: body.quoteUrl } : { ok: true };
+          console.log(
+            `[empirevu] forwarded ${envelope.formType} (attempt ${attempt}, lead ${body.leadId})`
+          );
+          return body.quoteUrl
+            ? { ok: true, quoteUrl: body.quoteUrl, leadId: body.leadId }
+            : { ok: true, leadId: body.leadId };
         }
       } else {
-        console.error(`[empirevu] responded ${res.status} (attempt ${attempt})`);
+        console.error(
+          `[empirevu] responded ${res.status} (attempt ${attempt})`
+        );
       }
     } catch (err) {
-      console.error(`[empirevu] forward failed (attempt ${attempt}):`, err instanceof Error ? err.message : String(err));
+      console.error(
+        `[empirevu] forward failed (attempt ${attempt}):`,
+        err instanceof Error ? err.message : String(err)
+      );
     }
     if (attempt < attempts) await sleep(attempt * 750);
   }
-  console.error(`[empirevu] gave up after ${attempts} attempts — legacy hub + durable log still hold the lead`);
+  console.error(
+    `[empirevu] gave up after ${attempts} attempts — legacy hub + durable log still hold the lead`
+  );
   return { ok: false };
 }

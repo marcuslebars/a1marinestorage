@@ -6,7 +6,9 @@
 // with retries. The customer never sees a fake success.
 
 import { randomUUID } from "node:crypto";
-import { SOURCE_SITE, appendSubmission, forwardToLeadPipeline } from "./lead-pipeline";
+import { SOURCE_SITE, forwardToLeadPipeline } from "./lead-pipeline";
+import { persistLead } from "./persist";
+import { isHoneypotTripped } from "./security/honeypot";
 import { buildStorageContactEnvelope, forwardToEmpireVu } from "./empirevu";
 
 const LEAD_TAG = "a1marinestorage-contact";
@@ -27,16 +29,21 @@ export interface HandlerResult {
   body: Record<string, unknown>;
 }
 
-function validate(raw: unknown): { ok: true; contact: ContactSubmission } | { ok: false; error: string } {
-  if (!raw || typeof raw !== "object") return { ok: false, error: "Missing contact details." };
+function validate(
+  raw: unknown
+): { ok: true; contact: ContactSubmission } | { ok: false; error: string } {
+  if (!raw || typeof raw !== "object")
+    return { ok: false, error: "Missing contact details." };
   const c = raw as Record<string, unknown>;
   const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
   const name = str(c.name);
   const email = str(c.email);
   const phone = str(c.phone);
   if (name.length < 2) return { ok: false, error: "A name is required." };
-  if (!EMAIL_RE.test(email)) return { ok: false, error: "A valid email is required." };
-  if (phone.replace(/\D/g, "").length < 7) return { ok: false, error: "A valid phone number is required." };
+  if (!EMAIL_RE.test(email))
+    return { ok: false, error: "A valid email is required." };
+  if (phone.replace(/\D/g, "").length < 7)
+    return { ok: false, error: "A valid phone number is required." };
   return {
     ok: true,
     contact: {
@@ -51,9 +58,19 @@ function validate(raw: unknown): { ok: true; contact: ContactSubmission } | { ok
   };
 }
 
-export async function handleContactSubmission(rawBody: unknown): Promise<HandlerResult> {
+export async function handleContactSubmission(
+  rawBody: unknown
+): Promise<HandlerResult> {
+  // See the note in quote-handler.ts: in the handler, not the route, so dev and
+  // production behave the same and no caller can forget it.
+  if (isHoneypotTripped(rawBody)) {
+    console.log("[contact] honeypot tripped — discarded");
+    return { status: 200, body: { ok: true } };
+  }
+
   const check = validate(rawBody);
-  if (!check.ok) return { status: 400, body: { ok: false, error: check.error } };
+  if (!check.ok)
+    return { status: 400, body: { ok: false, error: check.error } };
   const contact = check.contact;
 
   // Optional campaign attribution + landing page (from ad landing pages / locality
@@ -64,23 +81,63 @@ export async function handleContactSubmission(rawBody: unknown): Promise<Handler
       ? (raw.utm as Record<string, string>)
       : undefined;
   const page = typeof raw.page === "string" ? raw.page : undefined;
-  const locality = typeof raw.locality === "string" ? raw.locality.slice(0, 80) : undefined;
-  const ALLOWED_FORM_TYPES = ["contact", "winter-storage-quote", "quote", "booking"] as const;
+  const locality =
+    typeof raw.locality === "string" ? raw.locality.slice(0, 80) : undefined;
+  const ALLOWED_FORM_TYPES = [
+    "contact",
+    "winter-storage-quote",
+    "quote",
+    "booking",
+  ] as const;
   const formType =
-    typeof raw.formType === "string" && (ALLOWED_FORM_TYPES as readonly string[]).includes(raw.formType)
+    typeof raw.formType === "string" &&
+    (ALLOWED_FORM_TYPES as readonly string[]).includes(raw.formType)
       ? (raw.formType as (typeof ALLOWED_FORM_TYPES)[number])
       : undefined;
 
   const id = randomUUID();
   const receivedAt = new Date().toISOString();
-  const record = { id, receivedAt, source: LEAD_TAG, sourceSite: SOURCE_SITE, contact, utm, page, locality, formType };
+  const record = {
+    id,
+    receivedAt,
+    source: LEAD_TAG,
+    sourceSite: SOURCE_SITE,
+    contact,
+    utm,
+    page,
+    locality,
+    formType,
+  };
 
   // (1) Durable record FIRST — success only after this succeeds.
-  try {
-    appendSubmission("contacts", receivedAt, record);
-  } catch (err) {
-    console.error("[contact] failed to persist durable record:", err instanceof Error ? err.message : String(err));
-    return { status: 500, body: { ok: false, error: "We couldn't record your message. Please try again." } };
+  //
+  // Postgres, then the JSONL mirror, and a 500 only when BOTH refused. A
+  // contact is a `quotes` row with no priced quote: one table means one place
+  // to look for "everyone who ever asked us for something".
+  const stored = await persistLead(
+    {
+      id,
+      receivedAt,
+      source:
+        formType === "winter-storage-quote"
+          ? "winter-quote"
+          : locality
+            ? "locality"
+            : "contact",
+      contact: { ...contact },
+      meta: { utm, page, locality, formType },
+    },
+    "contacts",
+    record
+  );
+  if (!stored.ok) {
+    return {
+      status: 500,
+      body: {
+        ok: false,
+        error: "We couldn't record your message. Please try again.",
+      },
+    };
   }
 
   // (2) Forward to the shared A1 lead pipeline, source-tagged, with retries.
@@ -118,7 +175,17 @@ export async function handleContactSubmission(rawBody: unknown): Promise<Handler
 
   // (3) Additive dual-send: the SAME lead to EmpireVu's canonical intake, best-effort.
   //     The legacy forward above is untouched; an EmpireVu failure never affects this response.
-  void forwardToEmpireVu(buildStorageContactEnvelope({ id, receivedAt, contact, utm, page, formType, locality }));
+  void forwardToEmpireVu(
+    buildStorageContactEnvelope({
+      id,
+      receivedAt,
+      contact,
+      utm,
+      page,
+      formType,
+      locality,
+    })
+  );
 
   return { status: 200, body: { ok: true, id, submittedAt: receivedAt } };
 }

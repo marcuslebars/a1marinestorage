@@ -51,7 +51,9 @@ export function DownloadQuoteButton({
 
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
-        setError(data.error ?? "We couldn't build your quote. Please try again.");
+        setError(
+          data.error ?? "We couldn't build your quote. Please try again."
+        );
         return;
       }
 
@@ -62,8 +64,9 @@ export function DownloadQuoteButton({
       a.href = url;
       // Prefer the server's filename; it carries the quote reference.
       a.download =
-        res.headers.get("Content-Disposition")?.match(/filename="([^"]+)"/)?.[1] ??
-        "a1-marine-storage-quote.pdf";
+        res.headers
+          .get("Content-Disposition")
+          ?.match(/filename="([^"]+)"/)?.[1] ?? "a1-marine-storage-quote.pdf";
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -87,17 +90,33 @@ export function DownloadQuoteButton({
           <Download className="h-5 w-5 text-[oklch(0.6_0.2_27)]" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-white">Take your quote with you</p>
+          <p className="text-sm font-semibold text-white">
+            Take your quote with you
+          </p>
           <p className="mt-0.5 text-xs text-white/50">
-            A PDF of everything above, with a link to pick up where you left off. Valid 30 days.
+            A PDF of everything above, with a link to pick up where you left
+            off. Valid 30 days.
           </p>
 
           <div className="mt-3 flex flex-col gap-2 sm:flex-row">
             <Input
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email it to me too (optional)"
+              onChange={e => setEmail(e.target.value)}
+              /*
+               * SAYS WHAT THE CODE DOES, AND ONLY THAT.
+               *
+               * This read "Email it to me too (optional)" while nothing on the
+               * server sent anything: the address was filed as a lead and the
+               * customer waited for an email that was never coming. Saving the
+               * address is exactly what happens, so that is what it says.
+               *
+               * Flip this back to "Email me a copy too (optional)" in the SAME
+               * change that turns the send on — once the Resend domain is
+               * verified and a real send has been seen in production. The copy
+               * and the behaviour ship together or not at all.
+               */
+              placeholder="Save my email with this quote (optional)"
               className="h-11 border-white/15 bg-white/5 text-white placeholder:text-white/30 focus:border-[oklch(0.6_0.2_27)]"
             />
             <button
@@ -106,7 +125,11 @@ export function DownloadQuoteButton({
               disabled={busy}
               className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-[oklch(0.6_0.2_27)] px-4 text-sm font-semibold text-[oklch(0.12_0.018_240)] hover:bg-[oklch(0.53_0.2_27)] disabled:opacity-50"
             >
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              {busy ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
               {busy ? "Preparing…" : "Download PDF"}
             </button>
           </div>
@@ -115,8 +138,8 @@ export function DownloadQuoteButton({
           {reference && !error && (
             <p className="mt-2 text-xs text-white/50">
               Downloaded — your reference is{" "}
-              <span className="font-mono text-white/80">{reference}</span>. Quote it when you call and
-              we'll pull up exactly this.
+              <span className="font-mono text-white/80">{reference}</span>.
+              Quote it when you call and we'll pull up exactly this.
             </p>
           )}
           <p className="mt-2 text-xs text-white/35">

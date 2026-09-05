@@ -1,16 +1,39 @@
 // A1 Marine Storage — Storage Quote Calculator
 // Bundles-first quote & booking flow, powered by the shared @a1/pricing-engine.
 // Style: Contemporary Coastal Modernism — dark harbor, red accents, sticky price panel.
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 import {
-  ArrowRight, ArrowLeft, CheckCircle2, Snowflake, Shield, Wrench, Sun, Sparkles,
-  Anchor, User, Send, Info, ChevronDown, ChevronUp, Phone, Mail, Ship, AlertTriangle, Loader2,
+  ArrowRight,
+  ArrowLeft,
+  CheckCircle2,
+  Snowflake,
+  Shield,
+  Wrench,
+  Sun,
+  Sparkles,
+  Anchor,
+  User,
+  Send,
+  Info,
+  ChevronDown,
+  ChevronUp,
+  Phone,
+  Mail,
+  Ship,
+  AlertTriangle,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { BUSINESS } from "@/content/business";
 import { getUtm } from "@/lib/utm";
 import { track, trackPhoneClick } from "@/lib/analytics";
@@ -37,7 +60,14 @@ import {
   type Logistics,
   type Selection,
 } from "@/lib/quote-items";
+import {
+  hydrateFromResume,
+  resumeBanner,
+  resumeLandingStep,
+  type ResumePayload,
+} from "@/lib/quote-resume";
 import { DownloadQuoteButton } from "@/components/DownloadQuoteButton";
+import { HoneypotField } from "@/components/HoneypotField";
 import {
   LogisticsSection,
   EMPTY_LOGISTICS,
@@ -60,7 +90,9 @@ import {
 // Public, build-time Vite flags (no secret); changing them needs a redeploy.
 const DEPOSIT_ENABLED = import.meta.env.VITE_BOOKING_DEPOSIT_ENABLED === "1";
 const DEPOSIT_PCT = (() => {
-  const n = Number(import.meta.env.VITE_BOOKING_DEPOSIT_PERCENT as string | undefined);
+  const n = Number(
+    import.meta.env.VITE_BOOKING_DEPOSIT_PERCENT as string | undefined
+  );
   return Number.isFinite(n) && n > 0 && n <= 100 ? n : 25;
 })();
 
@@ -80,7 +112,8 @@ const BOOKING_COPY = DEPOSIT_ENABLED
         "We've saved your quote and will reach out within 1–2 business days to confirm your booking and take your deposit.",
     }
   : {
-      step3Subtitle: "This is a quote request, not a payment. We'll confirm your booking.",
+      step3Subtitle:
+        "This is a quote request, not a payment. We'll confirm your booking.",
       submitButton: "Submit Quote Request",
       priceNote: "Plus HST. Full payment due at booking to reserve your spot.",
       successHeading: "Quote Request Received!",
@@ -106,37 +139,62 @@ const ENGINE_TYPES: { value: EngineType; label: string }[] = [
   { value: "inboard", label: "Inboard" },
 ];
 
-const BUNDLE_META: Record<string, { icon: typeof Snowflake; tagline: string; badge?: string; highlight?: boolean }> = {
+const BUNDLE_META: Record<
+  string,
+  {
+    icon: typeof Snowflake;
+    tagline: string;
+    badge?: string;
+    highlight?: boolean;
+  }
+> = {
   winter_ready: {
     icon: Shield,
-    tagline: "Secure outdoor storage + professional shrink wrapping. For owners who winterize themselves.",
+    tagline:
+      "Secure outdoor storage + professional shrink wrapping. For owners who winterize themselves.",
   },
   winter_ready_plus: {
     icon: Snowflake,
-    tagline: "Everything in Winter Ready, plus full engine winterization. Our most popular package.",
+    tagline:
+      "Everything in Winter Ready, plus full engine winterization. Our most popular package.",
     badge: "Most Popular",
     highlight: true,
   },
   full_care: {
     icon: Sparkles,
-    tagline: "The complete hands-off winter: storage, wrap, winterization, fall detail & spring commissioning.",
+    tagline:
+      "The complete hands-off winter: storage, wrap, winterization, fall detail & spring commissioning.",
     badge: "Best Value",
   },
 };
 
 const BUNDLE_ORDER = ["winter_ready", "winter_ready_plus", "full_care"];
 
-const ALACARTE_META: Record<string, { icon: typeof Snowflake; blurb: string }> = {
-  outdoor_storage: { icon: Shield, blurb: "Secured, fenced outdoor lot for the season." },
-  shrink_wrap: { icon: Snowflake, blurb: "Commercial-grade heat-shrink film with vents." },
-  winterization: { icon: Wrench, blurb: "Engine flush, fogging, antifreeze & stabilizer." },
-  fall_detail: { icon: Sun, blurb: "Full wash & wax before wrapping." },
-  spring_commissioning: { icon: Anchor, blurb: "De-winterize & launch-ready in spring." },
-};
+const ALACARTE_META: Record<string, { icon: typeof Snowflake; blurb: string }> =
+  {
+    outdoor_storage: {
+      icon: Shield,
+      blurb: "Secured, fenced outdoor lot for the season.",
+    },
+    shrink_wrap: {
+      icon: Snowflake,
+      blurb: "Commercial-grade heat-shrink film with vents.",
+    },
+    winterization: {
+      icon: Wrench,
+      blurb: "Engine flush, fogging, antifreeze & stabilizer.",
+    },
+    fall_detail: { icon: Sun, blurb: "Full wash & wax before wrapping." },
+    spring_commissioning: {
+      icon: Anchor,
+      blurb: "De-winterize & launch-ready in spring.",
+    },
+  };
 
 // ceramic_upgrade is a per_foot service; narrow it since the v1.2.0 StorageService
 // union now also includes shapes (tiered_by_length) that have no flat rateCents.
-const ceramicService = STORAGE.services.ceramic_upgrade as StoragePerFootService;
+const ceramicService = STORAGE.services
+  .ceramic_upgrade as StoragePerFootService;
 
 type Mode = "bundle" | "alacarte";
 type SubmitStatus = "idle" | "submitting" | "success" | "fallback";
@@ -171,16 +229,32 @@ export default function Calculator() {
   // Transport & add-ons. `resolvedBand` is kept apart from the form values
   // because the postal path resolves it on the SERVER — the client never decides
   // which band a distance falls into.
-  const [logisticsValue, setLogisticsValue] = useState<LogisticsValue>(EMPTY_LOGISTICS);
+  const [logisticsValue, setLogisticsValue] =
+    useState<LogisticsValue>(EMPTY_LOGISTICS);
   const [resolvedBand, setResolvedBand] = useState<ResolvedBand | null>(null);
 
-  const [contact, setContact] = useState({ name: "", email: "", phone: "", boatMakeModelYear: "", marina: "" });
+  const [contact, setContact] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    boatMakeModelYear: "",
+    marina: "",
+  });
 
   const [status, setStatus] = useState<SubmitStatus>("idle");
   // A payable quote link, when EmpireVu produced one for this submission.
   const [depositUrl, setDepositUrl] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [showBreakdown, setShowBreakdown] = useState(true);
+
+  // A resumed quote: the reference from the PDF, so the booked quote keeps the
+  // number the customer is looking at, and the banner explaining what happened.
+  const [resumeRef, setResumeRef] = useState<string | undefined>(undefined);
+  const [resumeNotice, setResumeNotice] = useState<string | null>(null);
+
+  // Empty for every real person. Phase 0 shipped the server-side check; without
+  // this field on the form it had nothing to check.
+  const [honeypot, setHoneypot] = useState("");
 
   // Funnel top: fire quote_started once, on the first calculator field change.
   const startedRef = useRef(false);
@@ -190,9 +264,104 @@ export default function Calculator() {
     track("quote_started");
   }
 
+  /**
+   * Resume from the link printed on the PDF.
+   *
+   * Runs once, on mount, and only when `?q=` is present, so an ordinary visit
+   * is untouched. Everything here is best-effort: a link that cannot be read
+   * leaves the customer on a normal empty calculator rather than an error page,
+   * because a working form is more use to them than an explanation.
+   */
+  const resumedRef = useRef(false);
+  useEffect(() => {
+    if (resumedRef.current) return;
+    const token = new URLSearchParams(window.location.search).get("q");
+    if (!token) return;
+    resumedRef.current = true;
+
+    let cancelled = false;
+    (async () => {
+      let payload: ResumePayload;
+      try {
+        // no-store on BOTH sides. 410 Gone is cacheable by default, so a
+        // browser that once saw "expired" can keep answering from its own
+        // cache — including for a different token — and the customer is told
+        // their quote is gone by a response the server never sent. The server
+        // sets the header; this makes an already-poisoned cache harmless too.
+        const res = await fetch(
+          `/api/quote/resume?q=${encodeURIComponent(token)}`,
+          {
+            cache: "no-store",
+          }
+        );
+        payload = (await res.json()) as ResumePayload;
+      } catch {
+        return; // Offline or blocked: leave them on a working calculator.
+      }
+      if (cancelled) return;
+
+      const notice = resumeBanner(payload);
+      if (notice) setResumeNotice(notice);
+
+      const state = hydrateFromResume(payload);
+      if (!state) return; // Unreadable link: a working empty calculator, no error page.
+
+      setLengthInput(state.lengthInput);
+      setHullType(state.hullType);
+      setEngineType(state.engineType);
+      setEngineCount(state.engineCount);
+      setMode(state.mode);
+      setBundleId(state.bundleId);
+      setAlacarte(state.alacarte);
+      setCeramicUpgrade(state.ceramicUpgrade);
+      setLogisticsValue(state.logisticsValue);
+      setResolvedBand(state.resolvedBand);
+      setResumeRef(state.ref);
+      setStep(resumeLandingStep(payload));
+      // Resuming is not starting: without this, quote_started would fire on the
+      // first restored keystroke and inflate the top of the funnel.
+      startedRef.current = true;
+      track("quote_resumed");
+
+      // A typed town has to be geocoded again — only the server can do that,
+      // and the stored distance was an estimate we will not present as fact.
+      if (state.needsBandLookup && state.bandLookupPlace) {
+        try {
+          const res = await fetch("/api/transport/band", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ place: state.bandLookupPlace }),
+          });
+          const band = await res.json();
+          if (!cancelled && band?.ok) {
+            setResolvedBand({
+              band: band.band,
+              distanceKm: band.distanceKm,
+              resolution: band.resolution ?? "place_estimate",
+              place: band.place,
+            });
+          }
+        } catch {
+          /* The customer can re-resolve it themselves; the rest is restored. */
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // Mount only: this reads the URL the customer arrived on.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const lengthFt = Number.parseFloat(lengthInput);
   const lengthValid = Number.isFinite(lengthFt) && lengthFt > 0;
-  const boat: BoatState = { lengthFt: lengthValid ? lengthFt : 0, hullType, engineType, engineCount };
+  const boat: BoatState = {
+    lengthFt: lengthValid ? lengthFt : 0,
+    hullType,
+    engineType,
+    engineCount,
+  };
   const ceramicEligible = lengthValid && lengthFt <= CERAMIC_MAX_FT;
 
   // Live price for each of the three bundles (no ceramic — that's a post-selection upsell).
@@ -200,8 +369,15 @@ export default function Calculator() {
     const out: Record<string, QuoteResult | null> = {};
     if (!lengthValid) return out;
     for (const id of BUNDLE_ORDER) {
-      const items = bundleServiceIds(id, boat).map((sid) => itemForService(sid, boat));
-      out[id] = safeQuote({ serviceLine: "storage", items, hullType: hullType || undefined, bundleId: id });
+      const items = bundleServiceIds(id, boat).map(sid =>
+        itemForService(sid, boat)
+      );
+      out[id] = safeQuote({
+        serviceLine: "storage",
+        items,
+        hullType: hullType || undefined,
+        bundleId: id,
+      });
     }
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -220,13 +396,15 @@ export default function Calculator() {
     // One `townSlug` field for both paths: a slug from the list, or the name the
     // customer typed. bandResolution below is what tells them apart.
     const town =
-      v.townSlug === OTHER_TOWN ? v.placeName.trim() || null : v.townSlug || null;
+      v.townSlug === OTHER_TOWN
+        ? v.placeName.trim() || null
+        : v.townSlug || null;
     return {
       boatLocation: v.boatLocation,
       townSlug: towable ? town : null,
-      transportBand: towable ? resolvedBand?.band ?? null : null,
-      distanceKm: towable ? resolvedBand?.distanceKm ?? null : null,
-      bandResolution: towable ? resolvedBand?.resolution ?? null : null,
+      transportBand: towable ? (resolvedBand?.band ?? null) : null,
+      distanceKm: towable ? (resolvedBand?.distanceKm ?? null) : null,
+      bandResolution: towable ? (resolvedBand?.resolution ?? null) : null,
       pickup: towable && v.pickup,
       delivery: towable && v.delivery,
       trailerProvided: v.trailerProvided,
@@ -239,22 +417,32 @@ export default function Calculator() {
       extendedMonths: logisticsValue.extendedMonths,
       oilChangeOutboard: logisticsValue.oilChangeOutboard,
     }),
-    [logisticsValue],
+    [logisticsValue]
   );
 
   const selection = useMemo<Selection>(
-    () => ({ mode, bundleId, alacarteIds: Array.from(alacarte), ceramicUpgrade, logistics, addOns }),
-    [mode, bundleId, alacarte, ceramicUpgrade, logistics, addOns],
+    () => ({
+      mode,
+      bundleId,
+      alacarteIds: Array.from(alacarte),
+      ceramicUpgrade,
+      logistics,
+      addOns,
+    }),
+    [mode, bundleId, alacarte, ceramicUpgrade, logistics, addOns]
   );
 
   // The QuoteInput for the customer's current selection (incl. ceramic upsell).
   const selectedInput = useMemo<QuoteInput | null>(
     () => buildStorageQuoteInput(selection, boat),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [lengthValid, lengthFt, hullType, engineType, engineCount, selection],
+    [lengthValid, lengthFt, hullType, engineType, engineCount, selection]
   );
 
-  const quote = useMemo(() => (selectedInput ? safeQuote(selectedInput) : null), [selectedInput]);
+  const quote = useMemo(
+    () => (selectedInput ? safeQuote(selectedInput) : null),
+    [selectedInput]
+  );
 
   /**
    * Which appended lines are which, keyed by index into quote.lineItems.
@@ -264,21 +452,24 @@ export default function Calculator() {
    * from the same function that appended them, so the two cannot drift.
    */
   const extraRefs = useMemo<Map<number, ExtraLineRef["purpose"]>>(
-    () => new Map(describeExtras(selection, boat).map((r) => [r.index, r.purpose])),
+    () =>
+      new Map(describeExtras(selection, boat).map(r => [r.index, r.purpose])),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [selection, lengthFt, hullType, engineType, engineCount],
+    [selection, lengthFt, hullType, engineType, engineCount]
   );
 
   const canProceedStep1 = lengthValid && hullType !== "";
   const hasSelection = quote != null && quote.lineItems.length > 0;
   const canSubmit =
-    hasSelection && contact.name.trim().length >= 2 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact.email.trim()) &&
+    hasSelection &&
+    contact.name.trim().length >= 2 &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact.email.trim()) &&
     contact.phone.replace(/\D/g, "").length >= 7;
 
   function toggleAlacarte(id: string) {
     setMode("alacarte");
     setBundleId(null);
-    setAlacarte((prev) => {
+    setAlacarte(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else {
@@ -313,7 +504,12 @@ export default function Calculator() {
         // byte-identical to before this existed.
         logistics,
         addOns,
+        // Present only for a resumed quote, so the booked lead keeps the number
+        // printed on the PDF the customer is holding. Undefined otherwise, and
+        // compacted away, so an ordinary submission is unchanged.
+        quoteRef: resumeRef,
       },
+      website: honeypot,
     };
     const maxAttempts = 3;
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -326,26 +522,36 @@ export default function Calculator() {
         if (res.ok) {
           // Present only when EmpireVu auto-quoted this lead. Its absence is
           // normal and simply means the old copy is shown.
-          const data = (await res.json().catch(() => ({}))) as { depositUrl?: string };
-          if (typeof data.depositUrl === "string" && data.depositUrl) setDepositUrl(data.depositUrl);
+          const data = (await res.json().catch(() => ({}))) as {
+            depositUrl?: string;
+          };
+          if (typeof data.depositUrl === "string" && data.depositUrl)
+            setDepositUrl(data.depositUrl);
           if (quote) {
             // Conversion event — engine-derived totals only, no personal data.
             track("quote_completed", {
               quote_total: Math.round(quote.subtotalCents) / 100,
-              services: quote.lineItems.map((l) => l.serviceId).join(","),
+              services: quote.lineItems.map(l => l.serviceId).join(","),
               boat_length: lengthFt,
             });
           }
           // Meta Pixel Lead conversion (value/currency when known; never PII).
           trackPixelEvent(
             "Lead",
-            quote ? { value: Math.round(quote.subtotalCents) / 100, currency: "CAD" } : {},
+            quote
+              ? {
+                  value: Math.round(quote.subtotalCents) / 100,
+                  currency: "CAD",
+                }
+              : {}
           );
           setStatus("success");
           return;
         }
         if (res.status >= 400 && res.status < 500) {
-          const data = (await res.json().catch(() => ({}))) as { error?: string };
+          const data = (await res.json().catch(() => ({}))) as {
+            error?: string;
+          };
           setErrorMsg(data.error ?? "Please check your details and try again.");
           setStatus("idle");
           return;
@@ -354,7 +560,8 @@ export default function Calculator() {
       } catch {
         // network error — fall through to retry
       }
-      if (attempt < maxAttempts) await new Promise((r) => setTimeout(r, attempt * 800));
+      if (attempt < maxAttempts)
+        await new Promise(r => setTimeout(r, attempt * 800));
     }
     // Retries exhausted — graceful fallback, never a fake success.
     setStatus("fallback");
@@ -373,7 +580,10 @@ export default function Calculator() {
               it produced "check your email for a secure link" whether or not
               anything sent one. A real link is the only thing that earns the
               booked wording. */}
-          <h1 className="text-4xl font-black text-white mb-4" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+          <h1
+            className="text-4xl font-black text-white mb-4"
+            style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
+          >
             {depositUrl ? "You're almost booked!" : BOOKING_COPY.successHeading}
           </h1>
           <p className="text-base text-white/65 mb-6">
@@ -392,13 +602,19 @@ export default function Calculator() {
               href={depositUrl}
               className="mb-6 inline-flex items-center justify-center gap-2 rounded-lg bg-[oklch(0.6_0.2_27)] px-6 py-3.5 text-base font-semibold text-[oklch(0.12_0.018_240)] hover:bg-[oklch(0.53_0.2_27)] btn-brand-glow"
             >
-              Pay {DEPOSIT_PCT}% Deposit & Reserve My Spot <ArrowRight className="h-4 w-4" />
+              Pay {DEPOSIT_PCT}% Deposit & Reserve My Spot{" "}
+              <ArrowRight className="h-4 w-4" />
             </a>
           )}
           <div className="marine-card p-5 mb-6 text-left">
-            <p className="text-sm font-semibold text-white mb-3">Your Estimate</p>
+            <p className="text-sm font-semibold text-white mb-3">
+              Your Estimate
+            </p>
             {quote.lineItems.map((l, i) => (
-              <div key={i} className="flex justify-between gap-4 text-sm text-white/65 py-1 border-b border-white/5">
+              <div
+                key={i}
+                className="flex justify-between gap-4 text-sm text-white/65 py-1 border-b border-white/5"
+              >
                 <span>{extraLabel(l.label, extraRefs.get(i))}</span>
                 <span className="tabular-nums">{money(l.amountCents)}</span>
               </div>
@@ -406,12 +622,16 @@ export default function Calculator() {
             {quote.bundleSavingsCents > 0 && (
               <div className="flex justify-between text-sm text-[oklch(0.6_0.2_27)] py-1">
                 <span>Bundle savings</span>
-                <span className="tabular-nums">−{money(quote.bundleSavingsCents)}</span>
+                <span className="tabular-nums">
+                  −{money(quote.bundleSavingsCents)}
+                </span>
               </div>
             )}
             <div className="flex justify-between text-base font-bold text-white pt-2 border-t border-white/10">
               <span>Subtotal</span>
-              <span className="tabular-nums text-[oklch(0.6_0.2_27)]">{money(quote.subtotalCents)}</span>
+              <span className="tabular-nums text-[oklch(0.6_0.2_27)]">
+                {money(quote.subtotalCents)}
+              </span>
             </div>
             <p className="text-xs text-white/40 mt-2">
               {depositUrl
@@ -446,11 +666,15 @@ export default function Calculator() {
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.6_0.2_27)] mb-2">
             Instant Estimate · Transparent Per-Foot Pricing
           </p>
-          <h1 className="text-4xl font-black text-white md:text-5xl" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+          <h1
+            className="text-4xl font-black text-white md:text-5xl"
+            style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
+          >
             Storage Quote Calculator
           </h1>
           <p className="mt-2 text-base text-white/55 max-w-2xl">
-            Enter your boat, pick a winter package, and see your price instantly — right down to the per-foot rate.
+            Enter your boat, pick a winter package, and see your price instantly
+            — right down to the per-foot rate.
           </p>
         </div>
       </section>
@@ -474,14 +698,22 @@ export default function Calculator() {
                       active
                         ? "bg-[oklch(0.6_0.2_27)] text-[oklch(0.12_0.018_240)]"
                         : done
-                        ? "bg-[oklch(0.6_0.2_27)/15] text-[oklch(0.6_0.2_27)]"
-                        : "bg-white/5 text-white/40"
+                          ? "bg-[oklch(0.6_0.2_27)/15] text-[oklch(0.6_0.2_27)]"
+                          : "bg-white/5 text-white/40"
                     }`}
                   >
-                    {done ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Icon className="h-3.5 w-3.5" />}
+                    {done ? (
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                    ) : (
+                      <Icon className="h-3.5 w-3.5" />
+                    )}
                     {s.label}
                   </div>
-                  {i < 2 && <div className={`h-px w-6 ${step > s.id ? "bg-[oklch(0.6_0.2_27)/40]" : "bg-white/10"}`} />}
+                  {i < 2 && (
+                    <div
+                      className={`h-px w-6 ${step > s.id ? "bg-[oklch(0.6_0.2_27)/40]" : "bg-white/10"}`}
+                    />
+                  )}
                 </div>
               );
             })}
@@ -493,17 +725,38 @@ export default function Calculator() {
         <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
           {/* ── Main column ── */}
           <div>
+            {/*
+              Resumed from a PDF link. Says which quote, and says plainly that
+              the prices are today's — a 45-day-old link can outlive its prices,
+              and showing them without saying so would be the quiet kind of lie
+              this codebase does not tell.
+            */}
+            {resumeNotice && (
+              <div
+                className="marine-card p-4 mb-6 flex items-start gap-3"
+                role="status"
+                data-testid="resume-banner"
+              >
+                <Info className="h-5 w-5 shrink-0 mt-0.5 text-[oklch(0.6_0.2_27)]" />
+                <p className="text-sm text-white/80">{resumeNotice}</p>
+              </div>
+            )}
+
             {/* STEP 1 — Boat Details */}
             {step === 1 && (
               <div className="marine-card p-6 md:p-8">
-                <h2 className="text-2xl font-black text-white mb-6" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+                <h2
+                  className="text-2xl font-black text-white mb-6"
+                  style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
+                >
                   Step 1 — Your Boat
                 </h2>
                 <div className="space-y-6">
                   <div className="grid gap-6 sm:grid-cols-2">
                     <div>
                       <Label className="text-sm font-semibold text-white/80 mb-2 block">
-                        Boat Length (ft) <span className="text-[oklch(0.6_0.2_27)]">*</span>
+                        Boat Length (ft){" "}
+                        <span className="text-[oklch(0.6_0.2_27)]">*</span>
                       </Label>
                       <Input
                         type="number"
@@ -512,34 +765,43 @@ export default function Calculator() {
                         inputMode="decimal"
                         placeholder="e.g. 24"
                         value={lengthInput}
-                        onChange={(e) => {
+                        onChange={e => {
                           markStarted();
                           setLengthInput(e.target.value);
                         }}
                         className="bg-white/5 border-white/15 text-white placeholder:text-white/30 focus:border-[oklch(0.6_0.2_27)] h-12"
                       />
-                      <p className="text-xs text-white/40 mt-1.5">Length overall (LOA) in feet.</p>
+                      <p className="text-xs text-white/40 mt-1.5">
+                        Length overall (LOA) in feet.
+                      </p>
                     </div>
                     <div>
                       <Label className="text-sm font-semibold text-white/80 mb-2 block">
-                        Hull Type <span className="text-[oklch(0.6_0.2_27)]">*</span>
+                        Hull Type{" "}
+                        <span className="text-[oklch(0.6_0.2_27)]">*</span>
                       </Label>
                       <Select value={hullType} onValueChange={setHullType}>
                         <SelectTrigger className="bg-white/5 border-white/15 text-white h-12 focus:border-[oklch(0.6_0.2_27)]">
                           <SelectValue placeholder="Select hull type" />
                         </SelectTrigger>
                         <SelectContent className="bg-[oklch(0.16_0.018_240)] border-white/15">
-                          {HULL_TYPES.map((h) => (
-                            <SelectItem key={h.value} value={h.value} className="text-white focus:bg-white/10">
+                          {HULL_TYPES.map(h => (
+                            <SelectItem
+                              key={h.value}
+                              value={h.value}
+                              className="text-white focus:bg-white/10"
+                            >
                               {h.label}
                               {h.surcharge ? " (multi-hull surcharge)" : ""}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
-                      {HULL_TYPES.find((h) => h.value === hullType)?.surcharge && (
+                      {HULL_TYPES.find(h => h.value === hullType)
+                        ?.surcharge && (
                         <p className="text-xs text-[oklch(0.6_0.2_27)]/80 mt-1.5">
-                          Pontoons & tritoons carry a per-foot surcharge on storage & wrapping (wider footprint).
+                          Pontoons & tritoons carry a per-foot surcharge on
+                          storage & wrapping (wider footprint).
                         </p>
                       )}
                     </div>
@@ -547,40 +809,61 @@ export default function Calculator() {
 
                   <div className="grid gap-6 sm:grid-cols-2">
                     <div>
-                      <Label className="text-sm font-semibold text-white/80 mb-2 block">Engine Type</Label>
-                      <Select value={engineType} onValueChange={(v) => setEngineType(v as EngineType)}>
+                      <Label className="text-sm font-semibold text-white/80 mb-2 block">
+                        Engine Type
+                      </Label>
+                      <Select
+                        value={engineType}
+                        onValueChange={v => setEngineType(v as EngineType)}
+                      >
                         <SelectTrigger className="bg-white/5 border-white/15 text-white h-12 focus:border-[oklch(0.6_0.2_27)]">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-[oklch(0.16_0.018_240)] border-white/15">
-                          {ENGINE_TYPES.map((e) => (
-                            <SelectItem key={e.value} value={e.value} className="text-white focus:bg-white/10">
+                          {ENGINE_TYPES.map(e => (
+                            <SelectItem
+                              key={e.value}
+                              value={e.value}
+                              className="text-white focus:bg-white/10"
+                            >
                               {e.label}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
-                      <p className="text-xs text-white/40 mt-1.5">Used to price winterization.</p>
+                      <p className="text-xs text-white/40 mt-1.5">
+                        Used to price winterization.
+                      </p>
                     </div>
                     <div>
-                      <Label className="text-sm font-semibold text-white/80 mb-2 block">Number of Engines</Label>
+                      <Label className="text-sm font-semibold text-white/80 mb-2 block">
+                        Number of Engines
+                      </Label>
                       <div className="flex items-center gap-3 h-12">
                         <button
                           type="button"
-                          onClick={() => setEngineCount((c) => Math.max(1, c - 1))}
+                          onClick={() =>
+                            setEngineCount(c => Math.max(1, c - 1))
+                          }
                           className="h-10 w-10 rounded-lg border border-white/15 bg-white/5 text-white hover:bg-white/10 text-lg font-bold"
                         >
                           −
                         </button>
-                        <span className="text-lg font-bold text-white w-8 text-center tabular-nums">{engineCount}</span>
+                        <span className="text-lg font-bold text-white w-8 text-center tabular-nums">
+                          {engineCount}
+                        </span>
                         <button
                           type="button"
-                          onClick={() => setEngineCount((c) => Math.min(6, c + 1))}
+                          onClick={() =>
+                            setEngineCount(c => Math.min(6, c + 1))
+                          }
                           className="h-10 w-10 rounded-lg border border-white/15 bg-white/5 text-white hover:bg-white/10 text-lg font-bold"
                         >
                           +
                         </button>
-                        <span className="text-xs text-white/40 ml-1">Additional engines billed at 75%.</span>
+                        <span className="text-xs text-white/40 ml-1">
+                          Additional engines billed at 75%.
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -602,17 +885,22 @@ export default function Calculator() {
             {step === 2 && (
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-2xl font-black text-white mb-1" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+                  <h2
+                    className="text-2xl font-black text-white mb-1"
+                    style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
+                  >
                     Step 2 — Choose Your Package
                   </h2>
                   <p className="text-sm text-white/50">
-                    {lengthFt} ft {HULL_TYPES.find((h) => h.value === hullType)?.label} · prices below are for your boat.
+                    {lengthFt} ft{" "}
+                    {HULL_TYPES.find(h => h.value === hullType)?.label} · prices
+                    below are for your boat.
                   </p>
                 </div>
 
                 {/* Bundle cards */}
                 <div className="grid gap-4 md:grid-cols-3">
-                  {BUNDLE_ORDER.map((id) => {
+                  {BUNDLE_ORDER.map(id => {
                     const b = STORAGE.bundles[id];
                     const meta = BUNDLE_META[id];
                     const q = bundleQuotes[id];
@@ -636,30 +924,52 @@ export default function Calculator() {
                         )}
                         <div className="flex items-center gap-2 mb-2">
                           <Icon className="h-5 w-5 text-[oklch(0.6_0.2_27)]" />
-                          <h3 className="text-lg font-black text-white" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+                          <h3
+                            className="text-lg font-black text-white"
+                            style={{
+                              fontFamily: "'Barlow Condensed', sans-serif",
+                            }}
+                          >
                             {b.label}
                           </h3>
                         </div>
-                        <p className="text-xs text-white/55 leading-relaxed mb-4 min-h-[48px]">{meta.tagline}</p>
+                        <p className="text-xs text-white/55 leading-relaxed mb-4 min-h-[48px]">
+                          {meta.tagline}
+                        </p>
                         <div className="mt-auto">
                           {q ? (
                             <>
                               <div className="flex items-end gap-2">
-                                <span className="text-2xl font-black text-white tabular-nums" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+                                <span
+                                  className="text-2xl font-black text-white tabular-nums"
+                                  style={{
+                                    fontFamily:
+                                      "'Barlow Condensed', sans-serif",
+                                  }}
+                                >
                                   {money(q.subtotalCents)}
                                 </span>
-                                <span className="text-xs text-white/40 line-through mb-1 tabular-nums">{money(q.aLaCarteSubtotalCents)}</span>
+                                <span className="text-xs text-white/40 line-through mb-1 tabular-nums">
+                                  {money(q.aLaCarteSubtotalCents)}
+                                </span>
                               </div>
                               <p className="text-xs font-semibold text-[oklch(0.6_0.2_27)] mt-0.5">
-                                Save {money(q.bundleSavingsCents)} ({b.discountPct}% bundle)
+                                Save {money(q.bundleSavingsCents)} (
+                                {b.discountPct}% bundle)
                               </p>
                             </>
                           ) : (
-                            <span className="text-sm text-white/40">Enter boat details</span>
+                            <span className="text-sm text-white/40">
+                              Enter boat details
+                            </span>
                           )}
-                          <div className={`mt-3 h-9 rounded-lg flex items-center justify-center text-sm font-semibold ${
-                            selected ? "bg-[oklch(0.6_0.2_27)] text-[oklch(0.12_0.018_240)]" : "border border-white/15 text-white/80"
-                          }`}>
+                          <div
+                            className={`mt-3 h-9 rounded-lg flex items-center justify-center text-sm font-semibold ${
+                              selected
+                                ? "bg-[oklch(0.6_0.2_27)] text-[oklch(0.12_0.018_240)]"
+                                : "border border-white/15 text-white/80"
+                            }`}
+                          >
                             {selected ? "Selected" : "Select"}
                           </div>
                         </div>
@@ -672,42 +982,63 @@ export default function Calculator() {
                 {mode && ceramicEligible && (
                   <button
                     type="button"
-                    onClick={() => setCeramicUpgrade((v) => !v)}
+                    onClick={() => setCeramicUpgrade(v => !v)}
                     className={`marine-card w-full p-4 flex items-center gap-4 text-left transition-all ${
-                      ceramicUpgrade ? "ring-2 ring-[oklch(0.6_0.2_27)]" : "hover:border-white/25"
+                      ceramicUpgrade
+                        ? "ring-2 ring-[oklch(0.6_0.2_27)]"
+                        : "hover:border-white/25"
                     }`}
                   >
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[oklch(0.6_0.2_27)/12]">
                       <Sparkles className="h-5 w-5 text-[oklch(0.6_0.2_27)]" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm font-semibold text-white">Add a Winter Ceramic Coating</p>
+                      <p className="text-sm font-semibold text-white">
+                        Add a Winter Ceramic Coating
+                      </p>
                       <p className="text-xs text-white/50">
-                        Lock in gloss & protection over winter — {money(ceramicService.rateCents)}/ft
-                        {" "}(≤ {CERAMIC_MAX_FT} ft). Not discounted in bundles.
+                        Lock in gloss & protection over winter —{" "}
+                        {money(ceramicService.rateCents)}/ft (≤ {CERAMIC_MAX_FT}{" "}
+                        ft). Not discounted in bundles.
                       </p>
                     </div>
                     <div className="text-right shrink-0">
                       <p className="text-sm font-bold text-[oklch(0.6_0.2_27)] tabular-nums">
-                        +{money(Math.round(ceramicService.rateCents * lengthFt))}
+                        +
+                        {money(Math.round(ceramicService.rateCents * lengthFt))}
                       </p>
-                      <div className={`mt-1 h-5 w-5 ml-auto rounded-full border-2 flex items-center justify-center ${
-                        ceramicUpgrade ? "border-[oklch(0.6_0.2_27)] bg-[oklch(0.6_0.2_27)]" : "border-white/20"
-                      }`}>
-                        {ceramicUpgrade && <CheckCircle2 className="h-3.5 w-3.5 text-[oklch(0.12_0.018_240)]" />}
+                      <div
+                        className={`mt-1 h-5 w-5 ml-auto rounded-full border-2 flex items-center justify-center ${
+                          ceramicUpgrade
+                            ? "border-[oklch(0.6_0.2_27)] bg-[oklch(0.6_0.2_27)]"
+                            : "border-white/20"
+                        }`}
+                      >
+                        {ceramicUpgrade && (
+                          <CheckCircle2 className="h-3.5 w-3.5 text-[oklch(0.12_0.018_240)]" />
+                        )}
                       </div>
                     </div>
                   </button>
                 )}
 
                 {/* À la carte */}
-                <details className="marine-card p-5 group" open={mode === "alacarte"}>
+                <details
+                  className="marine-card p-5 group"
+                  open={mode === "alacarte"}
+                >
                   <summary className="cursor-pointer list-none flex items-center justify-between text-sm font-semibold text-white">
                     <span>Prefer to pick individual services?</span>
                     <ChevronDown className="h-4 w-4 text-white/40 group-open:rotate-180 transition-transform" />
                   </summary>
                   <div className="mt-4 space-y-2">
-                    {["outdoor_storage", "shrink_wrap", "winterization", "fall_detail", "spring_commissioning"].map((id) => {
+                    {[
+                      "outdoor_storage",
+                      "shrink_wrap",
+                      "winterization",
+                      "fall_detail",
+                      "spring_commissioning",
+                    ].map(id => {
                       const isWinter = id === "winterization";
                       const svcId = isWinter ? winterizationId(engineType) : id;
                       const svc = STORAGE.services[svcId];
@@ -723,30 +1054,46 @@ export default function Calculator() {
                         svc.type === "per_foot"
                           ? `${money(svc.rateCents)}/ft${svc.minimumCents ? ` · min ${money(svc.minimumCents)}` : ""}`
                           : svc.type === "flat_per_engine"
-                          ? `${money(svc.rateCents)}/engine`
-                          : "flat rate";
+                            ? `${money(svc.rateCents)}/engine`
+                            : "flat rate";
                       return (
                         <div
                           key={id}
                           onClick={() => toggleAlacarte(id)}
                           className={`flex items-center gap-4 rounded-xl border p-3 cursor-pointer transition-all ${
-                            selected ? "border-[oklch(0.6_0.2_27)/50] bg-[oklch(0.6_0.2_27)/8]" : "border-white/10 hover:border-white/20"
+                            selected
+                              ? "border-[oklch(0.6_0.2_27)/50] bg-[oklch(0.6_0.2_27)/8]"
+                              : "border-white/10 hover:border-white/20"
                           }`}
                         >
-                          <Icon className={`h-5 w-5 shrink-0 ${selected ? "text-[oklch(0.6_0.2_27)]" : "text-white/40"}`} />
+                          <Icon
+                            className={`h-5 w-5 shrink-0 ${selected ? "text-[oklch(0.6_0.2_27)]" : "text-white/40"}`}
+                          />
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-white">{isWinter ? `Winterization (${engineType})` : svc.label}</p>
-                            <p className="text-xs text-white/45">{meta.blurb} · {rateLabel}</p>
+                            <p className="text-sm font-semibold text-white">
+                              {isWinter
+                                ? `Winterization (${engineType})`
+                                : svc.label}
+                            </p>
+                            <p className="text-xs text-white/45">
+                              {meta.blurb} · {rateLabel}
+                            </p>
                           </div>
                           <div className="text-right shrink-0">
                             <p className="text-sm font-bold text-[oklch(0.6_0.2_27)] tabular-nums">
                               {preview ? money(preview.subtotalCents) : "—"}
                             </p>
                           </div>
-                          <div className={`h-5 w-5 shrink-0 rounded-md border-2 flex items-center justify-center ${
-                            selected ? "border-[oklch(0.6_0.2_27)] bg-[oklch(0.6_0.2_27)]" : "border-white/20"
-                          }`}>
-                            {selected && <CheckCircle2 className="h-3.5 w-3.5 text-[oklch(0.12_0.018_240)]" />}
+                          <div
+                            className={`h-5 w-5 shrink-0 rounded-md border-2 flex items-center justify-center ${
+                              selected
+                                ? "border-[oklch(0.6_0.2_27)] bg-[oklch(0.6_0.2_27)]"
+                                : "border-white/20"
+                            }`}
+                          >
+                            {selected && (
+                              <CheckCircle2 className="h-3.5 w-3.5 text-[oklch(0.12_0.018_240)]" />
+                            )}
                           </div>
                         </div>
                       );
@@ -759,7 +1106,9 @@ export default function Calculator() {
                 {mode && (
                   <LogisticsSection
                     value={logisticsValue}
-                    onChange={(patch) => setLogisticsValue((v) => ({ ...v, ...patch }))}
+                    onChange={patch =>
+                      setLogisticsValue(v => ({ ...v, ...patch }))
+                    }
                     engineType={engineType}
                     engineCount={engineCount}
                     resolvedBand={resolvedBand}
@@ -768,7 +1117,11 @@ export default function Calculator() {
                 )}
 
                 <div className="flex justify-between">
-                  <Button onClick={() => setStep(1)} variant="outline" className="border-white/20 text-white/70 hover:border-white/40 hover:text-white">
+                  <Button
+                    onClick={() => setStep(1)}
+                    variant="outline"
+                    className="border-white/20 text-white/70 hover:border-white/40 hover:text-white"
+                  >
                     <ArrowLeft className="mr-2 h-4 w-4" /> Back
                   </Button>
                   <Button
@@ -785,22 +1138,41 @@ export default function Calculator() {
             {/* STEP 3 — Your Details */}
             {step === 3 && (
               <div className="marine-card p-6 md:p-8">
-                <h2 className="text-2xl font-black text-white mb-1" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+                <h2
+                  className="text-2xl font-black text-white mb-1"
+                  style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
+                >
                   Step 3 — Your Details
                 </h2>
-                <p className="text-sm text-white/50 mb-6">{BOOKING_COPY.step3Subtitle}</p>
+                <p className="text-sm text-white/50 mb-6">
+                  {BOOKING_COPY.step3Subtitle}
+                </p>
+
+                <HoneypotField value={honeypot} onChange={setHoneypot} />
 
                 {status === "fallback" && (
                   <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4 mb-6 flex gap-3">
                     <AlertTriangle className="h-5 w-5 text-yellow-400 shrink-0 mt-0.5" />
                     <div className="text-sm text-yellow-100/90">
-                      <p className="font-semibold text-yellow-200">We couldn't submit your request just now.</p>
-                      <p className="mt-1">Please call or email us and we'll lock in your quote right away:</p>
+                      <p className="font-semibold text-yellow-200">
+                        We couldn't submit your request just now.
+                      </p>
+                      <p className="mt-1">
+                        Please call or email us and we'll lock in your quote
+                        right away:
+                      </p>
                       <div className="mt-2 flex flex-col gap-1">
-                        <a href={BUSINESS.phoneHref} onClick={() => trackPhoneClick("calculator")} className="inline-flex items-center gap-2 font-semibold text-white hover:text-[oklch(0.6_0.2_27)]">
+                        <a
+                          href={BUSINESS.phoneHref}
+                          onClick={() => trackPhoneClick("calculator")}
+                          className="inline-flex items-center gap-2 font-semibold text-white hover:text-[oklch(0.6_0.2_27)]"
+                        >
                           <Phone className="h-4 w-4" /> {BUSINESS.phone}
                         </a>
-                        <a href={BUSINESS.emailHref} className="inline-flex items-center gap-2 font-semibold text-white hover:text-[oklch(0.6_0.2_27)]">
+                        <a
+                          href={BUSINESS.emailHref}
+                          className="inline-flex items-center gap-2 font-semibold text-white hover:text-[oklch(0.6_0.2_27)]"
+                        >
                           <Mail className="h-4 w-4" /> {BUSINESS.email}
                         </a>
                       </div>
@@ -809,23 +1181,61 @@ export default function Calculator() {
                 )}
 
                 {errorMsg && status === "idle" && (
-                  <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200 mb-6">{errorMsg}</div>
+                  <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200 mb-6">
+                    {errorMsg}
+                  </div>
                 )}
 
                 <div className="space-y-4">
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <Field label="Full Name" required value={contact.name} onChange={(v) => setContact({ ...contact, name: v })} placeholder="John Smith" />
-                    <Field label="Email" required type="email" value={contact.email} onChange={(v) => setContact({ ...contact, email: v })} placeholder="john@example.com" />
+                    <Field
+                      label="Full Name"
+                      required
+                      value={contact.name}
+                      onChange={v => setContact({ ...contact, name: v })}
+                      placeholder="John Smith"
+                    />
+                    <Field
+                      label="Email"
+                      required
+                      type="email"
+                      value={contact.email}
+                      onChange={v => setContact({ ...contact, email: v })}
+                      placeholder="john@example.com"
+                    />
                   </div>
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <Field label="Phone" required type="tel" value={contact.phone} onChange={(v) => setContact({ ...contact, phone: v })} placeholder="(705) 555-1234" />
-                    <Field label="Boat Make / Model / Year" value={contact.boatMakeModelYear} onChange={(v) => setContact({ ...contact, boatMakeModelYear: v })} placeholder="e.g. 2018 Chaparral 23 H2O" />
+                    <Field
+                      label="Phone"
+                      required
+                      type="tel"
+                      value={contact.phone}
+                      onChange={v => setContact({ ...contact, phone: v })}
+                      placeholder="(705) 555-1234"
+                    />
+                    <Field
+                      label="Boat Make / Model / Year"
+                      value={contact.boatMakeModelYear}
+                      onChange={v =>
+                        setContact({ ...contact, boatMakeModelYear: v })
+                      }
+                      placeholder="e.g. 2018 Chaparral 23 H2O"
+                    />
                   </div>
-                  <Field label="Current Marina / Location" value={contact.marina} onChange={(v) => setContact({ ...contact, marina: v })} placeholder="e.g. Bay Port Yachting Centre, Midland" />
+                  <Field
+                    label="Current Marina / Location"
+                    value={contact.marina}
+                    onChange={v => setContact({ ...contact, marina: v })}
+                    placeholder="e.g. Bay Port Yachting Centre, Midland"
+                  />
                 </div>
 
                 <div className="mt-8 flex justify-between">
-                  <Button onClick={() => setStep(2)} variant="outline" className="border-white/20 text-white/70 hover:border-white/40 hover:text-white">
+                  <Button
+                    onClick={() => setStep(2)}
+                    variant="outline"
+                    className="border-white/20 text-white/70 hover:border-white/40 hover:text-white"
+                  >
                     <ArrowLeft className="mr-2 h-4 w-4" /> Back
                   </Button>
                   <Button
@@ -834,21 +1244,39 @@ export default function Calculator() {
                     className="bg-[oklch(0.6_0.2_27)] text-[oklch(0.12_0.018_240)] font-semibold hover:bg-[oklch(0.53_0.2_27)] disabled:opacity-40 btn-brand-glow"
                   >
                     {status === "submitting" ? (
-                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting…</>
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
+                        Submitting…
+                      </>
                     ) : (
-                      <><Send className="mr-2 h-4 w-4" /> {BOOKING_COPY.submitButton}</>
+                      <>
+                        <Send className="mr-2 h-4 w-4" />{" "}
+                        {BOOKING_COPY.submitButton}
+                      </>
                     )}
                   </Button>
                 </div>
                 {hasSelection && (
                   <div className="mt-6">
-                    <DownloadQuoteButton selection={selection} boat={boat} defaultEmail={contact.email} />
+                    <DownloadQuoteButton
+                      selection={selection}
+                      boat={boat}
+                      defaultEmail={contact.email}
+                    />
                   </div>
                 )}
 
                 <p className="mt-4 text-center text-xs text-white/40">
                   By booking, you agree to our{" "}
-                  <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-[oklch(0.6_0.2_27)] hover:underline">Terms of Service</a>.
+                  <a
+                    href="/terms"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[oklch(0.6_0.2_27)] hover:underline"
+                  >
+                    Terms of Service
+                  </a>
+                  .
                 </p>
               </div>
             )}
@@ -860,16 +1288,25 @@ export default function Calculator() {
               <div className="flex items-center justify-between mb-3">
                 <p className="text-sm font-bold text-white">Your Quote</p>
                 {quote && (
-                  <button onClick={() => setShowBreakdown((v) => !v)} className="text-xs text-white/40 hover:text-white/70 flex items-center gap-1">
+                  <button
+                    onClick={() => setShowBreakdown(v => !v)}
+                    className="text-xs text-white/40 hover:text-white/70 flex items-center gap-1"
+                  >
                     {showBreakdown ? "Hide" : "Show"} breakdown
-                    {showBreakdown ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                    {showBreakdown ? (
+                      <ChevronUp className="h-3.5 w-3.5" />
+                    ) : (
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    )}
                   </button>
                 )}
               </div>
 
               {!quote ? (
                 <p className="text-sm text-white/40 py-6 text-center">
-                  {lengthValid ? "Choose a package to see your quote." : "Enter your boat length to begin."}
+                  {lengthValid
+                    ? "Choose a package to see your quote."
+                    : "Enter your boat length to begin."}
                 </p>
               ) : (
                 <>
@@ -879,12 +1316,19 @@ export default function Calculator() {
                           delivery are the same engine service, so a serviceId key
                           collides and React drops one of the two rows. */}
                       {quote.lineItems.map((l, i) => (
-                        <div key={i} className="flex justify-between gap-3 text-xs">
+                        <div
+                          key={i}
+                          className="flex justify-between gap-3 text-xs"
+                        >
                           <div className="min-w-0">
-                            <p className="text-white/80 truncate">{extraLabel(l.label, extraRefs.get(i))}</p>
+                            <p className="text-white/80 truncate">
+                              {extraLabel(l.label, extraRefs.get(i))}
+                            </p>
                             <p className="text-white/40">{lineDetail(l)}</p>
                           </div>
-                          <span className="text-white/80 font-medium tabular-nums shrink-0">{money(l.amountCents)}</span>
+                          <span className="text-white/80 font-medium tabular-nums shrink-0">
+                            {money(l.amountCents)}
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -894,20 +1338,32 @@ export default function Calculator() {
                     <div className="space-y-1 mb-3 text-xs">
                       <div className="flex justify-between text-white/50">
                         <span>À-la-carte</span>
-                        <span className="line-through tabular-nums">{money(quote.aLaCarteSubtotalCents)}</span>
+                        <span className="line-through tabular-nums">
+                          {money(quote.aLaCarteSubtotalCents)}
+                        </span>
                       </div>
                       <div className="flex justify-between text-[oklch(0.6_0.2_27)] font-semibold">
-                        <span>{quote.bundle.label} savings ({quote.bundle.discountPct}%)</span>
-                        <span className="tabular-nums">−{money(quote.bundleSavingsCents)}</span>
+                        <span>
+                          {quote.bundle.label} savings (
+                          {quote.bundle.discountPct}%)
+                        </span>
+                        <span className="tabular-nums">
+                          −{money(quote.bundleSavingsCents)}
+                        </span>
                       </div>
                     </div>
                   )}
 
                   <div className="text-center py-2">
-                    <p className="text-3xl font-black text-[oklch(0.6_0.2_27)] tabular-nums" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+                    <p
+                      className="text-3xl font-black text-[oklch(0.6_0.2_27)] tabular-nums"
+                      style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
+                    >
                       {money(quote.subtotalCents)}
                     </p>
-                    <p className="text-xs text-white/40 mt-1">{BOOKING_COPY.priceNote}</p>
+                    <p className="text-xs text-white/40 mt-1">
+                      {BOOKING_COPY.priceNote}
+                    </p>
                   </div>
 
                   {step < 3 && (
@@ -915,7 +1371,8 @@ export default function Calculator() {
                       onClick={() => setStep(step === 1 ? 2 : 3)}
                       className="w-full mt-3 bg-[oklch(0.6_0.2_27)] text-[oklch(0.12_0.018_240)] font-semibold hover:bg-[oklch(0.53_0.2_27)] btn-brand-glow"
                     >
-                      {step === 1 ? "Choose Package" : "Continue"} <ArrowRight className="ml-2 h-4 w-4" />
+                      {step === 1 ? "Choose Package" : "Continue"}{" "}
+                      <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   )}
                 </>
@@ -924,17 +1381,27 @@ export default function Calculator() {
               <div className="mt-4 pt-4 border-t border-white/10 flex items-start gap-2">
                 <Info className="h-3.5 w-3.5 text-white/30 mt-0.5 shrink-0" />
                 <p className="text-xs text-white/35 leading-relaxed">
-                  Estimate based on length overall. Final pricing confirmed after an on-site check. Prices in CAD.
+                  Estimate based on length overall. Final pricing confirmed
+                  after an on-site check. Prices in CAD.
                 </p>
               </div>
             </div>
 
             <div className="marine-card p-4 mt-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-white/40 mb-2">Questions?</p>
-              <a href={BUSINESS.phoneHref} onClick={() => trackPhoneClick("calculator")} className="flex items-center gap-2 text-sm text-white/70 hover:text-[oklch(0.6_0.2_27)]">
+              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-white/40 mb-2">
+                Questions?
+              </p>
+              <a
+                href={BUSINESS.phoneHref}
+                onClick={() => trackPhoneClick("calculator")}
+                className="flex items-center gap-2 text-sm text-white/70 hover:text-[oklch(0.6_0.2_27)]"
+              >
                 <Phone className="h-4 w-4" /> {BUSINESS.phone}
               </a>
-              <a href={BUSINESS.emailHref} className="flex items-center gap-2 text-sm text-white/70 hover:text-[oklch(0.6_0.2_27)] mt-1">
+              <a
+                href={BUSINESS.emailHref}
+                className="flex items-center gap-2 text-sm text-white/70 hover:text-[oklch(0.6_0.2_27)] mt-1"
+              >
                 <Mail className="h-4 w-4" /> {BUSINESS.email}
               </a>
             </div>
@@ -965,11 +1432,14 @@ function lineDetail(l: QuoteResult["lineItems"][number]): string {
   if (d.type === "per_foot") {
     if (d.minimumApplied) return `${d.lengthFt} ft · minimum`;
     let s = `${d.lengthFt} ft × ${formatCents(d.rateCents ?? 0)}/ft`;
-    if ((d.hullSurchargeCents ?? 0) > 0) s += ` +${formatCents(d.hullSurchargePerFootCents ?? 0)}/ft hull`;
+    if ((d.hullSurchargeCents ?? 0) > 0)
+      s += ` +${formatCents(d.hullSurchargePerFootCents ?? 0)}/ft hull`;
     return s;
   }
   if (d.type === "flat_per_engine") {
-    return d.engineCount && d.engineCount > 1 ? `${d.engineCount} engines` : "1 engine";
+    return d.engineCount && d.engineCount > 1
+      ? `${d.engineCount} engines`
+      : "1 engine";
   }
   return "flat rate";
 }
@@ -985,13 +1455,14 @@ function Field(props: {
   return (
     <div>
       <Label className="text-sm font-semibold text-white/80 mb-2 block">
-        {props.label} {props.required && <span className="text-[oklch(0.6_0.2_27)]">*</span>}
+        {props.label}{" "}
+        {props.required && <span className="text-[oklch(0.6_0.2_27)]">*</span>}
       </Label>
       <Input
         type={props.type ?? "text"}
         value={props.value}
         placeholder={props.placeholder}
-        onChange={(e) => props.onChange(e.target.value)}
+        onChange={e => props.onChange(e.target.value)}
         className="bg-white/5 border-white/15 text-white placeholder:text-white/30 focus:border-[oklch(0.6_0.2_27)] h-12"
       />
     </div>
