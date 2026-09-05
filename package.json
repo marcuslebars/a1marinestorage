@@ -5,8 +5,8 @@
   "license": "MIT",
   "scripts": {
     "dev": "vite --host",
-    "build": "vite build && esbuild server/index.ts server/db/migrate.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
-    "start": "node dist/db/migrate.js && NODE_ENV=production node dist/index.js",
+    "build": "vite build && esbuild server/index.ts server/db/migrate.ts --platform=node --packages=external --bundle --format=esm --outdir=dist && node scripts/copy-migrations.mjs",
+    "start": "node dist/db/migrate.js || echo '[start] migrations did not complete (see above) — starting the server anyway; leads fall back to the JSONL mirror'; NODE_ENV=production node dist/index.js",
     "preview": "vite preview --host",
     "check": "tsc --noEmit",
     "db:migrate": "tsx server/db/migrate.ts",
