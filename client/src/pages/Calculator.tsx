@@ -71,6 +71,14 @@ import {
 import { DownloadQuoteButton } from "@/components/DownloadQuoteButton";
 import { WhenSection, type LaunchTarget } from "@/components/WhenSection";
 import { SpotsLeft } from "@/components/SpotsLeft";
+import { SaveQuoteField } from "@/components/SaveQuoteField";
+import {
+  clearDraft,
+  draftLabel,
+  readDraft,
+  saveDraft,
+  type QuoteDraft,
+} from "@/lib/quote-draft";
 import { HoneypotField } from "@/components/HoneypotField";
 import {
   LogisticsSection,
@@ -283,6 +291,10 @@ export default function Calculator() {
   const [preferredWeek, setPreferredWeek] = useState<string | null>(null);
   const [launchTarget, setLaunchTarget] = useState<LaunchTarget | null>(null);
 
+  // A draft found in THIS browser. Offered, never applied silently — someone
+  // who came back for a different boat should not find the old one filled in.
+  const [draft, setDraft] = useState<QuoteDraft | null>(null);
+
   // Empty for every real person. Phase 0 shipped the server-side check; without
   // this field on the form it had nothing to check.
   const [honeypot, setHoneypot] = useState("");
@@ -294,6 +306,18 @@ export default function Calculator() {
     startedRef.current = true;
     track("quote_started");
   }
+
+  /**
+   * A draft left in this browser.
+   *
+   * Only when there is no `?q`: a resume link is an explicit request for a
+   * specific quote and must not be overridden by whatever was last on this
+   * machine.
+   */
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("q")) return;
+    setDraft(readDraft());
+  }, []);
 
   /**
    * Resume from the link printed on the PDF.
@@ -418,6 +442,44 @@ export default function Calculator() {
       resolution: resolvedBand.resolution,
     });
   }, [resolvedBand]);
+
+  // Persisted on every change, so closing the tab costs nothing. Cheap enough
+  // to run on each render pass: one small JSON write, wrapped so a browser that
+  // blocks storage cannot break the page.
+  useEffect(() => {
+    if (!lengthInput) return;
+    saveDraft({
+      boat: {
+        lengthFt: Number.parseFloat(lengthInput) || 0,
+        hullType,
+        engineType,
+        engineCount,
+      },
+      mode,
+      bundleId,
+      alacarte: Array.from(alacarte),
+      ceramicUpgrade,
+      logisticsValue,
+      resolvedBand,
+      preferredWeek,
+      launchTarget,
+      step,
+    });
+  }, [
+    lengthInput,
+    hullType,
+    engineType,
+    engineCount,
+    mode,
+    bundleId,
+    alacarte,
+    ceramicUpgrade,
+    logisticsValue,
+    resolvedBand,
+    preferredWeek,
+    launchTarget,
+    step,
+  ]);
 
   const lengthFt = Number.parseFloat(lengthInput);
   const lengthValid = Number.isFinite(lengthFt) && lengthFt > 0;
@@ -841,6 +903,54 @@ export default function Calculator() {
               and showing them without saying so would be the quiet kind of lie
               this codebase does not tell.
             */}
+            {/*
+              A draft from this browser. OFFERED, never applied silently:
+              someone who came back for a different boat must not find the old
+              one already filled in.
+            */}
+            {draft && (
+              <div className="marine-card mb-6 flex flex-wrap items-center gap-3 p-4">
+                <p className="min-w-0 flex-1 text-sm text-white/80">
+                  Continue {draftLabel(draft)}?
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLengthInput(String(draft.boat.lengthFt));
+                    setHullType(draft.boat.hullType ?? "");
+                    setEngineType(draft.boat.engineType);
+                    setEngineCount(draft.boat.engineCount || 1);
+                    setMode(draft.mode);
+                    setBundleId(draft.bundleId);
+                    setAlacarte(new Set(draft.alacarte));
+                    setCeramicUpgrade(draft.ceramicUpgrade);
+                    setLogisticsValue(draft.logisticsValue as LogisticsValue);
+                    setResolvedBand(draft.resolvedBand as ResolvedBand | null);
+                    setPreferredWeek(draft.preferredWeek);
+                    setLaunchTarget(draft.launchTarget as LaunchTarget | null);
+                    setStep(draft.step || 2);
+                    // Resuming is not starting.
+                    startedRef.current = true;
+                    track("quote_resumed", { from: "draft" });
+                    setDraft(null);
+                  }}
+                  className="h-9 shrink-0 rounded-lg bg-[oklch(0.6_0.2_27)] px-4 text-sm font-semibold text-[oklch(0.12_0.018_240)] hover:bg-[oklch(0.53_0.2_27)]"
+                >
+                  Resume
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    clearDraft();
+                    setDraft(null);
+                  }}
+                  className="h-9 shrink-0 rounded-lg border border-white/20 px-4 text-sm font-semibold text-white/70 hover:border-white/40 hover:text-white"
+                >
+                  Start over
+                </button>
+              </div>
+            )}
+
             {resumeNotice && (
               <div
                 className="marine-card p-4 mb-6 flex items-start gap-3"
@@ -994,6 +1104,11 @@ export default function Calculator() {
             {/* STEP 2 — Choose Package */}
             {step === 2 && (
               <div className="space-y-6">
+                {/* At the TOP of Step 2: the moment someone has seen a price
+                    and might leave. Below the packages it would be a footnote
+                    on a page they have already decided to abandon. */}
+                {mode && <SaveQuoteField selection={selection} boat={boat} />}
+
                 <div>
                   <h2
                     className="text-2xl font-black text-white mb-1"
