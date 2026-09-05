@@ -13,7 +13,11 @@
 // imports React, Express, or anything site-specific.
 import type { QuoteResult } from "@a1/pricing-engine";
 
-import type { BoatLocation, ExtraLineRef, TransportBand } from "../client/src/lib/quote-items";
+import type {
+  BoatLocation,
+  ExtraLineRef,
+  TransportBand,
+} from "../client/src/lib/quote-items";
 
 /** A line as the customer reads it. Money is integer cents. */
 export interface QuoteModelLine {
@@ -49,7 +53,12 @@ export interface QuoteModel {
   reference: string;
   /** ISO date the quote was produced. */
   issuedAt: string;
-  boat: { lengthFt: number; hullType?: string | null; engineType: string; engineCount: number };
+  boat: {
+    lengthFt: number;
+    hullType?: string | null;
+    engineType: string;
+    engineCount: number;
+  };
   packageLabel: string | null;
   /** Lines inside the bundle, then everything outside it. */
   lines: QuoteModelLine[];
@@ -98,7 +107,7 @@ export interface QuoteTotals {
 export function totalsFromSubtotal(
   subtotalCents: number,
   taxRateBps = HST_RATE_BPS,
-  depositRateBps = DEPOSIT_RATE_BPS,
+  depositRateBps = DEPOSIT_RATE_BPS
 ): QuoteTotals {
   const taxCents = roundHalfUpDiv(subtotalCents * taxRateBps, 10_000);
   const totalCents = subtotalCents + taxCents;
@@ -108,7 +117,10 @@ export function totalsFromSubtotal(
     taxCents,
     totalCents,
     depositRateBps,
-    depositCents: Math.min(totalCents, roundHalfUpDiv(totalCents * depositRateBps, 10_000)),
+    depositCents: Math.min(
+      totalCents,
+      roundHalfUpDiv(totalCents * depositRateBps, 10_000)
+    ),
   };
 }
 
@@ -117,7 +129,8 @@ const REF_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 export function generateQuoteReference(randomBytes: Uint8Array): string {
   let out = "";
-  for (let i = 0; i < 6; i++) out += REF_ALPHABET[randomBytes[i] % REF_ALPHABET.length];
+  for (let i = 0; i < 6; i++)
+    out += REF_ALPHABET[randomBytes[i] % REF_ALPHABET.length];
   return `A1MS-Q-${out}`;
 }
 
@@ -158,7 +171,7 @@ export function buildQuoteModel(input: {
   taxRateBps?: number;
   depositRateBps?: number;
 }): QuoteModel {
-  const extraIndices = new Set(input.extras.map((e) => e.index));
+  const extraIndices = new Set(input.extras.map(e => e.index));
 
   const lines: QuoteModelLine[] = input.quote.lineItems.map((l, i) => ({
     label: l.label,
@@ -170,7 +183,7 @@ export function buildQuoteModel(input: {
   const totals = totalsFromSubtotal(
     input.quote.subtotalCents,
     input.taxRateBps ?? HST_RATE_BPS,
-    input.depositRateBps ?? DEPOSIT_RATE_BPS,
+    input.depositRateBps ?? DEPOSIT_RATE_BPS
   );
 
   return {
