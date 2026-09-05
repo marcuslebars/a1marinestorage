@@ -8,6 +8,7 @@
 import { randomUUID } from "node:crypto";
 import { SOURCE_SITE, forwardToLeadPipeline } from "./lead-pipeline";
 import { persistLead } from "./persist";
+import { normalizeContact } from "./normalize";
 import { notify } from "./notify/notify";
 import { renderContactConfirmationEmail } from "./notify/templates/contact-confirmation";
 import { isHoneypotTripped } from "./security/honeypot";
@@ -38,13 +39,13 @@ function validate(
     return { ok: false, error: "Missing contact details." };
   const c = raw as Record<string, unknown>;
   const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
-  const name = str(c.name);
-  const email = str(c.email);
-  const phone = str(c.phone);
+  // Same normalise-then-validate order as the quote handler, so one person
+  // filling in two different forms lands as one person.
+  const { name, email, phone, phoneValid } = normalizeContact(c);
   if (name.length < 2) return { ok: false, error: "A name is required." };
   if (!EMAIL_RE.test(email))
     return { ok: false, error: "A valid email is required." };
-  if (phone.replace(/\D/g, "").length < 7)
+  if (!phoneValid && phone.replace(/\D/g, "").length < 7)
     return { ok: false, error: "A valid phone number is required." };
   return {
     ok: true,

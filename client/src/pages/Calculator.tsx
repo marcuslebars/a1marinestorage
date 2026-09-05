@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/select";
 import { BUSINESS } from "@/content/business";
 import { getUtm } from "@/lib/utm";
+import { localityBySlug } from "@shared/localities";
 import { track, trackAdsConversion, trackPhoneClick } from "@/lib/analytics";
 import { trackPixelEvent } from "@/lib/meta-pixel";
 import {
@@ -476,6 +477,30 @@ export default function Calculator() {
     }),
     [logisticsValue]
   );
+
+  /**
+   * What Step 2 already told us, shown as the placeholder rather than asked
+   * again. It is a hint, not a value: leaving the field empty is correct for a
+   * boat kept at home, and pre-FILLING it would put a marina name on a lead
+   * that has none.
+   */
+  const marinaPlaceholder = useMemo(() => {
+    const v = logisticsValue;
+    if (!v.boatLocation) return "e.g. Bay Port Yachting Centre";
+    const town =
+      v.townSlug === OTHER_TOWN
+        ? v.placeName.trim()
+        : (localityBySlug(v.townSlug)?.name ?? "");
+    if (
+      v.boatLocation === "home_trailer" ||
+      v.boatLocation === "self_transport"
+    ) {
+      return town
+        ? `At home in ${town} — leave blank`
+        : "At home — leave blank";
+    }
+    return town ? `e.g. a marina in ${town}` : "e.g. Bay Port Yachting Centre";
+  }, [logisticsValue]);
 
   const selection = useMemo<Selection>(
     () => ({
@@ -1293,11 +1318,19 @@ export default function Calculator() {
                       placeholder="e.g. 2018 Chaparral 23 H2O"
                     />
                   </div>
+                  {/*
+                    Asked ONCE. Step 2 already established where the boat is and
+                    which town, so "Current Marina / Location" was the same
+                    question a second time — and answering it differently from
+                    Step 2 gave the yard two contradictory locations for one
+                    boat. What is left is the only part Step 2 cannot know: the
+                    name of the marina, if there is one.
+                  */}
                   <Field
-                    label="Current Marina / Location"
+                    label="Marina name (if any)"
                     value={contact.marina}
                     onChange={v => setContact({ ...contact, marina: v })}
-                    placeholder="e.g. Bay Port Yachting Centre, Midland"
+                    placeholder={marinaPlaceholder}
                   />
                 </div>
 
@@ -1442,8 +1475,10 @@ export default function Calculator() {
                       onClick={() => setStep(step === 1 ? 2 : 3)}
                       className="w-full mt-3 bg-[oklch(0.6_0.2_27)] text-[oklch(0.12_0.018_240)] font-semibold hover:bg-[oklch(0.53_0.2_27)] btn-brand-glow"
                     >
-                      {step === 1 ? "Choose Package" : "Continue"}{" "}
-                      <ArrowRight className="ml-2 h-4 w-4" />
+                      {/* One verb inside the flow. The step indicator already
+                          says which screen is next; the button says what
+                          pressing it does. */}
+                      Continue <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   )}
                 </>

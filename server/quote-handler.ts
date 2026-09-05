@@ -25,6 +25,7 @@ import {
   forwardToLeadPipeline,
 } from "./lead-pipeline";
 import { persistLead } from "./persist";
+import { normalizeContact } from "./normalize";
 import { evaluateEligibility } from "./eligibility";
 import { notify } from "./notify/notify";
 import { renderOwnerAlertEmail } from "./notify/templates/owner-alert";
@@ -82,13 +83,17 @@ function validateContact(
   if (!c || typeof c !== "object")
     return { ok: false, error: "Missing contact details." };
   const contact = c as Record<string, unknown>;
-  const name = typeof contact.name === "string" ? contact.name.trim() : "";
-  const email = typeof contact.email === "string" ? contact.email.trim() : "";
-  const phone = typeof contact.phone === "string" ? contact.phone.trim() : "";
+  // NORMALISE FIRST, then validate what we are actually going to store. The old
+  // order validated the raw string and stored it, so "(705) 555-1234" passed
+  // and was then unsendable by SMS — the number was fine, our copy of it was not.
+  const { name, email, phone, phoneValid } = normalizeContact(contact);
   if (name.length < 2) return { ok: false, error: "A name is required." };
   if (!EMAIL_RE.test(email))
     return { ok: false, error: "A valid email is required." };
-  if (phone.replace(/\D/g, "").length < 7)
+  // A number we could not parse is still worth capturing — a person can dial it
+  // — so the bar stays "enough digits to be a phone number" rather than
+  // "libphonenumber approves". phoneValid records which it was.
+  if (!phoneValid && phone.replace(/\D/g, "").length < 7)
     return { ok: false, error: "A valid phone number is required." };
   return {
     ok: true,
