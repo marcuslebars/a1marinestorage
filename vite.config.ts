@@ -11,6 +11,8 @@ import { handleContactSubmission } from "./server/contact-handler";
 import { handleQuotePdf, QuotePdfError } from "./server/quote-pdf-handler";
 import { handleQuoteResume } from "./server/quote-resume-handler";
 import { getCapacity } from "./server/capacity";
+import { handleQuoteSave } from "./server/quote-save-handler";
+import { handleUnsubscribe } from "./server/unsubscribe";
 import { handlePartialQuoteLead } from "./server/partial-lead-handler";
 import {
   resolveTransportBand,
@@ -256,6 +258,25 @@ function vitePluginLeadApi(): Plugin {
       // also matches "/api/quote/pdf" — and the submission handler ignores the
       // URL, so in dev a PDF request was being handled as a quote submission.
       // The more specific paths must be registered first.
+      // Before /api/quote — connect matches by PREFIX, so /api/quote/save
+      // would otherwise be swallowed by the submission handler.
+      server.middlewares.use(
+        "/api/quote/save",
+        jsonPost(body => handleQuoteSave(body))
+      );
+
+      server.middlewares.use("/api/unsubscribe", async (req, res, next) => {
+        if (req.method !== "GET") return next();
+        const t = new URL(req.url ?? "", "http://localhost").searchParams.get(
+          "t"
+        );
+        const { status, body } = await handleUnsubscribe(t);
+        res.statusCode = status;
+        res.setHeader("Content-Type", "text/html; charset=utf-8");
+        res.setHeader("Cache-Control", "no-store");
+        res.end(body);
+      });
+
       server.middlewares.use("/api/capacity", async (req, res, next) => {
         if (req.method !== "GET") return next();
         res.statusCode = 200;

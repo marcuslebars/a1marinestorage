@@ -80,14 +80,33 @@ export function renderLayout(o: LayoutOptions): string {
 </body></html>`;
 }
 
+/**
+ * The unsubscribe line, for emails we send on our OWN initiative.
+ *
+ * Not on transactional mail: a quote confirmation or a PDF the customer asked
+ * for is not something to opt out of, and offering it there teaches people
+ * that unsubscribing loses them the things they wanted.
+ */
+export function unsubscribeFooter(url: string): string {
+  return `<p style="margin:12px 0 0;font-size:12px;color:${MUTED}">
+    Don't want reminders like this?
+    <a href="${url}" style="color:${MUTED};text-decoration:underline">Unsubscribe</a>.
+    You'll still get emails about a quote or booking you asked for.
+  </p>`;
+}
+
 /** The text part. Never optional — see the note in email-resend.ts. */
 export function renderText(o: {
   heading: string;
   lines: string[];
   cta?: { label: string; url: string };
+  unsubscribeUrl?: string;
 }): string {
   const parts = [o.heading, "", ...o.lines];
   if (o.cta) parts.push("", `${o.cta.label}: ${o.cta.url}`);
+  if (o.unsubscribeUrl) {
+    parts.push("", `Unsubscribe from reminders: ${o.unsubscribeUrl}`);
+  }
   parts.push(
     "",
     "—",

@@ -9,6 +9,8 @@ import { resolveTransportBand, TransportBandError } from "./transport-band";
 import { handleQuotePdf, QuotePdfError } from "./quote-pdf-handler";
 import { handleQuoteResume } from "./quote-resume-handler";
 import { getCapacity } from "./capacity";
+import { handleQuoteSave } from "./quote-save-handler";
+import { handleUnsubscribe } from "./unsubscribe";
 import { assertResumeSecret } from "./resume-token";
 import fs from "fs";
 import { getPageMeta, hasPage, injectMeta, renderSitemap } from "../shared/seo";
@@ -88,6 +90,38 @@ async function startServer() {
     // was gone by their own cache. Observed in dev, not theoretical.
     res.set("Cache-Control", "no-store");
     res.status(status).json(body);
+  });
+
+  // "Email me the link to this quote." Rate-limited as a submission: it
+  // creates a lead row and sends mail, so it belongs in the same bucket as the
+  // other two, not the cheap read-only ones.
+  app.post("/api/quote/save", submissionLimiter, async (req, res) => {
+    try {
+      const proto =
+        (req.headers["x-forwarded-proto"] as string) ?? req.protocol;
+      const { status, body } = await handleQuoteSave({
+        ...req.body,
+        origin: `${proto}://${req.get("host")}`,
+      });
+      res.status(status).json(body);
+    } catch (err) {
+      console.error(
+        "[quote-save] unhandled error:",
+        err instanceof Error ? err.message : String(err)
+      );
+      res.status(500).json({
+        ok: false,
+        error: "We couldn't save your quote. Please try again.",
+      });
+    }
+  });
+
+  // One-click unsubscribe from the reminder emails. Answers HTML because a
+  // person clicked it, and always 200 — see the note in unsubscribe.ts.
+  app.get("/api/unsubscribe", async (req, res) => {
+    const { status, body } = await handleUnsubscribe(req.query?.t);
+    res.set("Cache-Control", "no-store");
+    res.status(status).type("html").send(body);
   });
 
   // Yard capacity. Read-only, cached 60s in the module, and DELIBERATELY
