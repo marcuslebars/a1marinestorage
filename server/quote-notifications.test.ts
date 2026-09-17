@@ -53,11 +53,9 @@ const CONTACT = {
 const QUOTE_INPUT = {
   serviceLine: "storage" as const,
   hullType: "bowrider",
-  bundleId: "winter_ready",
-  items: [
-    { serviceId: "outdoor_storage", lengthFt: 24 },
-    { serviceId: "shrink_wrap", lengthFt: 24 },
-  ],
+  // The base Winter Ready product: one service since v2.0.0, so no engine
+  // bundle id rides with it.
+  items: [{ serviceId: "winter_storage", lengthFt: 24 }],
 };
 const META = {
   boat: {

@@ -17,8 +17,8 @@ importers:
   .:
     dependencies:
       '@a1/pricing-engine':
-        specifier: git+https://github.com/marcuslebars/a1-pricing-engine.git#v1.4.0
-        version: https://codeload.github.com/marcuslebars/a1-pricing-engine/tar.gz/81903cf33d2f4c55c67f5bf212add3ca6ed40799
+        specifier: git+https://github.com/marcuslebars/a1-pricing-engine.git#v2.0.0
+        version: https://codeload.github.com/marcuslebars/a1-pricing-engine/tar.gz/87dc7553463e61827b0068e0f46c1e6385a7eadb
       '@hookform/resolvers':
         specifier: ^5.2.2
         version: 5.2.2(react-hook-form@7.64.0(react@19.2.1))
@@ -263,9 +263,9 @@ importers:
 
 packages:
 
-  '@a1/pricing-engine@https://codeload.github.com/marcuslebars/a1-pricing-engine/tar.gz/81903cf33d2f4c55c67f5bf212add3ca6ed40799':
-    resolution: {tarball: https://codeload.github.com/marcuslebars/a1-pricing-engine/tar.gz/81903cf33d2f4c55c67f5bf212add3ca6ed40799}
-    version: 1.4.0
+  '@a1/pricing-engine@https://codeload.github.com/marcuslebars/a1-pricing-engine/tar.gz/87dc7553463e61827b0068e0f46c1e6385a7eadb':
+    resolution: {tarball: https://codeload.github.com/marcuslebars/a1-pricing-engine/tar.gz/87dc7553463e61827b0068e0f46c1e6385a7eadb}
+    version: 2.0.0
 
   '@antfu/install-pkg@1.1.0':
     resolution: {integrity: sha512-MGQsmw10ZyI+EJo45CdSER4zEb+p31LpDAFp2Z3gkSd1yqVZGi0Ebx++YTEMonJy4oChEMLsxZ64j8FH6sSqtQ==}
@@ -3929,7 +3929,7 @@ packages:
 
 snapshots:
 
-  '@a1/pricing-engine@https://codeload.github.com/marcuslebars/a1-pricing-engine/tar.gz/81903cf33d2f4c55c67f5bf212add3ca6ed40799': {}
+  '@a1/pricing-engine@https://codeload.github.com/marcuslebars/a1-pricing-engine/tar.gz/87dc7553463e61827b0068e0f46c1e6385a7eadb': {}
 
   '@antfu/install-pkg@1.1.0':
     dependencies:

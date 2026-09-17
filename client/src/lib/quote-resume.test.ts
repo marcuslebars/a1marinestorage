@@ -27,7 +27,7 @@ const listedTown: ResumePayload = {
   selection: {
     mode: "alacarte",
     bundleId: null,
-    alacarteIds: ["shrink_wrap", "outdoor_storage"],
+    alacarteIds: ["winter_storage", "fall_detail"],
     ceramicUpgrade: true,
     logistics: {
       boatLocation: "home_trailer",
@@ -53,7 +53,7 @@ describe("hydrating a resumed quote", () => {
     // An array in the token, a Set in the component — the conversion is the
     // whole reason this is not an inline spread.
     expect(s.alacarte).toBeInstanceOf(Set);
-    expect([...s.alacarte].sort()).toEqual(["outdoor_storage", "shrink_wrap"]);
+    expect([...s.alacarte].sort()).toEqual(["fall_detail", "winter_storage"]);
     expect(s.ceramicUpgrade).toBe(true);
   });
 

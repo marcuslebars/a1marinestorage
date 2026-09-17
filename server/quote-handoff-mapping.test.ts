@@ -32,8 +32,7 @@ const captured = {
     hullType: "cruiser",
     bundleId: "winter_ready_plus",
     items: [
-      { serviceId: "outdoor_storage", lengthFt: 24 },
-      { serviceId: "shrink_wrap", lengthFt: 24 },
+      { serviceId: "winter_storage", lengthFt: 24 },
       { serviceId: "winterization_outboard", engineType: "outboard" as const, engineCount: 1 },
       { serviceId: "transport_regional", quantity: 1 },
       { serviceId: "transport_regional", quantity: 1 },
@@ -122,8 +121,7 @@ describe("selection is derived from the priced input", () => {
     expect(sel.bundleKey).toBe("winter_ready_plus");
     expect(sel.variant).toBe("cruiser");
     expect(sel.services).toEqual([
-      { serviceKey: "outdoor_storage", measure: 24, quantity: undefined },
-      { serviceKey: "shrink_wrap", measure: 24, quantity: undefined },
+      { serviceKey: "winter_storage", measure: 24, quantity: undefined },
       // engineCount becomes quantity: EmpireVu's catalog has one count field.
       { serviceKey: "winterization_outboard", measure: undefined, quantity: 1 },
       { serviceKey: "transport_regional", measure: undefined, quantity: 1 },

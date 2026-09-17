@@ -11,47 +11,63 @@ import {
   renderQuoteConfirmationSms,
 } from "./quote-confirmation";
 
+// Engine-derived: a 24 ft bowrider on Winter Ready Plus (winter storage +
+// outboard winterization at 5%), with a fall pickup and a spring delivery.
 const QUOTE = {
   hullType: "bowrider",
   currency: "CAD",
-  subtotalCents: 218100,
-  aLaCarteSubtotalCents: 230000,
-  bundleSavingsCents: 11900,
-  bundle: { id: "winter_ready", label: "Winter Ready", discountPct: 8 },
+  subtotalCents: 192925,
+  aLaCarteSubtotalCents: 201500,
+  bundleSavingsCents: 8575,
+  bundle: {
+    id: "winter_ready_plus",
+    label: "Winter Ready Plus",
+    discountPct: 5,
+  },
   lineItems: [
     {
-      serviceId: "outdoor_storage",
-      label: "Outdoor winter storage",
-      description: "season",
+      serviceId: "winter_storage",
+      label: "Winter storage, shrink wrap & spring removal",
+      description:
+        "Winter storage, shrink wrap & spring removal \u2014 24ft \u00d7 $60.00/ft",
       quantity: 1,
-      unitPriceCents: 100000,
-      amountCents: 100000,
+      unitPriceCents: 144000,
+      amountCents: 144000,
       detail: { lengthFt: 24 },
     },
     {
-      serviceId: "transport_local",
-      label: "Transport — local",
-      description: "one way",
+      serviceId: "winterization_outboard",
+      label: "Winterization \u2014 outboard",
+      description: "Winterization \u2014 outboard",
       quantity: 1,
-      unitPriceCents: 25000,
-      amountCents: 25000,
+      unitPriceCents: 27500,
+      amountCents: 27500,
       detail: {},
     },
     {
       serviceId: "transport_local",
-      label: "Transport — local",
+      label: "Transport \u2014 local",
       description: "one way",
       quantity: 1,
-      unitPriceCents: 25000,
-      amountCents: 25000,
+      unitPriceCents: 15000,
+      amountCents: 15000,
+      detail: {},
+    },
+    {
+      serviceId: "transport_local",
+      label: "Transport \u2014 local",
+      description: "one way",
+      quantity: 1,
+      unitPriceCents: 15000,
+      amountCents: 15000,
       detail: {},
     },
   ],
 } as never;
 
 const EXTRAS = [
-  { purpose: "pickup" as const, serviceId: "transport_local", index: 1 },
-  { purpose: "delivery" as const, serviceId: "transport_local", index: 2 },
+  { purpose: "pickup" as const, serviceId: "transport_local", index: 2 },
+  { purpose: "delivery" as const, serviceId: "transport_local", index: 3 },
 ];
 
 describe("the quote confirmation email", () => {

@@ -23,9 +23,10 @@ import { SpotsLeft } from "@/components/SpotsLeft";
 import { track } from "@/lib/analytics";
 import {
   RATES,
+  STANDALONE,
   WINTERIZATION,
   BUNDLE_PCT,
-  WRAP_REMOVAL,
+  WINTER_INCLUDES,
   perFootBrackets,
   workedExample,
 } from "@/lib/storage-pricing";
@@ -125,29 +126,26 @@ function SectionHeading({
 }
 
 export default function Pricing() {
-  const outdoorRows = perFootBrackets("outdoor_storage").map(b => [
+  const winterRateRows = perFootBrackets("winter_storage").map(b => [
     b.length,
     b.rate,
   ]);
-  const shrinkRows = perFootBrackets("shrink_wrap").map(b => [
-    b.length,
-    b.rate,
-  ]);
+
   const winterRows = WINTERIZATION.map(w => [
     w.label,
     w.price,
     `+${w.additional}`,
   ]);
   const bundleRows: string[][] = [
-    ["Winter Ready", "Storage + Shrink Wrap", `${BUNDLE_PCT.winterReady}%`],
+    ["Winter Ready", "Storage + shrink wrap + spring removal", "The base rate"],
     [
       "Winter Ready Plus",
-      "Storage + Shrink Wrap + Winterization",
+      "Winter Ready + Winterization",
       `${BUNDLE_PCT.winterReadyPlus}%`,
     ],
     [
       "Full Care",
-      "Storage + Wrap + Winterization + Fall Detail + Spring Commissioning",
+      "Winter Ready Plus + Fall Detail + Spring Commissioning",
       `${BUNDLE_PCT.fullCare}%`,
     ],
   ];
@@ -179,8 +177,8 @@ export default function Pricing() {
       id: "spring-wrap-removal",
       icon: Scissors,
       title: "Spring Wrap Removal & Disposal",
-      rate: `from ${WRAP_REMOVAL.lower}`,
-      body: `When spring comes, we uncover, dismantle the frame, and dispose of the wrap properly — no spring Saturday lost to a utility knife and a trailer full of plastic. ${WRAP_REMOVAL.lower} for boats up to ${WRAP_REMOVAL.breakpointFt} ft, ${WRAP_REMOVAL.upper} for ${WRAP_REMOVAL.breakpointFt + 1} ft and over.`,
+      rate: "Included",
+      body: `When spring comes we uncover the boat, dismantle the frame and dispose of the wrap properly — no Saturday lost to a utility knife and a trailer full of plastic. It is part of the winter storage rate, not an extra. Stored somewhere else? We will still come and do it: ${STANDALONE.removalLower} up to ${STANDALONE.removalBreakpointFt} ft, ${STANDALONE.removalUpper} for ${STANDALONE.removalBreakpointFt + 1} ft and over.`,
     },
     {
       id: "fall-detail",
@@ -235,53 +233,49 @@ export default function Pricing() {
         </div>
       </section>
 
-      {/* Outdoor Winter Storage */}
+      {/* Winter Storage — storage + wrap + spring removal, one rate */}
       <section className="section-space">
         <div className="container max-w-4xl mx-auto">
           <SectionHeading
             icon={Shield}
-            title="Outdoor Winter Storage"
-            rate={`${RATES.outdoorPerFoot}/ft`}
+            title="Winter Storage"
+            rate={`${RATES.winterPerFoot}/ft`}
           />
           <p className="text-base text-white/65 leading-relaxed mb-6 max-w-2xl">
-            Secure seasonal storage at our Tiny, ON yard, October through April
-            — minutes from Georgian Bay. Your boat is professionally positioned
-            on its trailer or stand with planned spring access, monitored
-            throughout the winter.
+            One rate, everything the boat needs to get through a Georgian Bay
+            winter. No boat sits in our Tiny yard uncovered, so we stopped
+            quoting the wrap separately — it is in the number below, and so is
+            taking it off again in spring.
           </p>
+          <ul className="mb-6 grid gap-2.5 sm:grid-cols-3">
+            {WINTER_INCLUDES.map(line => (
+              <li
+                key={line}
+                className="marine-card p-4 text-sm text-white/70 leading-relaxed flex gap-2.5"
+              >
+                <span className="text-[oklch(0.6_0.2_27)] font-bold shrink-0">
+                  &#10003;
+                </span>
+                {line}
+              </li>
+            ))}
+          </ul>
           <RateTable
             columns={["Boat length", "Season rate"]}
-            rows={outdoorRows}
+            rows={winterRateRows}
           />
           <p className="mt-3 text-sm text-white/45">
-            Minimum {RATES.outdoorMin}. Boats over 32 ft priced individually —
+            Minimum {RATES.winterMin}, which covers boats up to{" "}
+            {RATES.winterMinUpToFt} ft. Pontoon +{RATES.pontoonSurcharge}/ft,
+            tritoon +{RATES.tritoonSurcharge}/ft for the extra framing and
+            material a wide beam needs. Boats over 32 ft priced individually —
             use the quote tool or call.
           </p>
-        </div>
-      </section>
-
-      {/* Shrink Wrapping */}
-      <section className="section-space bg-black border-t border-white/10">
-        <div className="container max-w-4xl mx-auto">
-          <SectionHeading
-            icon={Snowflake}
-            title="Shrink Wrapping"
-            rate={`${RATES.shrinkPerFoot}/ft`}
-          />
-          <p className="text-base text-white/65 leading-relaxed mb-6 max-w-2xl">
-            Professional-grade shrink wrap with a full support frame, taut
-            welded seams, and proper venting to prevent moisture and mildew.
-            Protects your gelcoat, upholstery, and electronics from snow load,
-            ice, and UV.
-          </p>
-          <RateTable columns={["Boat length", "Rate"]} rows={shrinkRows} />
           <p className="mt-3 text-sm text-white/45">
-            Minimum {RATES.shrinkMin}. Pontoon +{RATES.pontoonSurcharge}/ft,
-            tritoon +{RATES.tritoonSurcharge}/ft for additional framing and
-            material.
-          </p>
-          <p className="mt-1 text-sm text-white/45">
-            Spring removal available — see Spring Wrap Removal below.
+            Storing your boat somewhere else and just need it wrapped? We do
+            that too — {STANDALONE.wrapPerFoot}/ft, minimum{" "}
+            {STANDALONE.wrapMin}, with removal from {STANDALONE.removalLower} in
+            the spring.
           </p>
         </div>
       </section>

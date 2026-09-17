@@ -13,11 +13,10 @@ const load = () => import("./quote-handler");
 const validInput = {
   serviceLine: "storage" as const,
   hullType: "bowrider",
-  bundleId: "winter_ready",
-  items: [
-    { serviceId: "outdoor_storage", lengthFt: 24 },
-    { serviceId: "shrink_wrap", lengthFt: 24 },
-  ],
+  // Since v2.0.0 the base Winter Ready product is the single winter_storage
+  // service — storage, shrink wrap and spring removal at one per-foot rate — so
+  // there is no engine bundle id to send with it.
+  items: [{ serviceId: "winter_storage", lengthFt: 24 }],
 };
 const contact = { name: "Jane Doe", email: "jane@example.com", phone: "705-555-1234" };
 
@@ -28,12 +27,12 @@ describe("storage quote submission handler", () => {
     expect(res.status).toBe(200);
     expect(res.body.ok).toBe(true);
     // Server recomputes — never trusts the client's number.
-    expect(res.body.subtotalCents).toBe(165600);
+    expect(res.body.subtotalCents).toBe(144000);
 
     const files = fs.readdirSync(TMP).filter((f) => f.startsWith("quotes-"));
     expect(files.length).toBeGreaterThan(0);
     const content = files.map((f) => fs.readFileSync(path.join(TMP, f), "utf-8")).join("");
-    expect(content).toContain("165600");
+    expect(content).toContain("144000");
     expect(content).toContain("jane@example.com");
   });
 
@@ -47,7 +46,7 @@ describe("storage quote submission handler", () => {
   it("rejects an absurd quote input with 400 (engine guards)", async () => {
     const { handleQuoteSubmission } = await load();
     const res = await handleQuoteSubmission({
-      quoteInput: { serviceLine: "storage", items: [{ serviceId: "outdoor_storage", lengthFt: 0 }] },
+      quoteInput: { serviceLine: "storage", items: [{ serviceId: "winter_storage", lengthFt: 0 }] },
       contact,
     });
     expect(res.status).toBe(400);

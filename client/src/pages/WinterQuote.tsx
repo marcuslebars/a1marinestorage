@@ -53,10 +53,10 @@ export default function WinterQuote() {
               </div>
               <div className="mt-8 flex flex-wrap gap-4 text-sm text-white/60">
                 <span className="inline-flex items-center gap-1.5">
-                  <CheckCircle2 className="h-4 w-4 text-[oklch(0.6_0.2_27)]" /> Storage from {RATES.outdoorPerFoot}/ft
+                  <CheckCircle2 className="h-4 w-4 text-[oklch(0.6_0.2_27)]" /> Storage &amp; wrap from {RATES.winterPerFoot}/ft
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <CheckCircle2 className="h-4 w-4 text-[oklch(0.6_0.2_27)]" /> Wrapping from {RATES.shrinkPerFoot}/ft
+                  <CheckCircle2 className="h-4 w-4 text-[oklch(0.6_0.2_27)]" /> Spring removal included
                 </span>
                 <span className="inline-flex items-center gap-1.5">
                   <CheckCircle2 className="h-4 w-4 text-[oklch(0.6_0.2_27)]" /> Bundle &amp; save

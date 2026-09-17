@@ -1,31 +1,69 @@
 // Pricing contract for the PUBLIC marketing pages: every figure shown on the
-// Pricing / Home / Services pages must be engine-derived (v1.1.0) and match the
-// copy doc — and the four advertised-but-unpriced services must be gone.
+// Pricing / Home / Services / locality pages must be engine-derived (v2.0.0) —
+// and the split storage/wrap rates must be gone from the copy entirely.
+//
+// v2.0.0 merged outdoor storage and shrink wrap into ONE product. The point of
+// the merge was that a customer comparing us to a marina saw two numbers to add
+// up where the marina published one. So the strongest test here is not that the
+// new rate is $60 — it is that no public page shows a storage rate and a wrap
+// rate side by side ever again.
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   RATES,
+  STANDALONE,
   WINTERIZATION,
   BUNDLE_PCT,
-  WRAP_REMOVAL,
+  WINTER_INCLUDES,
   bracketRange,
+  minimumBindsUpToFt,
   perFootBrackets,
   workedExample,
+  fullCareExample,
 } from "./storage-pricing";
 
-describe("public pricing figures are engine-derived (v1.1.0)", () => {
-  it("headline per-foot rates, minimums, and flat rates", () => {
-    expect(RATES.outdoorPerFoot).toBe("$50");
-    expect(RATES.outdoorMin).toBe("$750");
-    expect(RATES.shrinkPerFoot).toBe("$25");
-    expect(RATES.shrinkMin).toBe("$375");
+const clientSrc = join(dirname(fileURLToPath(import.meta.url)), "..");
+
+function walk(dir: string): string[] {
+  const out: string[] = [];
+  for (const ent of readdirSync(dir, { withFileTypes: true })) {
+    const p = join(dir, ent.name);
+    if (ent.isDirectory()) out.push(...walk(p));
+    else if (/\.tsx?$/.test(ent.name) && !/\.test\.tsx?$/.test(ent.name)) out.push(p);
+  }
+  return out;
+}
+
+describe("public pricing figures are engine-derived (v2.0.0)", () => {
+  it("the headline is ONE combined rate", () => {
+    expect(RATES.winterPerFoot).toBe("$60");
+    expect(RATES.winterMin).toBe("$1,000");
+    expect(RATES.winterMinUpToFt).toBe(16);
+  });
+
+  it("the minimum breakpoint is derived from the rate, not typed in", () => {
+    // $1,000 / $60 = 16.67 -> a 16 ft boat pays the minimum, a 17 ft boat does not.
+    expect(minimumBindsUpToFt("winter_storage")).toBe(16);
+  });
+
+  it("hull surcharges doubled so the merge did not halve them", () => {
+    // Pre-v2 the surcharge was charged on storage AND on wrap. One service must
+    // carry both, or every pontoon silently got ~$192 off a 24-footer.
+    expect(RATES.pontoonSurcharge).toBe("$16");
+    expect(RATES.tritoonSurcharge).toBe("$20");
+  });
+
+  it("unchanged add-on rates", () => {
     expect(RATES.fallDetailPerFoot).toBe("$24");
     expect(RATES.ceramicPerFoot).toBe("$85");
     expect(RATES.springCommissioning).toBe("$265");
-    expect(RATES.pontoonSurcharge).toBe("$8");
-    expect(RATES.tritoonSurcharge).toBe("$10");
+    expect(RATES.batteryPerUnit).toBe("$100");
+    expect(RATES.trailer).toBe("$200");
+    expect(RATES.pwcStorage).toBe("$450");
+    expect(RATES.oilChangeOutboard).toBe("$175");
+    expect(RATES.extendedPerMonth).toBe("$100");
   });
 
   it("winterization flat + additional-engine amounts by engine type", () => {
@@ -38,84 +76,98 @@ describe("public pricing figures are engine-derived (v1.1.0)", () => {
     expect(byEngine.inboard.additional).toBe("$334");
   });
 
-  it("bundle discount percentages are 8 / 10 / 12", () => {
-    expect(BUNDLE_PCT.winterReady).toBe(8);
-    expect(BUNDLE_PCT.winterReadyPlus).toBe(10);
-    expect(BUNDLE_PCT.fullCare).toBe(12);
+  it("two bundle tiers above the base product: 5% and 8%", () => {
+    expect(BUNDLE_PCT.winterReadyPlus).toBe(5);
+    expect(BUNDLE_PCT.fullCare).toBe(8);
+    // The old three-tier ladder is gone: storage+wrap is the product, not a bundle.
+    expect(BUNDLE_PCT).not.toHaveProperty("winterReady");
   });
 
   it("bracket ranges compute at length endpoints (minimum-applied)", () => {
-    expect(bracketRange("outdoor_storage", 21, 26)).toBe("$1,050 – $1,300");
-    expect(bracketRange("outdoor_storage", 27, 32)).toBe("$1,350 – $1,600");
-    expect(bracketRange("shrink_wrap", 21, 26)).toBe("$525 – $650");
-    expect(bracketRange("shrink_wrap", 27, 32)).toBe("$675 – $800");
+    expect(bracketRange("winter_storage", 21, 26)).toBe("$1,260 – $1,560");
+    expect(bracketRange("winter_storage", 27, 32)).toBe("$1,620 – $1,920");
 
-    const outdoor = perFootBrackets("outdoor_storage");
-    expect(outdoor[0]).toEqual({ length: "Up to 20 ft", rate: "from $750" });
-    expect(outdoor[3]).toEqual({ length: "33 ft+", rate: "Confirmed at quote" });
+    const b = perFootBrackets("winter_storage");
+    expect(b[0]).toEqual({ length: "Up to 20 ft", rate: "from $1,000" });
+    expect(b[3]).toEqual({ length: "33 ft+", rate: "Confirmed at quote" });
   });
 
-  it("worked example is produced by the engine: $2,200 à la carte -> $1,980 with Winter Ready Plus", () => {
-    const ex = workedExample();
-    expect(ex.aLaCarte).toBe("$2,200");
-    expect(ex.bundled).toBe("$1,980");
-    expect(ex.savings).toBe("$220");
-    expect(ex.discountPct).toBe(10);
-    // Prove these are real engine cents, not string-forced numbers.
-    expect(ex.aLaCarteCents).toBe(220000);
-    expect(ex.bundledCents).toBe(198000);
-    expect(ex.savingsCents).toBe(22000);
+  it("worked examples are produced by the engine, not hardcoded", () => {
+    const wr = workedExample();
+    expect(wr.aLaCarte).toBe("$1,840");
+    expect(wr.bundled).toBe("$1,748");
+    expect(wr.savings).toBe("$92");
+    expect(wr.discountPct).toBe(5);
+    expect(wr.aLaCarteCents).toBe(184000);
+    expect(wr.bundledCents).toBe(174800);
+
+    const fc = fullCareExample();
+    expect(fc.aLaCarte).toBe("$2,681");
+    expect(fc.bundled).toBe("$2,467");
+    expect(fc.savings).toBe("$214");
+    expect(fc.discountPct).toBe(8);
+  });
+
+  it("the wrap-only rates stay available but separate from RATES", () => {
+    // Still a real service for boats stored elsewhere — it just must never sit
+    // beside the storage rate, which is why it lives in its own export.
+    expect(STANDALONE.wrapPerFoot).toBe("$25");
+    expect(STANDALONE.wrapMin).toBe("$375");
+    expect(STANDALONE.removalLower).toBe("$150");
+    expect(STANDALONE.removalUpper).toBe("$200");
+    expect(STANDALONE.removalBreakpointFt).toBe(26);
+    expect(RATES).not.toHaveProperty("shrinkPerFoot");
+    expect(RATES).not.toHaveProperty("outdoorPerFoot");
+  });
+
+  it("the rate states what it covers, in three parts", () => {
+    expect(WINTER_INCLUDES).toHaveLength(3);
+    const all = WINTER_INCLUDES.join(" ").toLowerCase();
+    expect(all).toContain("storage");
+    expect(all).toContain("shrink wrap");
+    expect(all).toContain("removal");
   });
 });
 
-describe("Indoor Storage (still unpriced) is absent from client/src", () => {
-  // As of engine v1.2.0, Indoor Storage is the ONLY advertised-but-unpriced
-  // service — Battery / Trailer / Spring Wrap Removal are now real, priced, and
-  // expected to appear. Needle split so this file never matches itself; *.test.ts
-  // files are skipped in the walk.
-  const FORBIDDEN = ["Indoor" + " Storage"];
+describe("the retired split rates are gone from client source", () => {
+  // Needles split so this file never matches itself; *.test.ts are skipped.
+  const FORBIDDEN = [
+    "outdoor" + "_storage", // retired engine service id
+    "RATES.outdoor" + "PerFoot",
+    "RATES.shrink" + "PerFoot",
+    "RATES.shrink" + "Min",
+    "WRAP" + "_REMOVAL", // renamed to STANDALONE
+    "Indoor" + " Storage", // still advertised-but-unpriced; must stay absent
+  ];
 
-  function walk(dir: string): string[] {
-    const out: string[] = [];
-    for (const ent of readdirSync(dir, { withFileTypes: true })) {
-      const p = join(dir, ent.name);
-      if (ent.isDirectory()) out.push(...walk(p));
-      else if (/\.tsx?$/.test(ent.name) && !/\.test\.tsx?$/.test(ent.name)) out.push(p);
-    }
-    return out;
-  }
-
-  it("no client source file mentions Indoor Storage", () => {
-    const clientSrc = join(dirname(fileURLToPath(import.meta.url)), ".."); // client/src
+  it("no client source file references a retired pricing symbol", () => {
     const hits: string[] = [];
     for (const file of walk(clientSrc)) {
       const text = readFileSync(file, "utf8");
       for (const needle of FORBIDDEN) {
-        if (text.includes(needle)) hits.push(`${file.replace(clientSrc, "client/src")} :: "${needle}"`);
+        if (text.includes(needle)) {
+          hits.push(`${file.replace(clientSrc, "client/src")} :: "${needle}"`);
+        }
       }
     }
     expect(hits).toEqual([]);
   });
-});
 
-describe("add-on services render with engine-derived prices", () => {
-  it("battery / trailer / wrap-removal figures are engine-derived", () => {
-    expect(RATES.batteryPerUnit).toBe("$100");
-    // v1.3.0 ratified the trailer season rate down from $400 to $200. This value
-    // is rendered on LIVE public pages (/pricing and /boat-storage), so the
-    // engine bump changes advertised copy — see the branch summary.
-    expect(RATES.trailer).toBe("$200");
-    expect(WRAP_REMOVAL.lower).toBe("$150");
-    expect(WRAP_REMOVAL.upper).toBe("$200");
-    expect(WRAP_REMOVAL.breakpointFt).toBe(26);
+  it("the Pricing page leads with the combined rate and names what it includes", () => {
+    const pricing = readFileSync(join(clientSrc, "pages", "Pricing.tsx"), "utf8");
+    expect(pricing).toContain("RATES.winterPerFoot");
+    expect(pricing).toContain("WINTER_INCLUDES");
+    // The wrap-only price may appear, but only as the stored-elsewhere caveat.
+    expect(pricing).toContain("STANDALONE.wrapPerFoot");
   });
 
-  it("the three services appear on the Pricing page", () => {
-    const pricing = readFileSync(
-      join(dirname(fileURLToPath(import.meta.url)), "..", "pages", "Pricing.tsx"),
-      "utf8",
-    );
-    for (const title of ["Battery Storage & Charging", "Trailer Storage", "Spring Wrap Removal & Disposal"]) {
+  it("the add-on services still render on the Pricing page", () => {
+    const pricing = readFileSync(join(clientSrc, "pages", "Pricing.tsx"), "utf8");
+    for (const title of [
+      "Battery Storage & Charging",
+      "Trailer Storage",
+      "Spring Wrap Removal & Disposal",
+    ]) {
       expect(pricing).toContain(title);
     }
   });

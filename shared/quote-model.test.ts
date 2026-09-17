@@ -95,8 +95,9 @@ describe("model marks what sits outside the bundle", () => {
     // Two transport trips + batteries. The trailer is NOT here: a boat on its
     // owner's trailer is not a charged service, so it produces no line at all.
     expect(outside).toHaveLength(3);
-    // The bundle's own three services.
-    expect(inside).toHaveLength(3);
+    // The bundle's own two services: winter storage and the winterization that
+    // matches the boat's engine.
+    expect(inside).toHaveLength(2);
   });
 
   it("keeps the bundle savings attached to the bundled lines only", () => {
@@ -125,7 +126,7 @@ describe("model marks what sits outside the bundle", () => {
       modelFor({ mode: "bundle", bundleId: "full_care" }).packageLabel
     ).toBe("Full Care");
     expect(
-      modelFor({ mode: "alacarte", alacarteIds: ["outdoor_storage"] })
+      modelFor({ mode: "alacarte", alacarteIds: ["winter_storage"] })
         .packageLabel
     ).toBeNull();
   });
@@ -237,7 +238,7 @@ describe("two transport trips are told apart", () => {
     const quote = {
       lineItems: [
         {
-          label: "Outdoor winter storage",
+          label: "Winter storage, shrink wrap & spring removal",
           description: "season",
           amountCents: 100000,
           detail: {},
@@ -284,7 +285,9 @@ describe("two transport trips are told apart", () => {
   });
 
   it("leaves an ordinary line's label alone", () => {
-    expect(modelWithBothTrips().lines[0].label).toBe("Outdoor winter storage");
+    expect(modelWithBothTrips().lines[0].label).toBe(
+      "Winter storage, shrink wrap & spring removal"
+    );
   });
 
   it("produces no two identical labels — the failure a customer would actually notice", () => {

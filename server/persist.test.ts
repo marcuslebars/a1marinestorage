@@ -25,11 +25,10 @@ const QUOTE_BODY = {
   quoteInput: {
     serviceLine: "storage" as const,
     hullType: "bowrider",
-    bundleId: "winter_ready",
-    items: [
-      { serviceId: "outdoor_storage", lengthFt: 24 },
-      { serviceId: "shrink_wrap", lengthFt: 24 },
-    ],
+    // The base Winter Ready product is one service since v2.0.0 — storage,
+    // shrink wrap and spring removal at a single per-foot rate — so it carries
+    // no engine bundle id and there is nothing to discount it against.
+    items: [{ serviceId: "winter_storage", lengthFt: 24 }],
   },
 };
 

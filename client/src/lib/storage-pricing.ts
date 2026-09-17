@@ -7,8 +7,14 @@
 // copy needs isn't derivable from the engine's exports, it belongs here as a
 // clearly-labelled exception, not as a magic number in a page.
 //
-// Copy source: docs/a1-storage-pricing-page-copy.md. Unit-tested against the
-// v1.1.0 rates in storage-pricing.test.ts.
+// ENGINE v2.0.0 — STORAGE AND SHRINK WRAP ARE ONE PRODUCT.
+// Every boat in the yard gets wrapped, so quoting the two apart only ever made
+// the total look bigger than a competitor's single per-foot number. The headline
+// product `winter_storage` covers season storage, framed shrink wrap AND spring
+// wrap removal at one rate. `shrink_wrap` / `spring_wrap_removal` remain priced
+// services for customers who store their boat somewhere else — see STANDALONE.
+//
+// Unit-tested against the v2.0.0 rates in storage-pricing.test.ts.
 import {
   STORAGE,
   calculateQuote,
@@ -61,10 +67,19 @@ function priceAtFt(svc: StoragePerFootService, ft: number): number {
   return applyMinimum(perFootCents(svc.rateCents, ft), svc.minimumCents);
 }
 
-/** "$1,050 – $1,300": one per-foot service priced at two length endpoints. */
+/** "$1,260 – $1,560": one per-foot service priced at two length endpoints. */
 export function bracketRange(serviceId: string, fromFt: number, toFt: number): string {
   const svc = perFoot(serviceId);
   return `${dollars(priceAtFt(svc, fromFt))} – ${dollars(priceAtFt(svc, toFt))}`;
+}
+
+/**
+ * The length at or below which a per-foot service's minimum is what you pay.
+ * Derived, not typed in, so a rate or minimum change moves the copy with it.
+ */
+export function minimumBindsUpToFt(serviceId: string): number {
+  const svc = perFoot(serviceId);
+  return Math.floor(svc.minimumCents / svc.rateCents);
 }
 
 /**
@@ -101,47 +116,63 @@ export const WINTERIZATION = (["outboard", "sterndrive", "inboard"] as EngineTyp
 
 /** Headline figures used across the marketing pages — all engine-derived. */
 export const RATES = {
-  outdoorPerFoot: dollars(perFoot("outdoor_storage").rateCents), // "$50"
-  outdoorMin: dollars(perFoot("outdoor_storage").minimumCents), // "$750"
-  shrinkPerFoot: dollars(perFoot("shrink_wrap").rateCents), // "$25"
-  shrinkMin: dollars(perFoot("shrink_wrap").minimumCents), // "$375"
+  /** THE headline number: storage + shrink wrap + spring removal, one rate. */
+  winterPerFoot: dollars(perFoot("winter_storage").rateCents), // "$60"
+  winterMin: dollars(perFoot("winter_storage").minimumCents), // "$1,000"
+  winterMinUpToFt: minimumBindsUpToFt("winter_storage"), // 16
   fallDetailPerFoot: dollars(perFoot("fall_detail").rateCents), // "$24"
   ceramicPerFoot: dollars(perFoot("ceramic_upgrade").rateCents), // "$85"
   springCommissioning: dollars(flat("spring_commissioning").rateCents), // "$265"
-  pontoonSurcharge: dollars(STORAGE.hullSurcharges.pontoon.perFootCents), // "$8"
-  tritoonSurcharge: dollars(STORAGE.hullSurcharges.tritoon.perFootCents), // "$10"
+  pontoonSurcharge: dollars(STORAGE.hullSurcharges.pontoon.perFootCents), // "$16"
+  tritoonSurcharge: dollars(STORAGE.hullSurcharges.tritoon.perFootCents), // "$20"
   batteryPerUnit: dollars(perUnit("battery_storage").rateCents), // "$100"
-  trailer: dollars(flat("trailer_storage").rateCents), // "$400"
-};
-
-/** Spring Wrap Removal & Disposal — two flat tiers selected by boat length (engine-derived). */
-export const WRAP_REMOVAL = (() => {
-  const svc = tieredByLength("spring_wrap_removal");
-  const lower = svc.tiers[0];
-  const upper = svc.tiers[svc.tiers.length - 1];
-  return {
-    lower: dollars(lower.rateCents), // "$150"
-    upper: dollars(upper.rateCents), // "$200"
-    breakpointFt: lower.maxFt ?? 26, // 26 — the last length covered by the lower tier
-  };
-})();
-
-/** Bundle discount percentages, engine-derived. */
-export const BUNDLE_PCT = {
-  winterReady: STORAGE.bundles.winter_ready.discountPct, // 8
-  winterReadyPlus: STORAGE.bundles.winter_ready_plus.discountPct, // 10
-  fullCare: STORAGE.bundles.full_care.discountPct, // 12
+  trailer: dollars(flat("trailer_storage").rateCents), // "$200"
+  pwcStorage: dollars(perUnit("pwc_storage").rateCents), // "$450"
+  pwcWinterization: dollars(perUnit("pwc_winterization").rateCents), // "$175"
+  oilChangeOutboard: dollars(perUnit("oil_change_outboard").rateCents), // "$175"
+  extendedPerMonth: dollars(perUnit("extended_storage").rateCents), // "$100"
 };
 
 /**
- * The worked bundle example from the copy: a 24 ft sterndrive with storage, wrap,
- * and winterization — à la carte vs. the Winter Ready Plus bundle. Produced by
- * actually running the engine's quote function, never hardcoded.
+ * Wrap priced on its own — ONLY for a boat stored somewhere else.
+ *
+ * Kept separate from RATES so no page accidentally shows a wrap price beside the
+ * storage rate and re-creates the two-number comparison the merge removed.
+ */
+export const STANDALONE = {
+  wrapPerFoot: dollars(perFoot("shrink_wrap").rateCents), // "$25"
+  wrapMin: dollars(perFoot("shrink_wrap").minimumCents), // "$375"
+  removalLower: dollars(tieredByLength("spring_wrap_removal").tiers[0].rateCents), // "$150"
+  removalUpper: dollars(
+    tieredByLength("spring_wrap_removal").tiers[tieredByLength("spring_wrap_removal").tiers.length - 1].rateCents,
+  ), // "$200"
+  removalBreakpointFt: tieredByLength("spring_wrap_removal").tiers[0].maxFt ?? 26, // 26
+};
+
+/** Bundle discount percentages, engine-derived. Two tiers above the base product. */
+export const BUNDLE_PCT = {
+  winterReadyPlus: STORAGE.bundles.winter_ready_plus.discountPct, // 5
+  fullCare: STORAGE.bundles.full_care.discountPct, // 8
+};
+
+/**
+ * What the one rate covers. Copy, not pricing — but it lives here because every
+ * page that shows the rate has to say the same three things about it.
+ */
+export const WINTER_INCLUDES = [
+  "Secure outdoor storage at our Tiny yard, October through April",
+  "Framed, vented shrink wrap — fitted after your boat is positioned",
+  "Spring wrap removal and disposal, so you never touch a utility knife",
+] as const;
+
+/**
+ * The worked bundle example from the copy: a 24 ft sterndrive with the winter
+ * rate plus winterization — à la carte vs. the Winter Ready Plus tier. Produced
+ * by actually running the engine's quote function, never hardcoded.
  */
 export function workedExample() {
   const items = [
-    { serviceId: "outdoor_storage", lengthFt: 24 },
-    { serviceId: "shrink_wrap", lengthFt: 24 },
+    { serviceId: "winter_storage", lengthFt: 24 },
     { serviceId: "winterization_sterndrive", engineType: "sterndrive" as EngineType, engineCount: 1 },
   ];
   const alaCarte = calculateQuote({ serviceLine: "storage", items });
@@ -151,9 +182,31 @@ export function workedExample() {
     aLaCarteCents: alaCarte.aLaCarteSubtotalCents,
     bundledCents: bundled.subtotalCents,
     savingsCents: bundled.bundleSavingsCents,
-    aLaCarte: dollars(alaCarte.aLaCarteSubtotalCents), // "$2,200"
-    bundled: dollars(bundled.subtotalCents), // "$1,980"
-    savings: dollars(bundled.bundleSavingsCents), // "$220"
-    discountPct: STORAGE.bundles.winter_ready_plus.discountPct, // 10
+    aLaCarte: dollars(alaCarte.aLaCarteSubtotalCents), // "$1,840"
+    bundled: dollars(bundled.subtotalCents), // "$1,748"
+    savings: dollars(bundled.bundleSavingsCents), // "$92"
+    discountPct: STORAGE.bundles.winter_ready_plus.discountPct, // 5
+  };
+}
+
+/**
+ * The Full Care worked example — the whole season in one booking, engine-run.
+ * Used wherever the copy needs a real end-to-end number rather than a rate.
+ */
+export function fullCareExample() {
+  const items = [
+    { serviceId: "winter_storage", lengthFt: 24 },
+    { serviceId: "winterization_sterndrive", engineType: "sterndrive" as EngineType, engineCount: 1 },
+    { serviceId: "fall_detail", lengthFt: 24 },
+    { serviceId: "spring_commissioning" },
+  ];
+  const alaCarte = calculateQuote({ serviceLine: "storage", items });
+  const bundled = calculateQuote({ serviceLine: "storage", items, bundleId: "full_care" });
+  return {
+    lengthFt: 24,
+    aLaCarte: dollars(alaCarte.aLaCarteSubtotalCents), // "$2,681"
+    bundled: dollars(bundled.subtotalCents), // "$2,467"
+    savings: dollars(bundled.bundleSavingsCents), // "$214"
+    discountPct: STORAGE.bundles.full_care.discountPct, // 8
   };
 }

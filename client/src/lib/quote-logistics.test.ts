@@ -19,7 +19,7 @@ const price = (sel: Selection, boat: BoatState = BOAT) => {
   return input ? calculateQuote(input) : null;
 };
 
-const BASE: Selection = { mode: "alacarte", alacarteIds: ["outdoor_storage"] };
+const BASE: Selection = { mode: "alacarte", alacarteIds: ["winter_storage"] };
 
 describe("boat location gates transport", () => {
   it("self-transport offers no transport lines", () => {

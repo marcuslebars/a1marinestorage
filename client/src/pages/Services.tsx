@@ -33,7 +33,7 @@ const services = [
       "Custom door/zipper access panels available on request",
     ],
     note: null,
-    pricing: `Starting at ${RATES.shrinkPerFoot}/ft — see Pricing page`,
+    pricing: "Included in the winter storage rate — see Pricing page",
   },
   {
     id: "outdoor-storage",
@@ -52,7 +52,7 @@ const services = [
       "Accessible by appointment during business hours",
     ],
     note: null,
-    pricing: `Outdoor storage from ${RATES.outdoorPerFoot}/ft/season`,
+    pricing: `Storage + shrink wrap from ${RATES.winterPerFoot}/ft/season`,
   },
   {
     id: "winterization",

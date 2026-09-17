@@ -6,7 +6,7 @@ import { ServicePageLayout } from "@/components/ServicePageLayout";
 import { AreasWeServe } from "@/components/AreasWeServe";
 import { perFootBrackets, RATES } from "@/lib/storage-pricing";
 
-const brackets = perFootBrackets("outdoor_storage");
+const brackets = perFootBrackets("winter_storage");
 
 export default function BoatStorage() {
   return (

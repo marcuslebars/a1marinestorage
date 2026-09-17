@@ -37,8 +37,57 @@ export function itemForService(
   return { serviceId };
 }
 
+/**
+ * The base tier is NOT an engine bundle.
+ *
+ * Since v2.0.0 storage and shrink wrap are a single service, so "Winter Ready"
+ * — which used to be the bundle of those two — is now just that one service at
+ * its own rate. It keeps its name and its card because it is the most common
+ * purchase in the yard, and burying the commonest purchase behind the à-la-carte
+ * disclosure would be a strange thing to do to a pricing page. It simply carries
+ * no discount, because there is nothing to discount it against.
+ */
+export const BASE_TIER_ID = "winter_ready";
+export const BASE_TIER_LABEL = "Winter Ready";
+const BASE_TIER_SERVICES = ["winter_storage"];
+
+/** Every tier the packages step offers, base product first. */
+export const TIER_ORDER = [
+  BASE_TIER_ID,
+  "winter_ready_plus",
+  "full_care",
+] as const;
+
+/** Display label for a tier, whether or not the engine knows it as a bundle. */
+export function tierLabel(tierId: string): string {
+  return tierId === BASE_TIER_ID
+    ? BASE_TIER_LABEL
+    : STORAGE.bundles[tierId].label;
+}
+
+/**
+ * The engine bundle id for a tier, or undefined for the base tier.
+ *
+ * Passing "winter_ready" to the engine would throw `Unknown bundle` — which is
+ * correct of the engine and is why this narrowing lives here rather than there.
+ */
+export function engineBundleId(tierId: string): string | undefined {
+  return tierId === BASE_TIER_ID ? undefined : tierId;
+}
+
+/** Discount a tier carries, as a percentage. Zero for the base product. */
+export function tierDiscountPct(tierId: string): number {
+  return tierId === BASE_TIER_ID
+    ? 0
+    : STORAGE.bundles[tierId].discountPct;
+}
+
 export function bundleServiceIds(bundleId: string, boat: BoatState): string[] {
-  return STORAGE.bundles[bundleId].services.map(s =>
+  const services =
+    bundleId === BASE_TIER_ID
+      ? BASE_TIER_SERVICES
+      : STORAGE.bundles[bundleId].services;
+  return services.map(s =>
     s === "winterization_*" ? winterizationId(boat.engineType) : s
   );
 }
@@ -191,7 +240,8 @@ export function buildStorageQuoteInput(
   let serviceIds: string[] = [];
   let bundleId: string | undefined;
   if (sel.mode === "bundle" && sel.bundleId) {
-    bundleId = sel.bundleId;
+    // undefined for the base tier — it is one service, not a discounted set.
+    bundleId = engineBundleId(sel.bundleId);
     serviceIds = bundleServiceIds(sel.bundleId, boat);
   } else if (sel.mode === "alacarte") {
     serviceIds = (sel.alacarteIds ?? []).map(id =>

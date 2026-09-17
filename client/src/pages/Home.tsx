@@ -17,18 +17,18 @@ const services = [
   {
     icon: Snowflake,
     title: "Shrink Wrapping",
-    desc: "Professional-grade white heat-shrink film with vents installed. Protects against snow, ice, UV, and debris all winter.",
+    desc: "Professional-grade white heat-shrink film, framed and vented. Included in every storage booking — wrapped in fall, uncovered and hauled away in spring.",
     href: "/shrink-wrapping",
     img: "/shrink-wrapping.jpg",
-    price: `From ${RATES.shrinkPerFoot}/ft`,
+    price: "Included with storage",
   },
   {
     icon: Shield,
     title: "Outdoor Storage",
-    desc: "Secure seasonal storage on our fenced Tiny, ON lot — professionally blocked and positioned on your trailer, monitored all winter.",
+    desc: "Secure seasonal storage on our fenced Tiny, ON lot — blocked and positioned on your trailer, shrink wrapped, and monitored all winter. One per-foot rate.",
     href: "/boat-storage",
     img: "/facility-aerial.jpg",
-    price: `From ${RATES.outdoorPerFoot}/ft/season`,
+    price: `From ${RATES.winterPerFoot}/ft/season — wrap included`,
   },
   {
     icon: Wrench,

@@ -155,7 +155,7 @@ describe("handles every logistics state without failing", () => {
   }, 30_000);
 
   it("renders an à-la-carte quote with no package and no savings line", async () => {
-    const model = modelFor({ mode: "alacarte", alacarteIds: ["outdoor_storage", "shrink_wrap"] });
+    const model = modelFor({ mode: "alacarte", alacarteIds: ["winter_storage"] });
     expect(model.packageLabel).toBeNull();
     expect(model.bundleSavingsCents).toBe(0);
     expect(isPdf(await renderQuotePdf(model, BRAND))).toBe(true);

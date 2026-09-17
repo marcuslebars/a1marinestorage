@@ -2,7 +2,7 @@
 // Keyword-targeted service page. Prices engine-derived via storage-pricing.ts.
 import { Snowflake } from "lucide-react";
 import { ServicePageLayout } from "@/components/ServicePageLayout";
-import { perFootBrackets, WRAP_REMOVAL } from "@/lib/storage-pricing";
+import { perFootBrackets, RATES, STANDALONE } from "@/lib/storage-pricing";
 
 const brackets = perFootBrackets("shrink_wrap");
 
@@ -12,7 +12,7 @@ export default function ShrinkWrapping() {
       icon={Snowflake}
       eyebrow="Boat Shrink Wrapping"
       h1="Boat Shrink Wrapping in Tiny, Ontario"
-      lede="Commercial-grade, vented heat-shrink covers installed tight over a support frame — the winter protection a loose tarp simply can't match."
+      lede="Commercial-grade, vented heat-shrink installed tight over a built-up support frame — included with every boat we store, and available on its own for boats stored elsewhere."
       intro={
         <>
           <p>
@@ -53,7 +53,7 @@ export default function ShrinkWrapping() {
               <thead>
                 <tr className="border-b border-white/10 text-white/50">
                   <th className="p-4 font-semibold">Boat length</th>
-                  <th className="p-4 font-semibold">Shrink wrapping</th>
+                  <th className="p-4 font-semibold">Wrapping only</th>
                 </tr>
               </thead>
               <tbody>
@@ -67,16 +67,22 @@ export default function ShrinkWrapping() {
             </table>
           </div>
           <div className="p-4 text-sm text-white/55 border-t border-white/10">
+            <p className="mb-2">
+              These are the rates for wrapping a boat you are storing somewhere
+              else. <strong className="text-white/80">Storing with us? The
+              wrap is already in your rate</strong> — {RATES.winterPerFoot}/ft
+              covers the season, the wrap, and taking it off again in spring.
+            </p>
             <p>
               Spring wrap removal &amp; disposal:{" "}
-              <span className="text-white/80 tabular-nums">{WRAP_REMOVAL.lower}</span> up to {WRAP_REMOVAL.breakpointFt} ft ·{" "}
-              <span className="text-white/80 tabular-nums">{WRAP_REMOVAL.upper}</span> for {WRAP_REMOVAL.breakpointFt + 1} ft and up.
+              <span className="text-white/80 tabular-nums">{STANDALONE.removalLower}</span> up to {STANDALONE.removalBreakpointFt} ft ·{" "}
+              <span className="text-white/80 tabular-nums">{STANDALONE.removalUpper}</span> for {STANDALONE.removalBreakpointFt + 1} ft and up.
             </p>
           </div>
         </div>
       }
       related={[
-        { href: "/boat-storage", label: "Outdoor Storage", desc: "Secure, fenced seasonal storage — the natural pairing for a shrink wrap." },
+        { href: "/boat-storage", label: "Winter Storage", desc: "Season storage with the shrink wrap and spring removal already in the rate." },
         { href: "/winterization", label: "Winterization", desc: "Protect your engine and plumbing from freeze damage." },
         { href: "/pricing", label: "See All Pricing", desc: "Full per-foot rates, bundles, and a worked example." },
       ]}

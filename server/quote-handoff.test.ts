@@ -20,7 +20,7 @@ const base = {
     bundle: { label: "Winter Ready Plus" },
     lineItems: [{ detail: { lengthFt: 24 } }],
   },
-  jobberLineItems: [{ description: "Outdoor storage", quantity: 1, unitPriceCents: 120000 }],
+  jobberLineItems: [{ description: "Winter storage, shrink wrap & spring removal", quantity: 1, unitPriceCents: 144000 }],
 };
 
 const metaOf = (env: ReturnType<typeof buildStorageQuoteEnvelope>) =>
@@ -34,7 +34,7 @@ describe("selection travels by service KEY", () => {
         bundleKey: "winter_ready_plus",
         variant: "pontoon",
         services: [
-          { serviceKey: "outdoor_storage", measure: 24 },
+          { serviceKey: "winter_storage", measure: 24 },
           { serviceKey: "battery_storage", quantity: 2 },
         ],
       },
@@ -46,7 +46,7 @@ describe("selection travels by service KEY", () => {
     // Keys, not the priced labels in lineItems: EmpireVu re-prices these against
     // its own catalog, and it cannot do that by string-matching descriptions.
     expect(sel.services).toEqual([
-      { serviceKey: "outdoor_storage", measure: 24 },
+      { serviceKey: "winter_storage", measure: 24 },
       { serviceKey: "battery_storage", quantity: 2 },
     ]);
   });

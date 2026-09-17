@@ -76,12 +76,12 @@ describe("server recompute matches the client's engine result", () => {
     const cases: Array<{ sel: Selection; boat: BoatState }> = [
       { sel: { mode: "bundle", bundleId: "winter_ready" }, boat: BOAT },
       { sel: { mode: "bundle", bundleId: "full_care" }, boat: { ...BOAT, engineCount: 2 } },
-      { sel: { mode: "alacarte", alacarteIds: ["outdoor_storage", "shrink_wrap"] }, boat: BOAT },
+      { sel: { mode: "alacarte", alacarteIds: ["winter_storage"] }, boat: BOAT },
       { sel: SEL, boat: BOAT },
       {
         sel: {
           mode: "alacarte",
-          alacarteIds: ["outdoor_storage"],
+          alacarteIds: ["winter_storage"],
           logistics: { boatLocation: "marina_ramp", transportBand: "extended", pickup: false, delivery: true },
           addOns: { extendedMonths: 3, oilChangeOutboard: true },
         },

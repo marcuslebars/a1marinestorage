@@ -52,11 +52,15 @@ import {
   buildStorageQuoteInput,
   bundleServiceIds,
   describeExtras,
+  engineBundleId,
   extraLabel,
   itemForService,
   supportsTransport,
+  tierDiscountPct,
+  tierLabel,
   winterizationId,
   CERAMIC_MAX_FT,
+  TIER_ORDER,
   type BoatState,
   type ExtraLineRef,
   type Logistics,
@@ -163,7 +167,7 @@ const BUNDLE_META: Record<
   winter_ready: {
     icon: Shield,
     tagline:
-      "Secure outdoor storage + professional shrink wrapping. For owners who winterize themselves.",
+      "Storage, shrink wrap and spring wrap removal in one per-foot rate. For owners who winterize themselves.",
   },
   winter_ready_plus: {
     icon: Snowflake,
@@ -175,22 +179,17 @@ const BUNDLE_META: Record<
   full_care: {
     icon: Sparkles,
     tagline:
-      "The complete hands-off winter: storage, wrap, winterization, fall detail & spring commissioning.",
+      "The complete hands-off winter: Winter Ready Plus with a fall detail and spring commissioning.",
     badge: "Best Value",
   },
 };
 
-const BUNDLE_ORDER = ["winter_ready", "winter_ready_plus", "full_care"];
-
 const ALACARTE_META: Record<string, { icon: typeof Snowflake; blurb: string }> =
   {
-    outdoor_storage: {
+    winter_storage: {
       icon: Shield,
-      blurb: "Secured, fenced outdoor lot for the season.",
-    },
-    shrink_wrap: {
-      icon: Snowflake,
-      blurb: "Commercial-grade heat-shrink film with vents.",
+      blurb:
+        "Fenced outdoor lot, framed heat-shrink wrap, and spring removal — one rate.",
     },
     winterization: {
       icon: Wrench,
@@ -495,7 +494,7 @@ export default function Calculator() {
   const bundleQuotes = useMemo(() => {
     const out: Record<string, QuoteResult | null> = {};
     if (!lengthValid) return out;
-    for (const id of BUNDLE_ORDER) {
+    for (const id of TIER_ORDER) {
       const items = bundleServiceIds(id, boat).map(sid =>
         itemForService(sid, boat)
       );
@@ -503,7 +502,7 @@ export default function Calculator() {
         serviceLine: "storage",
         items,
         hullType: hullType || undefined,
-        bundleId: id,
+        bundleId: engineBundleId(id),
       });
     }
     return out;
@@ -1125,8 +1124,7 @@ export default function Calculator() {
 
                 {/* Bundle cards */}
                 <div className="grid gap-4 md:grid-cols-3">
-                  {BUNDLE_ORDER.map(id => {
-                    const b = STORAGE.bundles[id];
+                  {TIER_ORDER.map(id => {
                     const meta = BUNDLE_META[id];
                     const q = bundleQuotes[id];
                     const Icon = meta.icon;
@@ -1155,7 +1153,7 @@ export default function Calculator() {
                               fontFamily: "'Barlow Condensed', sans-serif",
                             }}
                           >
-                            {b.label}
+                            {tierLabel(id)}
                           </h3>
                         </div>
                         <p className="text-xs text-white/55 leading-relaxed mb-4 min-h-[48px]">
@@ -1174,14 +1172,25 @@ export default function Calculator() {
                                 >
                                   {money(q.subtotalCents)}
                                 </span>
-                                <span className="text-xs text-white/40 line-through mb-1 tabular-nums">
-                                  {money(q.aLaCarteSubtotalCents)}
-                                </span>
+                                {q.bundleSavingsCents > 0 && (
+                                  <span className="text-xs text-white/40 line-through mb-1 tabular-nums">
+                                    {money(q.aLaCarteSubtotalCents)}
+                                  </span>
+                                )}
                               </div>
-                              <p className="text-xs font-semibold text-[oklch(0.6_0.2_27)] mt-0.5">
-                                Save {money(q.bundleSavingsCents)} (
-                                {b.discountPct}% bundle)
-                              </p>
+                              {/* The base tier is one service, so there is no
+                                  saving to show — say what the rate covers
+                                  instead of printing "Save $0 (0% bundle)". */}
+                              {q.bundleSavingsCents > 0 ? (
+                                <p className="text-xs font-semibold text-[oklch(0.6_0.2_27)] mt-0.5">
+                                  Save {money(q.bundleSavingsCents)} (
+                                  {tierDiscountPct(id)}% bundle)
+                                </p>
+                              ) : (
+                                <p className="text-xs font-semibold text-white/45 mt-0.5">
+                                  Storage, wrap &amp; spring removal
+                                </p>
+                              )}
                             </>
                           ) : (
                             <span className="text-sm text-white/40">
@@ -1258,8 +1267,7 @@ export default function Calculator() {
                   </summary>
                   <div className="mt-4 space-y-2">
                     {[
-                      "outdoor_storage",
-                      "shrink_wrap",
+                      "winter_storage",
                       "winterization",
                       "fall_detail",
                       "spring_commissioning",

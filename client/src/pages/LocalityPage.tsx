@@ -14,8 +14,8 @@ import { findLocality, localityFaq } from "@shared/localities";
 import NotFound from "./NotFound";
 
 const priceCards = [
-  { icon: Shield, title: "Outdoor Storage", from: `from ${RATES.outdoorPerFoot}/ft`, note: `Seasonal · ${RATES.outdoorMin} minimum`, href: "/boat-storage" },
-  { icon: Snowflake, title: "Shrink Wrapping", from: `from ${RATES.shrinkPerFoot}/ft`, note: `Vented & framed · ${RATES.shrinkMin} minimum`, href: "/shrink-wrapping" },
+  { icon: Shield, title: "Storage + Shrink Wrap", from: `from ${RATES.winterPerFoot}/ft`, note: `One seasonal rate · ${RATES.winterMin} minimum`, href: "/boat-storage" },
+  { icon: Snowflake, title: "Spring Wrap Removal", from: "included", note: "We uncover and dispose of the wrap", href: "/shrink-wrapping" },
   { icon: Wrench, title: "Winterization", from: `from ${WINTERIZATION[0].price}`, note: "Flat rate by engine type", href: "/winterization" },
 ];
 
