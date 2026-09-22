@@ -2,6 +2,7 @@ import express from "express";
 import { createServer } from "http";
 import path from "path";
 import { fileURLToPath } from "url";
+import { redirectTargetFor } from "./redirects";
 import { handleQuoteSubmission } from "./quote-handler";
 import { handlePartialQuoteLead } from "./partial-lead-handler";
 import { handleContactSubmission } from "./contact-handler";
@@ -41,6 +42,21 @@ async function startServer() {
   // Loud at boot rather than silently signing 45-day quote links with a
   // constant that is published in this repository.
   assertResumeSecret();
+
+  // ── BRAND RETIRED ─────────────────────────────────────────────────────────
+  // A1 Marine Storage is now the mobile shrink-wrap offer on a1marinecare.ca.
+  // Every public page on this domain 301s there (see redirects.ts for the map
+  // and what is deliberately left alone). Declared FIRST so nothing below —
+  // static files, SPA fallback, meta injection — ever serves a storage page
+  // again. GET/HEAD only: a POST to /api/* is still an API call.
+  app.use((req, res, next) => {
+    if (req.method !== "GET" && req.method !== "HEAD") return next();
+    const search = req.originalUrl.includes("?") ? req.originalUrl.slice(req.originalUrl.indexOf("?")) : "";
+    const target = redirectTargetFor(req.path, search);
+    if (!target) return next();
+    res.set("Cache-Control", "public, max-age=86400");
+    res.redirect(301, target);
+  });
 
   app.use(express.json({ limit: "1mb" }));
 
