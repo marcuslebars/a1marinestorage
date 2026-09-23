@@ -1,5 +1,14 @@
 # A1 Marine Storage (a1marinestorage.ca)
 
+> **RETIRED (Sept 2026).** The storage brand was folded into A1 Marine Care as
+> the mobile shrink-wrap offer at <https://a1marinecare.ca/shrink-wrapping>.
+> This server now 301s every public page to its Care equivalent — the map and
+> the deliberate exceptions (`/api/unsubscribe`, `/robots.txt`) are in
+> `server/redirects.ts`, pinned by `server/redirects.test.ts`. Deploy the Care
+> site's `/shrink-wrapping` page **before** deploying this, or the redirects
+> land on a 404. Everything below describes the code as it was; it still
+> builds and tests, but the SPA is unreachable behind the redirect middleware.
+
 Vite + React (wouter) SPA with an Express server. Seasonal boat storage, shrink
 wrapping, and winterization — with a bundles-first quote calculator and lead
 capture, both on the shared pricing engine.
