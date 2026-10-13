@@ -60,7 +60,7 @@ describe("storage quote submission handler", () => {
 });
 
 /**
- * The confirmation screen offers a deposit only when EmpireVu actually produced
+ * The confirmation screen offers a deposit only when Everdoer actually produced
  * a payable quote. Everything here is about the guarantee that asking for that
  * link cannot cost the customer anything: the lead is durably recorded before
  * the forward runs, and the wait for it is capped.
@@ -69,13 +69,13 @@ describe("the deposit link is best-effort and never delays the customer", () => 
   const realFetch = globalThis.fetch;
   afterEach(() => {
     globalThis.fetch = realFetch;
-    delete process.env.EMPIREVU_INTAKE_URL;
-    delete process.env.EMPIREVU_INTAKE_SECRET;
+    delete process.env.EVERDOER_INTAKE_URL;
+    delete process.env.EVERDOER_INTAKE_SECRET;
   });
 
   it("returns the link when the intake supplies one", async () => {
-    process.env.EMPIREVU_INTAKE_URL = "https://hub.example/api/intake";
-    process.env.EMPIREVU_INTAKE_SECRET = "s";
+    process.env.EVERDOER_INTAKE_URL = "https://hub.example/api/intake";
+    process.env.EVERDOER_INTAKE_SECRET = "s";
     globalThis.fetch = (async () =>
       // leadId is required: the forwarder treats a 200 without one as "something
       // answered, but not the intake" — see the marketing-HTML case.
@@ -90,9 +90,9 @@ describe("the deposit link is best-effort and never delays the customer", () => 
     expect(res.body.depositUrl).toBe("https://quotes.example/q/tok");
   });
 
-  it("still succeeds, with no link, when EmpireVu is unreachable", async () => {
-    process.env.EMPIREVU_INTAKE_URL = "https://hub.example/api/intake";
-    process.env.EMPIREVU_INTAKE_SECRET = "s";
+  it("still succeeds, with no link, when Everdoer is unreachable", async () => {
+    process.env.EVERDOER_INTAKE_URL = "https://hub.example/api/intake";
+    process.env.EVERDOER_INTAKE_SECRET = "s";
     globalThis.fetch = (async () => {
       throw new Error("network down");
     }) as never;
@@ -106,8 +106,8 @@ describe("the deposit link is best-effort and never delays the customer", () => 
   });
 
   it("gives up rather than making the customer wait on a hung intake", async () => {
-    process.env.EMPIREVU_INTAKE_URL = "https://hub.example/api/intake";
-    process.env.EMPIREVU_INTAKE_SECRET = "s";
+    process.env.EVERDOER_INTAKE_URL = "https://hub.example/api/intake";
+    process.env.EVERDOER_INTAKE_SECRET = "s";
     // Never resolves. Without a deadline this would hang the submission — the
     // customer watching a spinner because a background system is unwell.
     globalThis.fetch = (() => new Promise(() => {})) as never;

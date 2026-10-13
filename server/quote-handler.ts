@@ -43,14 +43,14 @@ import {
   type Selection,
 } from "../client/src/lib/quote-items";
 import { isHoneypotTripped } from "./security/honeypot";
-import { attachEmpireVuResult } from "./db/quotes";
+import { attachEverdoerResult } from "./db/quotes";
 import {
   buildStorageQuoteEnvelope,
   compactLogistics,
-  forwardToEmpireVu,
+  forwardToEverdoer,
   type LeadLogistics,
   type LeadSelection,
-} from "./empirevu";
+} from "./everdoer";
 
 export interface QuoteContact {
   name: string;
@@ -123,7 +123,7 @@ function toJobberLineItems(quote: QuoteResult): JobberLineItem[] {
 }
 
 /**
- * How long a customer waits for EmpireVu before we give up and show the
+ * How long a customer waits for Everdoer before we give up and show the
  * quote-request copy instead.
  *
  * Short on purpose. This is time added to a request the customer is watching,
@@ -131,7 +131,7 @@ function toJobberLineItems(quote: QuoteResult): JobberLineItem[] {
  * safe either way. Four seconds covers a healthy round trip including the quote
  * write; beyond that, waiting costs the customer more than the button is worth.
  */
-const EMPIREVU_WAIT_MS = 4000;
+const EVERDOER_WAIT_MS = 4000;
 
 /**
  * Await a promise, or give up. Never rejects, and never cancels the underlying
@@ -143,7 +143,7 @@ async function withDeadline<T>(p: Promise<T>, ms: number): Promise<T | null> {
     timer = setTimeout(() => resolve(null), ms);
   });
   try {
-    // A rejection here is already impossible (forwardToEmpireVu never throws),
+    // A rejection here is already impossible (forwardToEverdoer never throws),
     // but catching keeps that from becoming a silent unhandled rejection if it
     // ever changes.
     return await Promise.race([p.catch(() => null), timeout]);
@@ -202,7 +202,7 @@ function logisticsFromMeta(
     delivery: bool(log?.delivery),
     trailerProvided: bool(log?.trailerProvided),
     // Derived, not sent: an in-water boat needs a haul-out, which has no priced
-    // line. Flagging it here is what tells EmpireVu not to auto-quote the lead.
+    // line. Flagging it here is what tells Everdoer not to auto-quote the lead.
     inWaterNotice: location === "lift_or_water" ? true : undefined,
     batteryCount: count(add?.batteryCount),
     extendedMonths: count(add?.extendedMonths),
@@ -231,7 +231,7 @@ function selectionFromInput(
       serviceKey: i.serviceId,
       measure: i.lengthFt,
       // A flat_per_engine service carries its count as engineCount; per_unit
-      // services carry quantity. EmpireVu's catalog wants one field.
+      // services carry quantity. Everdoer's catalog wants one field.
       quantity: i.quantity ?? i.engineCount,
     })),
   };
@@ -396,25 +396,25 @@ export async function handleQuoteSubmission(
   // Fire-and-forget with internal retry; the durable log already holds the record.
   void forwardToLeadPipeline("quote", forwardPayload);
 
-  // Additive dual-send: the SAME quote to EmpireVu's canonical intake, best-effort.
+  // Additive dual-send: the SAME quote to Everdoer's canonical intake, best-effort.
   const meta = (body.meta ?? {}) as Record<string, unknown>;
   const utm =
     typeof meta.utm === "object"
       ? (meta.utm as Record<string, string>)
       : undefined;
   //
-  // AWAITED, BUT BOUNDED. EmpireVu answers with a payable quote link when it
+  // AWAITED, BUT BOUNDED. Everdoer answers with a payable quote link when it
   // auto-quotes the lead, and that link is what turns the confirmation screen
   // from "we've sent you a link" into a button the customer can press. Getting
   // it means waiting for the round trip.
   //
   // The wait is capped hard. The durable record is already written above and the
   // legacy pipeline has already been fired, so this call is the ONLY thing that
-  // could make a customer stare at a spinner — and a slow or dead EmpireVu must
+  // could make a customer stare at a spinner — and a slow or dead Everdoer must
   // never do that. On timeout the forward keeps running in the background with
   // its own retries; we simply stop waiting and fall back to the existing copy.
-  const empireVu = await withDeadline(
-    forwardToEmpireVu(
+  const everdoer = await withDeadline(
+    forwardToEverdoer(
       buildStorageQuoteEnvelope({
         id,
         receivedAt,
@@ -442,17 +442,17 @@ export async function handleQuoteSubmission(
           : undefined,
       })
     ),
-    EMPIREVU_WAIT_MS
+    EVERDOER_WAIT_MS
   );
 
   // Record what came back, so the row knows whether this quote has a payable
   // link. Best-effort and unawaited: the customer is already being answered,
   // and Phase 2 reads this column to decide whether to send its own
-  // confirmation email or let EmpireVu's quote email be the confirmation.
-  if (empireVu?.quoteUrl || empireVu?.leadId) {
-    void attachEmpireVuResult(id, {
-      depositUrl: empireVu.quoteUrl,
-      leadId: empireVu.leadId,
+  // confirmation email or let Everdoer's quote email be the confirmation.
+  if (everdoer?.quoteUrl || everdoer?.leadId) {
+    void attachEverdoerResult(id, {
+      depositUrl: everdoer.quoteUrl,
+      leadId: everdoer.leadId,
     });
   }
 
@@ -466,7 +466,7 @@ export async function handleQuoteSubmission(
     quote,
     quoteInput: body.quoteInput,
     meta,
-    depositUrl: empireVu?.quoteUrl,
+    depositUrl: everdoer?.quoteUrl,
     reference: typeof meta.quoteRef === "string" ? meta.quoteRef : undefined,
   });
 
@@ -476,9 +476,9 @@ export async function handleQuoteSubmission(
       ok: true,
       quoteId: id,
       subtotalCents: quote.subtotalCents,
-      // Present only when EmpireVu auto-quoted this lead. The client shows a
+      // Present only when Everdoer auto-quoted this lead. The client shows a
       // deposit button when it is here and its existing copy when it is not.
-      depositUrl: empireVu?.quoteUrl,
+      depositUrl: everdoer?.quoteUrl,
     },
   };
 }
@@ -491,11 +491,11 @@ export async function handleQuoteSubmission(
  * become a failed submission — the quote is already recorded, which is the part
  * that actually matters.
  *
- * THE EMAIL IS CONDITIONAL. When EmpireVu returned a payable link it also sent
+ * THE EMAIL IS CONDITIONAL. When Everdoer returned a payable link it also sent
  * its own quote email, and that one IS the confirmation. Sending ours as well
  * would put two emails about one quote in the customer's inbox, arriving
  * seconds apart, disagreeing about what to do next. The SMS still goes either
- * way (EmpireVu sends none), and the owner alert always goes — a lead the yard
+ * way (Everdoer sends none), and the owner alert always goes — a lead the yard
  * never hears about is the failure this whole phase exists to prevent.
  */
 async function sendQuoteNotifications(input: {
@@ -571,7 +571,7 @@ async function sendQuoteNotifications(input: {
       }
     }
 
-    // ── Customer email, only when EmpireVu did not already send one.
+    // ── Customer email, only when Everdoer did not already send one.
     if (!depositUrl) {
       const mail = renderQuoteConfirmationEmail({
         name: contact.name,
@@ -594,7 +594,7 @@ async function sendQuoteNotifications(input: {
       });
     } else {
       console.log(
-        `[notify] quote_confirmation email skipped for ${id} — EmpireVu sent its own quote email`
+        `[notify] quote_confirmation email skipped for ${id} — Everdoer sent its own quote email`
       );
     }
 

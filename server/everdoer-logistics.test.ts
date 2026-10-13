@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { buildStorageQuoteEnvelope, compactLogistics } from "./empirevu";
+import { buildStorageQuoteEnvelope, compactLogistics } from "./everdoer";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const fixture = (name: string) =>

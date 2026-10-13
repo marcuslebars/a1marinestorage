@@ -1,7 +1,7 @@
 // "We've got your storage quote" — the email a customer gets on submit.
 //
-// WHEN IT SENDS. Only when EmpireVu returned NO depositUrl. When a payable
-// quote link exists, EmpireVu sends its own quote email and that one IS the
+// WHEN IT SENDS. Only when Everdoer returned NO depositUrl. When a payable
+// quote link exists, Everdoer sends its own quote email and that one IS the
 // confirmation; sending ours too would mean two emails about one quote, arriving
 // together, disagreeing about what to do next. The caller decides; this file
 // only renders.
@@ -27,7 +27,7 @@ export interface QuoteConfirmationInput {
   /** Already-worded dates, from shared/when-labels, so they match the PDF. */
   preferredDropoff?: string | null;
   preferredLaunch?: string | null;
-  /** Present only when EmpireVu auto-quoted; changes what happens next. */
+  /** Present only when Everdoer auto-quoted; changes what happens next. */
   depositUrl?: string;
   depositPct?: number;
 }

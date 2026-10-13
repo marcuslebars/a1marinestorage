@@ -1,6 +1,6 @@
 // Reusable lead-capture form used by the /winter-quote ad landing page and
 // (Phase 2) the locality pages. POSTs to the existing /api/contact pipeline —
-// durable-write-first, EmpireVu dual-send — and attaches UTM attribution +
+// durable-write-first, Everdoer dual-send — and attaches UTM attribution +
 // the landing page path so campaign leads are traceable end-to-end.
 import { useState } from "react";
 import { CheckCircle2, Loader2 } from "lucide-react";

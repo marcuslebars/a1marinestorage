@@ -4,7 +4,7 @@
 // quote itself? Everything else is there so that question can be answered
 // without opening another system.
 //
-// This is the ONE email that always sends, whatever happened with EmpireVu — a
+// This is the ONE email that always sends, whatever happened with Everdoer — a
 // lead the yard never hears about is the failure the whole brief is about.
 import type { QuoteResult } from "@a1/pricing-engine";
 
@@ -76,7 +76,7 @@ export function renderOwnerAlertEmail(input: OwnerAlertInput): RenderedEmail {
   const verdict = eligibility.autoQuoteEligible
     ? input.depositUrl
       ? "Auto-quoted — deposit link sent"
-      : "Eligible for auto-quote (EmpireVu did not return a link)"
+      : "Eligible for auto-quote (Everdoer did not return a link)"
     : "NEEDS A CALL";
 
   const reasonLines = eligibility.reasons.map(r => REASON_TEXT[r]);
@@ -128,7 +128,7 @@ export function renderOwnerAlertEmail(input: OwnerAlertInput): RenderedEmail {
           savingsCents: quote.bundleSavingsCents,
         }),
       cta: input.depositUrl
-        ? { label: "View the quote EmpireVu sent", url: input.depositUrl }
+        ? { label: "View the quote Everdoer sent", url: input.depositUrl }
         : undefined,
     }),
     text: renderText({

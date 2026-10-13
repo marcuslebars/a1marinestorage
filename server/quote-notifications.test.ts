@@ -1,12 +1,12 @@
 // Who gets told what, when a quote is submitted.
 //
 // THE RULE THAT IS EASY TO GET WRONG: the customer's confirmation EMAIL is sent
-// only when EmpireVu returned no depositUrl. When a payable link exists,
-// EmpireVu has already emailed the customer its own quote, and that one is the
+// only when Everdoer returned no depositUrl. When a payable link exists,
+// Everdoer has already emailed the customer its own quote, and that one is the
 // confirmation — two emails about one quote, arriving seconds apart and
 // disagreeing about what to do next, is worse than one.
 //
-// The SMS and the owner alert are NOT conditional. EmpireVu sends no SMS, and a
+// The SMS and the owner alert are NOT conditional. Everdoer sends no SMS, and a
 // lead the yard never hears about is the failure this phase exists to prevent.
 import fs from "node:fs";
 import os from "node:os";
@@ -83,9 +83,9 @@ let tmp: string;
 /** Let the unawaited notification work settle before asserting. */
 const flush = () => new Promise(resolve => setTimeout(resolve, 30));
 
-function mockEmpireVu(quoteUrl?: string) {
+function mockEverdoer(quoteUrl?: string) {
   vi.spyOn(global, "fetch").mockImplementation((async (url: string) => {
-    if (String(url).includes("empirevu")) {
+    if (String(url).includes("everdoer")) {
       return new Response(
         JSON.stringify({
           ok: true,
@@ -104,8 +104,8 @@ beforeEach(() => {
   tmp = fs.mkdtempSync(path.join(os.tmpdir(), "a1-notif-"));
   process.env.QUOTE_LOG_DIR = tmp;
   process.env.STORAGE_WEBHOOK_DISABLED = "1";
-  process.env.EMPIREVU_INTAKE_URL = "https://api.empirevu.test/api/intake";
-  process.env.EMPIREVU_INTAKE_SECRET = "s";
+  process.env.EVERDOER_INTAKE_URL = "https://api.everdoer.test/api/intake";
+  process.env.EVERDOER_INTAKE_SECRET = "s";
   process.env.OWNER_ALERT_EMAIL = "yard@a1marinestorage.ca";
 });
 
@@ -114,8 +114,8 @@ afterEach(() => {
   for (const k of [
     "QUOTE_LOG_DIR",
     "STORAGE_WEBHOOK_DISABLED",
-    "EMPIREVU_INTAKE_URL",
-    "EMPIREVU_INTAKE_SECRET",
+    "EVERDOER_INTAKE_URL",
+    "EVERDOER_INTAKE_SECRET",
     "OWNER_ALERT_EMAIL",
   ])
     delete process.env[k];
@@ -125,8 +125,8 @@ afterEach(() => {
 const of = (kind: string, channel: string) =>
   sent.filter(s => s.kind === kind && s.channel === channel);
 
-describe("when EmpireVu returns NO deposit link", () => {
-  beforeEach(() => mockEmpireVu());
+describe("when Everdoer returns NO deposit link", () => {
+  beforeEach(() => mockEverdoer());
 
   it("sends the customer a confirmation email", async () => {
     await handleQuoteSubmission({
@@ -166,10 +166,10 @@ describe("when EmpireVu returns NO deposit link", () => {
   });
 });
 
-describe("when EmpireVu DOES return a deposit link", () => {
-  beforeEach(() => mockEmpireVu("https://quotes.a1marinestorage.ca/q/tok"));
+describe("when Everdoer DOES return a deposit link", () => {
+  beforeEach(() => mockEverdoer("https://quotes.a1marinestorage.ca/q/tok"));
 
-  it("does NOT send our confirmation email — EmpireVu's quote email is the confirmation", async () => {
+  it("does NOT send our confirmation email — Everdoer's quote email is the confirmation", async () => {
     await handleQuoteSubmission({
       contact: CONTACT,
       quoteInput: QUOTE_INPUT,
@@ -179,7 +179,7 @@ describe("when EmpireVu DOES return a deposit link", () => {
     expect(of("quote_confirmation", "email")).toHaveLength(0);
   });
 
-  it("still sends the SMS, because EmpireVu sends none", async () => {
+  it("still sends the SMS, because Everdoer sends none", async () => {
     await handleQuoteSubmission({
       contact: CONTACT,
       quoteInput: QUOTE_INPUT,
@@ -205,7 +205,7 @@ describe("when EmpireVu DOES return a deposit link", () => {
 });
 
 describe("the owner alert flags what needs a person", () => {
-  beforeEach(() => mockEmpireVu());
+  beforeEach(() => mockEverdoer());
 
   it("marks an in-water boat as needing a call", async () => {
     await handleQuoteSubmission({
@@ -233,7 +233,7 @@ describe("the owner alert flags what needs a person", () => {
 
 describe("notifications never affect the submission", () => {
   it("still returns 200 when every send throws", async () => {
-    mockEmpireVu();
+    mockEverdoer();
     const { notify } = await import("./notify/notify");
     (
       notify as unknown as { mockImplementation: (f: unknown) => void }

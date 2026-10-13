@@ -32,6 +32,6 @@ describe("UTM plumbing is wired end-to-end", () => {
     // quote-handler already read meta.utm; contact path now threads utm too
     expect(read("../../../server/quote-handler.ts")).toContain("utm");
     expect(read("../../../server/contact-handler.ts")).toContain("utm");
-    expect(read("../../../server/empirevu.ts")).toContain("utm: input.utm");
+    expect(read("../../../server/everdoer.ts")).toContain("utm: input.utm");
   });
 });

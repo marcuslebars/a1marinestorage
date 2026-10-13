@@ -5,12 +5,12 @@
 //
 // Phase 2 uses it for ONE thing: the owner alert, so the yard can tell at a
 // glance whether a lead needs a phone call. Phase 3 (3.5) is where it goes onto
-// the EmpireVu envelope as `meta.eligibility` and the golden fixtures are
+// the Everdoer envelope as `meta.eligibility` and the golden fixtures are
 // deliberately updated — that is a contract change and does not belong in a
 // notifications phase.
 //
 // The reasons are machine strings, not prose, so the email can render them and
-// EmpireVu can branch on them later without parsing English.
+// Everdoer can branch on them later without parsing English.
 
 /** Longest boat the yard will auto-quote without a look. */
 export const AUTO_QUOTE_MAX_FT = 40;

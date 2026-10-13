@@ -7,10 +7,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   buildStorageContactEnvelope,
   buildStorageQuoteEnvelope,
-  forwardToEmpireVu,
-  signEmpireVuBody,
+  forwardToEverdoer,
+  readEverdoerEnv,
+  resetLegacyEnvWarningsForTest,
+  signEverdoerBody,
   type LeadEnvelope,
-} from "./empirevu";
+} from "./everdoer";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const fixture = (name: string) =>
@@ -80,7 +82,7 @@ describe("storage envelope builders match the golden fixtures (drift guard)", ()
   });
 });
 
-describe("forwardToEmpireVu is additive + best-effort", () => {
+describe("forwardToEverdoer is additive + best-effort", () => {
   const envelope: LeadEnvelope = {
     schemaVersion: 1,
     source: "a1marinestorage-contact",
@@ -93,25 +95,25 @@ describe("forwardToEmpireVu is additive + best-effort", () => {
 
   afterEach(() => {
     globalThis.fetch = realFetch;
-    delete process.env.EMPIREVU_INTAKE_URL;
-    delete process.env.EMPIREVU_INTAKE_SECRET;
-    delete process.env.EMPIREVU_INTAKE_DISABLED;
+    delete process.env.EVERDOER_INTAKE_URL;
+    delete process.env.EVERDOER_INTAKE_SECRET;
+    delete process.env.EVERDOER_INTAKE_DISABLED;
   });
 
   it("does not call out when unconfigured", async () => {
     const spy = vi.fn();
     globalThis.fetch = spy as never;
-    await forwardToEmpireVu(envelope);
+    await forwardToEverdoer(envelope);
     expect(spy).not.toHaveBeenCalled();
   });
 
   it("does not call out when disabled", async () => {
-    process.env.EMPIREVU_INTAKE_URL = "https://hub.example/api/intake";
-    process.env.EMPIREVU_INTAKE_SECRET = "s";
-    process.env.EMPIREVU_INTAKE_DISABLED = "1";
+    process.env.EVERDOER_INTAKE_URL = "https://hub.example/api/intake";
+    process.env.EVERDOER_INTAKE_SECRET = "s";
+    process.env.EVERDOER_INTAKE_DISABLED = "1";
     const spy = vi.fn();
     globalThis.fetch = spy as never;
-    await forwardToEmpireVu(envelope);
+    await forwardToEverdoer(envelope);
     expect(spy).not.toHaveBeenCalled();
   });
 
@@ -122,41 +124,41 @@ describe("forwardToEmpireVu is additive + best-effort", () => {
     });
 
   it("signs + posts when configured", async () => {
-    process.env.EMPIREVU_INTAKE_URL = "https://hub.example/api/intake";
-    process.env.EMPIREVU_INTAKE_SECRET = "s";
+    process.env.EVERDOER_INTAKE_URL = "https://hub.example/api/intake";
+    process.env.EVERDOER_INTAKE_SECRET = "s";
     const spy = vi.fn(async () => intakeOk());
     globalThis.fetch = spy as never;
-    await forwardToEmpireVu(envelope);
+    await forwardToEverdoer(envelope);
     expect(spy).toHaveBeenCalledTimes(1);
     const [url, opts] = spy.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("https://hub.example/api/intake");
     expect(
-      (opts.headers as Record<string, string>)["x-empirevu-signature"]
-    ).toBe(signEmpireVuBody(opts.body as string, "s"));
+      (opts.headers as Record<string, string>)["x-everdoer-signature"]
+    ).toBe(signEverdoerBody(opts.body as string, "s"));
   });
 
   it("never throws when the endpoint fails", async () => {
-    process.env.EMPIREVU_INTAKE_URL = "https://hub.example/api/intake";
-    process.env.EMPIREVU_INTAKE_SECRET = "s";
+    process.env.EVERDOER_INTAKE_URL = "https://hub.example/api/intake";
+    process.env.EVERDOER_INTAKE_SECRET = "s";
     globalThis.fetch = (async () => {
       throw new Error("network down");
     }) as never;
     // Reports failure rather than throwing. The caller uses this to decide
     // whether it can offer a deposit link; it must never decide by catching.
-    await expect(forwardToEmpireVu(envelope, 1)).resolves.toEqual({
+    await expect(forwardToEverdoer(envelope, 1)).resolves.toEqual({
       ok: false,
     });
   });
 
   it("returns the quote link when the intake supplies one", async () => {
-    process.env.EMPIREVU_INTAKE_URL = "https://hub.example/api/intake";
-    process.env.EMPIREVU_INTAKE_SECRET = "s";
+    process.env.EVERDOER_INTAKE_URL = "https://hub.example/api/intake";
+    process.env.EVERDOER_INTAKE_SECRET = "s";
     globalThis.fetch = (async () =>
       intakeOk({ quoteUrl: "https://quotes.example/q/tok" })) as never;
     // leadId is returned as well as quoteUrl: it is already parsed as the proof
     // this response came from the real intake, and the caller stores it against
     // the quote row so the two systems can be reconciled later.
-    await expect(forwardToEmpireVu(envelope, 1)).resolves.toEqual({
+    await expect(forwardToEverdoer(envelope, 1)).resolves.toEqual({
       ok: true,
       quoteUrl: "https://quotes.example/q/tok",
       leadId: "lead_1",
@@ -164,41 +166,41 @@ describe("forwardToEmpireVu is additive + best-effort", () => {
   });
 
   it("a 200 of MARKETING HTML is not a delivered lead", async () => {
-    // The production failure this guards. empirevu.com serves an SPA whose
+    // The production failure this guards. The platform's marketing domain serves an SPA whose
     // catch-all answers any unmatched path with 200 + index.html. Pointed there,
     // the forwarder logged success and every lead vanished.
-    process.env.EMPIREVU_INTAKE_URL = "https://empirevu.example/api/intake";
-    process.env.EMPIREVU_INTAKE_SECRET = "s";
+    process.env.EVERDOER_INTAKE_URL = "https://everdoer.example/api/intake";
+    process.env.EVERDOER_INTAKE_SECRET = "s";
     globalThis.fetch = (async () =>
       new Response(
-        "<!doctype html><html><title>EmpireVu — Early Access</title></html>",
+        "<!doctype html><html><title>Everdoer — Early Access</title></html>",
         {
           status: 200,
           headers: { "Content-Type": "text/html" },
         }
       )) as never;
-    await expect(forwardToEmpireVu(envelope, 1)).resolves.toEqual({
+    await expect(forwardToEverdoer(envelope, 1)).resolves.toEqual({
       ok: false,
     });
   });
 
   it("a 200 with JSON but no leadId is not a delivered lead either", async () => {
     // A proxy or health endpoint answering {ok:true} would otherwise pass.
-    process.env.EMPIREVU_INTAKE_URL = "https://hub.example/api/intake";
-    process.env.EMPIREVU_INTAKE_SECRET = "s";
+    process.env.EVERDOER_INTAKE_URL = "https://hub.example/api/intake";
+    process.env.EVERDOER_INTAKE_SECRET = "s";
     globalThis.fetch = (async () =>
       new Response(JSON.stringify({ ok: true }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       })) as never;
-    await expect(forwardToEmpireVu(envelope, 1)).resolves.toEqual({
+    await expect(forwardToEverdoer(envelope, 1)).resolves.toEqual({
       ok: false,
     });
   });
 
   it("retries an unconfirmed 200 rather than accepting it", async () => {
-    process.env.EMPIREVU_INTAKE_URL = "https://hub.example/api/intake";
-    process.env.EMPIREVU_INTAKE_SECRET = "s";
+    process.env.EVERDOER_INTAKE_URL = "https://hub.example/api/intake";
+    process.env.EVERDOER_INTAKE_SECRET = "s";
     const calls = vi.fn();
     globalThis.fetch = (async () => {
       calls();
@@ -207,7 +209,7 @@ describe("forwardToEmpireVu is additive + best-effort", () => {
         headers: { "Content-Type": "text/html" },
       });
     }) as never;
-    await forwardToEmpireVu(envelope, 3);
+    await forwardToEverdoer(envelope, 3);
     // Worth retrying: a transient proxy page should not silently drop a lead.
     expect(calls).toHaveBeenCalledTimes(3);
   });
@@ -215,14 +217,14 @@ describe("forwardToEmpireVu is additive + best-effort", () => {
   it("reading the body cannot itself cause a re-post", async () => {
     // A body reader that throws must not escape into the retry loop as an
     // exception — it is a failed confirmation, handled by the same path.
-    process.env.EMPIREVU_INTAKE_URL = "https://hub.example/api/intake";
-    process.env.EMPIREVU_INTAKE_SECRET = "s";
+    process.env.EVERDOER_INTAKE_URL = "https://hub.example/api/intake";
+    process.env.EVERDOER_INTAKE_SECRET = "s";
     const calls = vi.fn();
     globalThis.fetch = (async () => {
       calls();
       return { ok: true, status: 200 } as unknown as Response; // no .json()
     }) as never;
-    await expect(forwardToEmpireVu(envelope, 1)).resolves.toEqual({
+    await expect(forwardToEverdoer(envelope, 1)).resolves.toEqual({
       ok: false,
     });
     expect(calls).toHaveBeenCalledTimes(1);
@@ -230,7 +232,7 @@ describe("forwardToEmpireVu is additive + best-effort", () => {
 });
 
 /**
- * EmpireVu refuses to auto-quote a winterization lead without a known engine
+ * Everdoer refuses to auto-quote a winterization lead without a known engine
  * type — "not sure" is a real answer on the form and must not be guessed. This
  * envelope omitted engineType entirely, so every storage quote arrived as engine
  * "none" and was declined:
@@ -338,5 +340,118 @@ describe("the envelope carries the engine so a lead can be auto-quoted", () => {
       },
     });
     expect(env.asset?.engineType).toBe("inboard");
+  });
+});
+
+describe("rebrand: env names, header names and the intake URL", () => {
+  const envelope: LeadEnvelope = {
+    schemaVersion: 1,
+    source: "a1marinestorage-contact",
+    sourceSite: "a1marinestorage",
+    formType: "contact",
+    receivedAt: "2026-07-10T12:00:00.000Z",
+    contact: { email: "a@b.com" },
+  };
+  const realFetch = globalThis.fetch;
+  const VARS = [
+    "EVERDOER_INTAKE_URL",
+    "EVERDOER_INTAKE_SECRET",
+    "EVERDOER_INTAKE_DISABLED",
+    "EMPIREVU_INTAKE_URL",
+    "EMPIREVU_INTAKE_SECRET",
+    "EMPIREVU_INTAKE_DISABLED",
+  ];
+  const intakeOk = () =>
+    new Response(JSON.stringify({ ok: true, leadId: "lead_1" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+
+  afterEach(() => {
+    globalThis.fetch = realFetch;
+    for (const v of VARS) delete process.env[v];
+    resetLegacyEnvWarningsForTest();
+    vi.restoreAllMocks();
+  });
+
+  it("the new EVERDOER_* name wins over the old one, without a warning", () => {
+    process.env.EVERDOER_INTAKE_URL = "https://new.example/api/intake";
+    process.env.EMPIREVU_INTAKE_URL = "https://old.example/api/intake";
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(readEverdoerEnv("INTAKE_URL")).toBe(
+      "https://new.example/api/intake"
+    );
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("the old EMPIREVU_* name still works, and warns once per process", () => {
+    process.env.EMPIREVU_INTAKE_SECRET = "legacy";
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(readEverdoerEnv("INTAKE_SECRET")).toBe("legacy");
+    expect(readEverdoerEnv("INTAKE_SECRET")).toBe("legacy");
+    expect(readEverdoerEnv("INTAKE_SECRET")).toBe("legacy");
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledWith(
+      "[everdoer] using legacy env EMPIREVU_INTAKE_SECRET; set EVERDOER_INTAKE_SECRET"
+    );
+  });
+
+  it("returns undefined when neither name is set", () => {
+    expect(readEverdoerEnv("INTAKE_URL")).toBeUndefined();
+  });
+
+  it("a deploy with only the OLD vars still forwards the lead (and signs it)", async () => {
+    process.env.EMPIREVU_INTAKE_URL = "https://api.everdoer.com/api/intake";
+    process.env.EMPIREVU_INTAKE_SECRET = "s";
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const spy = vi.fn(async () => intakeOk());
+    globalThis.fetch = spy as never;
+    await expect(forwardToEverdoer(envelope, 1)).resolves.toEqual({
+      ok: true,
+      leadId: "lead_1",
+    });
+    const [, opts] = spy.mock.calls[0] as unknown as [string, RequestInit];
+    expect(
+      (opts.headers as Record<string, string>)["x-everdoer-signature"]
+    ).toBe(signEverdoerBody(opts.body as string, "s"));
+  });
+
+  it("the old EMPIREVU_INTAKE_DISABLED still disables the forward", async () => {
+    process.env.EVERDOER_INTAKE_URL = "https://api.everdoer.com/api/intake";
+    process.env.EVERDOER_INTAKE_SECRET = "s";
+    process.env.EMPIREVU_INTAKE_DISABLED = "1";
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const spy = vi.fn();
+    globalThis.fetch = spy as never;
+    await forwardToEverdoer(envelope, 1);
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it("sends ONLY the new x-everdoer-* header names", async () => {
+    process.env.EVERDOER_INTAKE_URL = "https://api.everdoer.com/api/intake";
+    process.env.EVERDOER_INTAKE_SECRET = "s";
+    const spy = vi.fn(async () => intakeOk());
+    globalThis.fetch = spy as never;
+    await forwardToEverdoer(envelope, 1);
+    const [url, opts] = spy.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe("https://api.everdoer.com/api/intake");
+    const names = Object.keys(opts.headers as Record<string, string>).map(h =>
+      h.toLowerCase()
+    );
+    expect(names).toContain("x-everdoer-signature");
+    expect(names.some(h => h.startsWith("x-empirevu-"))).toBe(false);
+    expect(
+      (opts.headers as Record<string, string>)["x-everdoer-signature"]
+    ).toMatch(/^sha256=[0-9a-f]{64}$/);
+  });
+
+  it("documents the intake URL on the new host, same path", () => {
+    const example = readFileSync(join(here, "..", ".env.example"), "utf8");
+    expect(example).toContain(
+      "EVERDOER_INTAKE_URL=https://api.everdoer.com/api/intake"
+    );
+    expect(example).not.toMatch(/api\.empirevu\.com/);
+    const readme = readFileSync(join(here, "..", "README.md"), "utf8");
+    expect(readme).toContain("https://api.everdoer.com/api/intake");
   });
 });

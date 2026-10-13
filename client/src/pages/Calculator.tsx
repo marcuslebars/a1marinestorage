@@ -275,7 +275,7 @@ export default function Calculator() {
   });
 
   const [status, setStatus] = useState<SubmitStatus>("idle");
-  // A payable quote link, when EmpireVu produced one for this submission.
+  // A payable quote link, when Everdoer produced one for this submission.
   const [depositUrl, setDepositUrl] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [showBreakdown, setShowBreakdown] = useState(true);
@@ -686,7 +686,7 @@ export default function Calculator() {
           body: JSON.stringify(payload),
         });
         if (res.ok) {
-          // Present only when EmpireVu auto-quoted this lead. Its absence is
+          // Present only when Everdoer auto-quoted this lead. Its absence is
           // normal and simply means the old copy is shown.
           const data = (await res.json().catch(() => ({}))) as {
             depositUrl?: string;

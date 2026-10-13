@@ -35,7 +35,7 @@ export interface QuoteRow {
   boat?: unknown;
   meta?: Record<string, unknown>;
   depositUrl?: string;
-  empirevuLeadId?: string;
+  everdoerLeadId?: string;
 }
 
 export interface PersistResult {
@@ -76,7 +76,7 @@ export async function insertQuote(row: QuoteRow): Promise<boolean> {
         row.boat === undefined ? null : JSON.stringify(row.boat),
         JSON.stringify(row.meta ?? {}),
         row.depositUrl ?? null,
-        row.empirevuLeadId ?? null,
+        row.everdoerLeadId ?? null,
       ]
     );
     return res.ok;
@@ -90,13 +90,13 @@ export async function insertQuote(row: QuoteRow): Promise<boolean> {
 }
 
 /**
- * Record what EmpireVu came back with, once the bounded wait resolves.
+ * Record what Everdoer came back with, once the bounded wait resolves.
  *
  * Best-effort by definition: the row is already written and the customer has
  * already been answered. This only enriches it, so a failure here is a log
  * line, never a thrown error.
  */
-export async function attachEmpireVuResult(
+export async function attachEverdoerResult(
   id: string,
   fields: { depositUrl?: string; leadId?: string }
 ): Promise<void> {
@@ -114,7 +114,7 @@ export async function attachEmpireVuResult(
     );
   } catch (err) {
     console.error(
-      "[db] could not attach the EmpireVu result:",
+      "[db] could not attach the Everdoer result:",
       err instanceof Error ? err.message : String(err)
     );
   }

@@ -41,6 +41,9 @@ corepack pnpm start             # run the built server
 | `OWNER_ALERT_EMAIL`                                        | Internal per-lead alert ("needs a call" vs auto-quoted)                                                            | _(falls back to `MAIL_BCC_OWNER`)_                |
 | `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` / `TWILIO_FROM` | SMS. All three or none; Canadian numbers only                                                                      | _(unset — SMS off)_                               |
 | `TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET`                  | Cloudflare Turnstile. Unset = verification skipped entirely                                                        | _(unset — off)_                                   |
+| `EVERDOER_INTAKE_URL`                                      | Everdoer intake for the lead dual-send (`server/everdoer.ts`). Production: `https://api.everdoer.com/api/intake`   | _(unset — forward skipped)_                       |
+| `EVERDOER_INTAKE_SECRET`                                   | HMAC key, sent as `x-everdoer-signature`. Same value as the old `EMPIREVU_INTAKE_SECRET`                           | _(unset — forward skipped)_                       |
+| `EVERDOER_INTAKE_DISABLED`                                 | `1` to skip the Everdoer forward. Old `EMPIREVU_INTAKE_*` names are read for one release, with a warning           | _(unset)_                                         |
 
 ## Shared pricing engine (`@a1/pricing-engine`)
 

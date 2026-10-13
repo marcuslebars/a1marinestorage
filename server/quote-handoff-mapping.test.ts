@@ -6,19 +6,19 @@ process.env.STORAGE_WEBHOOK_DISABLED = "1";
 process.env.QUOTE_LOG_DIR = path.join(os.tmpdir(), "a1-quote-handoff-test");
 
 /**
- * The seam between the calculator's Step 2 and EmpireVu.
+ * The seam between the calculator's Step 2 and Everdoer.
  *
  * The payloads below are the REAL ones the browser sends — captured from the
  * running calculator, not hand-written — because the failure this guards against
  * is a field the UI renames on its way out. The client says `townSlug`; the
  * envelope says `town`. Nothing errors when that mapping breaks: the lead just
- * arrives with no pickup location, and EmpireVu quietly declines to auto-quote
+ * arrives with no pickup location, and Everdoer quietly declines to auto-quote
  * it for the wrong reason.
  */
 const buildStorageQuoteEnvelope = vi.fn(() => ({ meta: {} }));
-vi.mock("./empirevu", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("./empirevu")>();
-  return { ...actual, buildStorageQuoteEnvelope, forwardToEmpireVu: vi.fn(async () => {}) };
+vi.mock("./everdoer", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./everdoer")>();
+  return { ...actual, buildStorageQuoteEnvelope, forwardToEverdoer: vi.fn(async () => {}) };
 });
 
 const { handleQuoteSubmission } = await import("./quote-handler");
@@ -103,7 +103,7 @@ describe("logistics reaches the envelope", () => {
       ...captured,
       meta: { ...captured.meta, logistics: { ...captured.meta.logistics, boatLocation: "lift_or_water" } },
     });
-    // This is what stops EmpireVu auto-quoting a boat that needs hauling out
+    // This is what stops Everdoer auto-quoting a boat that needs hauling out
     // first — a job with no priced line and no way to do it at the quoted price.
     expect(lastCall().logistics).toMatchObject({ inWaterNotice: true });
   });
@@ -122,7 +122,7 @@ describe("selection is derived from the priced input", () => {
     expect(sel.variant).toBe("cruiser");
     expect(sel.services).toEqual([
       { serviceKey: "winter_storage", measure: 24, quantity: undefined },
-      // engineCount becomes quantity: EmpireVu's catalog has one count field.
+      // engineCount becomes quantity: Everdoer's catalog has one count field.
       { serviceKey: "winterization_outboard", measure: undefined, quantity: 1 },
       { serviceKey: "transport_regional", measure: undefined, quantity: 1 },
       { serviceKey: "transport_regional", measure: undefined, quantity: 1 },

@@ -1,8 +1,8 @@
-// A1 Marine Storage → EmpireVu dual-send.
+// A1 Marine Storage → Everdoer dual-send.
 //
-// Additive: this forwards the SAME lead to EmpireVu's canonical /api/intake, in
+// Additive: this forwards the SAME lead to Everdoer's canonical /api/intake, in
 // parallel with (and never affecting) the legacy-hub forward in lead-pipeline.ts.
-// Best-effort by design — an EmpireVu outage costs only EmpireVu's copy of the
+// Best-effort by design — an Everdoer outage costs only Everdoer's copy of the
 // lead; the durable log + legacy hub are unaffected. Envelope shape is the shared
 // contract in docs/LEAD_SCHEMA.md; the golden fixtures pin this builder's output.
 import { createHmac } from "node:crypto";
@@ -83,7 +83,7 @@ function joinText(...parts: Array<string | undefined>): string | undefined {
  * Rides in `meta`, NOT at the top level. docs/LEAD_SCHEMA.md fixes the envelope's
  * top level at schemaVersion 1 and says to version the contract rather than
  * mutate it; `meta` is the documented capture-context extension point. A
- * top-level `logistics` key would be a schema change EmpireVu validates against.
+ * top-level `logistics` key would be a schema change Everdoer validates against.
  *
  * Every field is optional and compacted away when unset, so a quote with no
  * logistics produces byte-identical output to before this existed — which is what
@@ -184,7 +184,7 @@ export function buildStorageContactEnvelope(input: {
 /**
  * What the customer chose, by catalog SERVICE KEY.
  *
- * EmpireVu re-prices this against the tenant's own catalog to auto-generate a
+ * Everdoer re-prices this against the tenant's own catalog to auto-generate a
  * quote. It cannot use `lineItems`: those carry priced customer-facing
  * DESCRIPTIONS, and matching them back to services would mean string-matching
  * prose. Keys survive a label change; prose does not.
@@ -241,7 +241,7 @@ export function buildStorageQuoteEnvelope(input: {
   /**
    * The engine, taken from the priced winterization line.
    *
-   * REQUIRED FOR AUTO-QUOTING. EmpireVu refuses to auto-quote a lead that asks
+   * REQUIRED FOR AUTO-QUOTING. Everdoer refuses to auto-quote a lead that asks
    * for winterization without a known engine type — "not sure" is a real answer
    * on the form and must not be guessed. This envelope omitted it entirely, so
    * every storage quote arrived as engine "none" and was declined, even though
@@ -301,9 +301,43 @@ export function buildStorageQuoteEnvelope(input: {
   };
 }
 
+// ── Env (EVERDOER_*, with a one-release fallback to the old names) ───────────
+
+const warnedLegacyEnv = new Set<string>();
+
+/**
+ * Read `EVERDOER_<suffix>`, falling back to the pre-rebrand name.
+ *
+ * The new name always wins. When only the old one is set it is still honoured
+ * (so a deploy that lands before the Railway variables are renamed keeps
+ * forwarding leads), and a single warning per variable per process says which
+ * one to set.
+ */
+export function readEverdoerEnv(suffix: string): string | undefined {
+  const name = `EVERDOER_${suffix}`;
+  const value = process.env[name];
+  if (value !== undefined && value !== "") return value;
+  // Rebrand shim (remove after one release once EVERDOER_* is set)
+  const legacyName = `EMPIREVU_${suffix}`;
+  const legacy = process.env[legacyName];
+  if (legacy !== undefined && legacy !== "") {
+    if (!warnedLegacyEnv.has(legacyName)) {
+      warnedLegacyEnv.add(legacyName);
+      console.warn(`[everdoer] using legacy env ${legacyName}; set ${name}`);
+    }
+    return legacy;
+  }
+  return value;
+}
+
+/** Test seam: forget which legacy-env warnings this process has printed. */
+export function resetLegacyEnvWarningsForTest(): void {
+  warnedLegacyEnv.clear();
+}
+
 // ── Forwarder (best-effort, HMAC-signed) ─────────────────────────────────────
 
-export function signEmpireVuBody(rawBody: string, secret: string): string {
+export function signEverdoerBody(rawBody: string, secret: string): string {
   return `sha256=${createHmac("sha256", secret).update(rawBody, "utf8").digest("hex")}`;
 }
 
@@ -342,15 +376,15 @@ async function readIntakeBody(
 }
 
 /**
- * What the intake told us. `quoteUrl` is present only when EmpireVu auto-quoted
+ * What the intake told us. `quoteUrl` is present only when Everdoer auto-quoted
  * the lead — a minority of them — and is what lets the confirmation screen offer
  * a deposit instead of promising an email.
  */
-export interface EmpireVuForwardResult {
+export interface EverdoerForwardResult {
   ok: boolean;
   quoteUrl?: string;
   /**
-   * EmpireVu's id for the lead. Already parsed as the proof this response came
+   * Everdoer's id for the lead. Already parsed as the proof this response came
    * from the real intake; surfaced so the caller can store it against the quote
    * row and the two systems can be reconciled later.
    */
@@ -358,30 +392,30 @@ export interface EmpireVuForwardResult {
 }
 
 /**
- * Fan out an envelope to EmpireVu's /api/intake. Never throws. Skips cleanly if
+ * Fan out an envelope to Everdoer's /api/intake. Never throws. Skips cleanly if
  * unconfigured or disabled — the legacy hub + durable log remain the source of truth.
  *
  * Returns the intake's answer so the caller can offer a deposit link. That does
  * NOT make this call load-bearing: every failure path still returns `ok: false`
  * and the lead is already durably recorded before this runs.
  */
-export async function forwardToEmpireVu(
+export async function forwardToEverdoer(
   envelope: LeadEnvelope,
   attempts = 3
-): Promise<EmpireVuForwardResult> {
-  if (process.env.EMPIREVU_INTAKE_DISABLED === "1") return { ok: false };
-  const url = process.env.EMPIREVU_INTAKE_URL;
-  const secret = process.env.EMPIREVU_INTAKE_SECRET;
+): Promise<EverdoerForwardResult> {
+  if (readEverdoerEnv("INTAKE_DISABLED") === "1") return { ok: false };
+  const url = readEverdoerEnv("INTAKE_URL");
+  const secret = readEverdoerEnv("INTAKE_SECRET");
   if (!url || !secret) {
     console.log(
-      "[empirevu] EMPIREVU_INTAKE_URL/SECRET not set — skipping (legacy hub + durable log unaffected)"
+      "[everdoer] EVERDOER_INTAKE_URL/SECRET not set — skipping (legacy hub + durable log unaffected)"
     );
     return { ok: false };
   }
   const rawBody = JSON.stringify(envelope);
   const headers = {
     "Content-Type": "application/json",
-    "x-empirevu-signature": signEmpireVuBody(rawBody, secret),
+    "x-everdoer-signature": signEverdoerBody(rawBody, secret),
   };
 
   for (let attempt = 1; attempt <= attempts; attempt++) {
@@ -390,7 +424,7 @@ export async function forwardToEmpireVu(
       if (res.ok) {
         // A 200 IS NOT PROOF THE LEAD LANDED.
         //
-        // empirevu.com serves a marketing SPA whose catch-all answers ANY
+        // The platform's marketing domain serves an SPA whose catch-all answers ANY
         // unmatched path with 200 and index.html. Pointed there, this forwarder
         // posted every lead, read "ok", logged success — and the lead was gone.
         // Silently, indefinitely, with a green log line. The real intake replies
@@ -399,13 +433,13 @@ export async function forwardToEmpireVu(
         const body = await readIntakeBody(res);
         if (!body) {
           console.error(
-            `[empirevu] ${res.status} from ${url} but the body is not an intake response — ` +
+            `[everdoer] ${res.status} from ${url} but the body is not an intake response — ` +
               `the URL is probably wrong (a marketing site or proxy answering 200). Lead NOT confirmed.`
           );
           // Falls through to the retry loop, then to the loud give-up below.
         } else {
           console.log(
-            `[empirevu] forwarded ${envelope.formType} (attempt ${attempt}, lead ${body.leadId})`
+            `[everdoer] forwarded ${envelope.formType} (attempt ${attempt}, lead ${body.leadId})`
           );
           return body.quoteUrl
             ? { ok: true, quoteUrl: body.quoteUrl, leadId: body.leadId }
@@ -413,19 +447,19 @@ export async function forwardToEmpireVu(
         }
       } else {
         console.error(
-          `[empirevu] responded ${res.status} (attempt ${attempt})`
+          `[everdoer] responded ${res.status} (attempt ${attempt})`
         );
       }
     } catch (err) {
       console.error(
-        `[empirevu] forward failed (attempt ${attempt}):`,
+        `[everdoer] forward failed (attempt ${attempt}):`,
         err instanceof Error ? err.message : String(err)
       );
     }
     if (attempt < attempts) await sleep(attempt * 750);
   }
   console.error(
-    `[empirevu] gave up after ${attempts} attempts — legacy hub + durable log still hold the lead`
+    `[everdoer] gave up after ${attempts} attempts — legacy hub + durable log still hold the lead`
   );
   return { ok: false };
 }

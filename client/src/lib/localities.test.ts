@@ -68,6 +68,6 @@ describe("locality lead plumbing (formType winter-storage-quote + locality)", ()
     const contact = read("../../../server/contact-handler.ts");
     expect(contact).toContain("locality");
     expect(contact).toContain("formType");
-    expect(read("../../../server/empirevu.ts")).toContain('"winter-storage-quote"');
+    expect(read("../../../server/everdoer.ts")).toContain('"winter-storage-quote"');
   });
 });

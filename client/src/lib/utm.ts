@@ -3,7 +3,7 @@
 // Captured on first load and stored in sessionStorage so it survives SPA
 // navigation (a visitor lands on /winter-quote?utm_source=meta..., browses, then
 // submits from another route). Lead submissions attach it as `meta.utm`, which
-// the server threads into the canonical lead envelope for EmpireVu.
+// the server threads into the canonical lead envelope for Everdoer.
 const KEY = "a1ms_attribution";
 const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"] as const;
 

@@ -26,9 +26,9 @@ import {
 } from "../client/src/lib/quote-items";
 import {
   buildStorageQuoteEnvelope,
-  forwardToEmpireVu,
+  forwardToEverdoer,
   type LeadLineItem,
-} from "./empirevu";
+} from "./everdoer";
 import { SOURCE_SITE, forwardToLeadPipeline } from "./lead-pipeline";
 import { notify } from "./notify/notify";
 import { renderPdfCopyEmail } from "./notify/templates/pdf-copy";
@@ -183,10 +183,10 @@ export async function handlePartialQuoteLead(
         .join("\n"),
     });
 
-    // (3) The same lead to EmpireVu. `quoteRef` rides in meta, which is the
+    // (3) The same lead to Everdoer. `quoteRef` rides in meta, which is the
     //     documented extension point — the envelope's top level is unchanged,
     //     so the golden fixtures stay byte-identical.
-    void forwardToEmpireVu(
+    void forwardToEverdoer(
       buildStorageQuoteEnvelope({
         id,
         receivedAt,

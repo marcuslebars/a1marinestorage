@@ -98,9 +98,9 @@ describe("a PDF download with only an email", () => {
     expect(quote.subtotalCents).toBeGreaterThan(1);
   });
 
-  it("forwards an EmpireVu envelope carrying the reference", async () => {
-    process.env.EMPIREVU_INTAKE_URL = "https://api.empirevu.test/api/intake";
-    process.env.EMPIREVU_INTAKE_SECRET = "test-secret";
+  it("forwards an Everdoer envelope carrying the reference", async () => {
+    process.env.EVERDOER_INTAKE_URL = "https://api.everdoer.test/api/intake";
+    process.env.EVERDOER_INTAKE_SECRET = "test-secret";
 
     await handlePartialQuoteLead({
       email: "skipper@example.com",
@@ -114,8 +114,8 @@ describe("a PDF download with only an email", () => {
 
     const calls = (global.fetch as unknown as { mock: { calls: unknown[][] } })
       .mock.calls;
-    const intake = calls.find(c => String(c[0]).includes("empirevu"));
-    expect(intake, "an EmpireVu envelope should have been sent").toBeTruthy();
+    const intake = calls.find(c => String(c[0]).includes("everdoer"));
+    expect(intake, "an Everdoer envelope should have been sent").toBeTruthy();
 
     const envelope = JSON.parse(String((intake![1] as RequestInit).body));
     expect(envelope.schemaVersion).toBe(1);
@@ -124,8 +124,8 @@ describe("a PDF download with only an email", () => {
     expect(envelope.meta.source).toBe("pdf_download");
     expect(envelope.contact.email).toBe("skipper@example.com");
 
-    delete process.env.EMPIREVU_INTAKE_URL;
-    delete process.env.EMPIREVU_INTAKE_SECRET;
+    delete process.env.EVERDOER_INTAKE_URL;
+    delete process.env.EVERDOER_INTAKE_SECRET;
   });
 
   it("rejects a body with no usable email rather than filing an empty lead", async () => {

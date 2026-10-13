@@ -12,7 +12,7 @@ import { normalizeContact } from "./normalize";
 import { notify } from "./notify/notify";
 import { renderContactConfirmationEmail } from "./notify/templates/contact-confirmation";
 import { isHoneypotTripped } from "./security/honeypot";
-import { buildStorageContactEnvelope, forwardToEmpireVu } from "./empirevu";
+import { buildStorageContactEnvelope, forwardToEverdoer } from "./everdoer";
 
 const LEAD_TAG = "a1marinestorage-contact";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -176,9 +176,9 @@ export async function handleContactSubmission(
   };
   void forwardToLeadPipeline("contact", forwardPayload);
 
-  // (3) Additive dual-send: the SAME lead to EmpireVu's canonical intake, best-effort.
-  //     The legacy forward above is untouched; an EmpireVu failure never affects this response.
-  void forwardToEmpireVu(
+  // (3) Additive dual-send: the SAME lead to Everdoer's canonical intake, best-effort.
+  //     The legacy forward above is untouched; an Everdoer failure never affects this response.
+  void forwardToEverdoer(
     buildStorageContactEnvelope({
       id,
       receivedAt,

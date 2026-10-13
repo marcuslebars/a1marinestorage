@@ -8,7 +8,7 @@
 // from the same engine result, is what makes "the PDF and the panel never
 // disagree" testable rather than hoped for.
 //
-// PURE and dependency-light on purpose: EmpireVu's hosted quote page (Phase 3)
+// PURE and dependency-light on purpose: Everdoer's hosted quote page (Phase 3)
 // should be able to reuse this and the renderer built on it. Nothing here
 // imports React, Express, or anything site-specific.
 import type { QuoteResult } from "@a1/pricing-engine";
@@ -91,7 +91,7 @@ export const DEPOSIT_RATE_BPS = 2500;
 
 /**
  * Exact integer round-half-up — no floating-point drift on the .5 boundary.
- * Same routine EmpireVu uses, deliberately, so a quote priced on either side
+ * Same routine Everdoer uses, deliberately, so a quote priced on either side
  * lands on the same cent.
  */
 export function roundHalfUpDiv(numerator: number, denominator: number): number {

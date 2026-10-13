@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { buildStorageQuoteEnvelope } from "./empirevu";
+import { buildStorageQuoteEnvelope } from "./everdoer";
 
 /**
- * The calculator's Step 2 collects transport and add-ons; EmpireVu turns a lead
+ * The calculator's Step 2 collects transport and add-ons; Everdoer turns a lead
  * into a payable quote from what arrives here. These pin the two seams where
  * that goes wrong without anyone noticing: a renamed field silently dropping, and
  * a quote WITHOUT logistics changing shape (which would break every golden
@@ -43,7 +43,7 @@ describe("selection travels by service KEY", () => {
     const sel = metaOf(env).selection!;
     expect(sel.bundleKey).toBe("winter_ready_plus");
     expect(sel.variant).toBe("pontoon");
-    // Keys, not the priced labels in lineItems: EmpireVu re-prices these against
+    // Keys, not the priced labels in lineItems: Everdoer re-prices these against
     // its own catalog, and it cannot do that by string-matching descriptions.
     expect(sel.services).toEqual([
       { serviceKey: "winter_storage", measure: 24 },
@@ -75,7 +75,7 @@ describe("logistics survives the trip", () => {
       logistics: { boatLocation: "lift_or_water", inWaterNotice: true },
     });
     // A boat in the water needs a haul-out, which has no priced line. Without
-    // this flag EmpireVu would auto-quote a job it cannot actually do at the
+    // this flag Everdoer would auto-quote a job it cannot actually do at the
     // price quoted.
     expect(metaOf(env).logistics!.inWaterNotice).toBe(true);
   });

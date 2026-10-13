@@ -6,7 +6,7 @@
  * was called. That is what lets the PDF and the on-screen panel agree: they
  * render the same model, and this file cannot introduce a number of its own.
  *
- * Branding is a PARAMETER rather than hardcoded, so EmpireVu's hosted quote page
+ * Branding is a PARAMETER rather than hardcoded, so Everdoer's hosted quote page
  * can reuse this for other tenants (see the reuse note in the branch summary).
  *
  * Server-side only. @react-pdf/renderer is heavy and has no business in the
