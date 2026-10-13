@@ -427,7 +427,32 @@ describe("rebrand: env names, header names and the intake URL", () => {
     expect(spy).not.toHaveBeenCalled();
   });
 
-  it("sends ONLY the new x-everdoer-* header names", async () => {
+  it("new DISABLED=0 does not override old DISABLED=1: the forward stays off", async () => {
+    process.env.EVERDOER_INTAKE_URL = "https://api.everdoer.com/api/intake";
+    process.env.EVERDOER_INTAKE_SECRET = "s";
+    process.env.EVERDOER_INTAKE_DISABLED = "0";
+    process.env.EMPIREVU_INTAKE_DISABLED = "1";
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const spy = vi.fn();
+    globalThis.fetch = spy as never;
+    await expect(forwardToEverdoer(envelope, 1)).resolves.toEqual({
+      ok: false,
+    });
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it("new DISABLED=1 disables even when the old one says 0", async () => {
+    process.env.EVERDOER_INTAKE_URL = "https://api.everdoer.com/api/intake";
+    process.env.EVERDOER_INTAKE_SECRET = "s";
+    process.env.EVERDOER_INTAKE_DISABLED = "1";
+    process.env.EMPIREVU_INTAKE_DISABLED = "0";
+    const spy = vi.fn();
+    globalThis.fetch = spy as never;
+    await forwardToEverdoer(envelope, 1);
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it("sends the new AND (for the shim release) the old signature header, equal", async () => {
     process.env.EVERDOER_INTAKE_URL = "https://api.everdoer.com/api/intake";
     process.env.EVERDOER_INTAKE_SECRET = "s";
     const spy = vi.fn(async () => intakeOk());
@@ -439,10 +464,13 @@ describe("rebrand: env names, header names and the intake URL", () => {
       h.toLowerCase()
     );
     expect(names).toContain("x-everdoer-signature");
-    expect(names.some(h => h.startsWith("x-empirevu-"))).toBe(false);
-    expect(
-      (opts.headers as Record<string, string>)["x-everdoer-signature"]
-    ).toMatch(/^sha256=[0-9a-f]{64}$/);
+    expect(names).toContain("x-empirevu-signature");
+    const h = opts.headers as Record<string, string>;
+    expect(h["x-everdoer-signature"]).toMatch(/^sha256=[0-9a-f]{64}$/);
+    expect(h["x-empirevu-signature"]).toBe(h["x-everdoer-signature"]);
+    expect(h["x-everdoer-signature"]).toBe(
+      signEverdoerBody(opts.body as string, "s")
+    );
   });
 
   it("documents the intake URL on the new host, same path", () => {

@@ -45,6 +45,64 @@ export interface PersistResult {
   jsonl: boolean;
 }
 
+// ── Lead id column: expand/contract rename (migration 002) ──────────────────
+//
+// quotes.empirevu_lead_id is being replaced by quotes.everdoer_lead_id. Until a
+// later migration drops the old column, every write goes to BOTH, and every
+// read takes coalesce(new, old) so rows written by a container that predates
+// the migration still answer. If migration 002 has not applied (the server
+// starts even when the migrator fails), a write naming everdoer_lead_id fails
+// with undefined_column and is retried against the old column alone, so a
+// lead is never lost to the ordering of a deploy.
+
+/** Pre-rebrand column, dropped by a later migration. Kept until then. */
+const LEGACY_LEAD_ID_COLUMN = "empirevu_lead_id";
+
+/** What a reader should select for the platform's lead id. */
+export const LEAD_ID_SQL = `coalesce(everdoer_lead_id, ${LEGACY_LEAD_ID_COLUMN})`;
+
+function isUndefinedColumn(err: unknown): boolean {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    (err as { code?: unknown }).code === "42703" &&
+    /everdoer_lead_id/.test(String((err as { message?: unknown }).message))
+  );
+}
+
+async function withLeadIdColumnFallback<T>(
+  current: () => Promise<T>,
+  legacy: () => Promise<T>
+): Promise<T> {
+  try {
+    return await current();
+  } catch (err) {
+    if (!isUndefinedColumn(err)) throw err;
+    console.warn(
+      "[db] quotes.everdoer_lead_id is missing (migration 002 not applied?) — writing the old column only"
+    );
+    return legacy();
+  }
+}
+
+/** The platform's lead id for a quote, whichever column holds it. */
+export async function getEverdoerLeadId(id: string): Promise<string | null> {
+  if (!isConfigured()) return null;
+  const res = await withLeadIdColumnFallback(
+    () =>
+      query<{ lead_id: string | null }>(
+        `select ${LEAD_ID_SQL} as lead_id from quotes where id = $1`,
+        [id]
+      ),
+    () =>
+      query<{ lead_id: string | null }>(
+        `select ${LEGACY_LEAD_ID_COLUMN} as lead_id from quotes where id = $1`,
+        [id]
+      )
+  );
+  return res.rows[0]?.lead_id ?? null;
+}
+
 /**
  * Write one lead to Postgres.
  *
@@ -56,28 +114,43 @@ export interface PersistResult {
  */
 export async function insertQuote(row: QuoteRow): Promise<boolean> {
   if (!isConfigured()) return false;
+  const params = [
+    row.id,
+    row.reference ?? null,
+    row.receivedAt,
+    row.source,
+    row.status ?? "new",
+    JSON.stringify(row.contact),
+    row.quoteInput === undefined ? null : JSON.stringify(row.quoteInput),
+    row.quote === undefined ? null : JSON.stringify(row.quote),
+    row.selection === undefined ? null : JSON.stringify(row.selection),
+    row.boat === undefined ? null : JSON.stringify(row.boat),
+    JSON.stringify(row.meta ?? {}),
+    row.depositUrl ?? null,
+    row.everdoerLeadId ?? null,
+  ];
   try {
-    const res = await query(
-      `insert into quotes
-         (id, reference, received_at, source, status, contact,
-          quote_input, quote, selection, boat, meta, deposit_url, empirevu_lead_id)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-       on conflict (id) do nothing`,
-      [
-        row.id,
-        row.reference ?? null,
-        row.receivedAt,
-        row.source,
-        row.status ?? "new",
-        JSON.stringify(row.contact),
-        row.quoteInput === undefined ? null : JSON.stringify(row.quoteInput),
-        row.quote === undefined ? null : JSON.stringify(row.quote),
-        row.selection === undefined ? null : JSON.stringify(row.selection),
-        row.boat === undefined ? null : JSON.stringify(row.boat),
-        JSON.stringify(row.meta ?? {}),
-        row.depositUrl ?? null,
-        row.everdoerLeadId ?? null,
-      ]
+    const res = await withLeadIdColumnFallback(
+      () =>
+        query(
+          `insert into quotes
+             (id, reference, received_at, source, status, contact,
+              quote_input, quote, selection, boat, meta, deposit_url,
+              everdoer_lead_id, ${LEGACY_LEAD_ID_COLUMN})
+           values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $13)
+           on conflict (id) do nothing`,
+          params
+        ),
+      () =>
+        query(
+          `insert into quotes
+             (id, reference, received_at, source, status, contact,
+              quote_input, quote, selection, boat, meta, deposit_url,
+              ${LEGACY_LEAD_ID_COLUMN})
+           values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+           on conflict (id) do nothing`,
+          params
+        )
     );
     return res.ok;
   } catch (err) {
@@ -103,14 +176,29 @@ export async function attachEverdoerResult(
   if (!isConfigured()) return;
   if (!fields.depositUrl && !fields.leadId) return;
   try {
-    await query(
-      `update quotes
-         set deposit_url = coalesce($2, deposit_url),
-             empirevu_lead_id = coalesce($3, empirevu_lead_id),
-             status = case when $2 is not null then 'quoted' else status end,
-             updated_at = now()
-       where id = $1`,
-      [id, fields.depositUrl ?? null, fields.leadId ?? null]
+    const params = [id, fields.depositUrl ?? null, fields.leadId ?? null];
+    await withLeadIdColumnFallback(
+      () =>
+        query(
+          `update quotes
+             set deposit_url = coalesce($2, deposit_url),
+                 everdoer_lead_id = coalesce($3, everdoer_lead_id),
+                 ${LEGACY_LEAD_ID_COLUMN} = coalesce($3, ${LEGACY_LEAD_ID_COLUMN}),
+                 status = case when $2 is not null then 'quoted' else status end,
+                 updated_at = now()
+           where id = $1`,
+          params
+        ),
+      () =>
+        query(
+          `update quotes
+             set deposit_url = coalesce($2, deposit_url),
+                 ${LEGACY_LEAD_ID_COLUMN} = coalesce($3, ${LEGACY_LEAD_ID_COLUMN}),
+                 status = case when $2 is not null then 'quoted' else status end,
+                 updated_at = now()
+           where id = $1`,
+          params
+        )
     );
   } catch (err) {
     console.error(

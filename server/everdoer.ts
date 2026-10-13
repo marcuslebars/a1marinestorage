@@ -330,6 +330,26 @@ export function readEverdoerEnv(suffix: string): string | undefined {
   return value;
 }
 
+/**
+ * The kill switch. Disabled if EITHER name says "1" (the same truthiness as
+ * before the rebrand), so a switch flipped on the old name cannot be silently
+ * overridden by a new name set to anything else.
+ */
+export function isEverdoerIntakeDisabled(): boolean {
+  if (process.env.EVERDOER_INTAKE_DISABLED === "1") return true;
+  // Rebrand shim (remove after one release once EVERDOER_* is set)
+  if (process.env.EMPIREVU_INTAKE_DISABLED === "1") {
+    if (!warnedLegacyEnv.has("EMPIREVU_INTAKE_DISABLED")) {
+      warnedLegacyEnv.add("EMPIREVU_INTAKE_DISABLED");
+      console.warn(
+        "[everdoer] using legacy env EMPIREVU_INTAKE_DISABLED; set EVERDOER_INTAKE_DISABLED"
+      );
+    }
+    return true;
+  }
+  return false;
+}
+
 /** Test seam: forget which legacy-env warnings this process has printed. */
 export function resetLegacyEnvWarningsForTest(): void {
   warnedLegacyEnv.clear();
@@ -403,7 +423,7 @@ export async function forwardToEverdoer(
   envelope: LeadEnvelope,
   attempts = 3
 ): Promise<EverdoerForwardResult> {
-  if (readEverdoerEnv("INTAKE_DISABLED") === "1") return { ok: false };
+  if (isEverdoerIntakeDisabled()) return { ok: false };
   const url = readEverdoerEnv("INTAKE_URL");
   const secret = readEverdoerEnv("INTAKE_SECRET");
   if (!url || !secret) {
@@ -413,9 +433,14 @@ export async function forwardToEverdoer(
     return { ok: false };
   }
   const rawBody = JSON.stringify(envelope);
+  const signature = signEverdoerBody(rawBody, secret);
   const headers = {
     "Content-Type": "application/json",
-    "x-everdoer-signature": signEverdoerBody(rawBody, secret),
+    "x-everdoer-signature": signature,
+    // Rebrand shim (remove after one release once EVERDOER_* is set): the old
+    // header name with the identical value, so delivery does not depend on the
+    // platform keeping its x-everdoer-* support deployed.
+    "x-empirevu-signature": signature,
   };
 
   for (let attempt = 1; attempt <= attempts; attempt++) {
